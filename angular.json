@@ -2,7 +2,8 @@
   "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
   "version": 1,
   "cli": {
-    "packageManager": "npm"
+    "packageManager": "npm",
+    "analytics": false
   },
   "newProjectRoot": "projects",
   "projects": {
@@ -72,6 +73,32 @@
         },
         "test": {
           "builder": "@angular/build:unit-test"
+        }
+      }
+    },
+    "devtools-bridge": {
+      "projectType": "library",
+      "root": "projects/devtools-bridge",
+      "sourceRoot": "projects/devtools-bridge/src",
+      "prefix": "nf",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:ng-packagr",
+          "configurations": {
+            "production": {
+              "tsConfig": "projects/devtools-bridge/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "projects/devtools-bridge/tsconfig.lib.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "test": {
+          "builder": "@angular/build:unit-test",
+          "options": {
+            "tsConfig": "projects/devtools-bridge/tsconfig.spec.json"
+          }
         }
       }
     }

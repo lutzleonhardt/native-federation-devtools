@@ -1,0 +1,2213 @@
+{
+  "page": {
+    "logicalPageId": "frankenstein-shell",
+    "url": "http://127.0.0.1:8088/frankenstein-meeting-room/",
+    "origin": "http://127.0.0.1:8088",
+    "path": "/frankenstein-meeting-room/",
+    "title": "Shell",
+    "readyState": "complete"
+  },
+  "collector": {
+    "kind": "chrome-devtools-mcp",
+    "interface": "generic-devtools",
+    "webMcpUsed": false,
+    "sanitization": "allowlist-projection-v1"
+  },
+  "channels": {
+    "nativeFederationGlobals": {
+      "availability": "available",
+      "observedAt": "2026-07-24T13:50:22.604Z",
+      "data": {
+        "present": true,
+        "descriptor": "value",
+        "valueType": "object",
+        "repositoryKeys": [
+          "remotes",
+          "scoped-externals",
+          "shared-chunks",
+          "shared-externals"
+        ],
+        "repositories": {
+          "remotes": {
+            "present": true,
+            "value": {
+              "__NF-HOST__": {
+                "exposes": [],
+                "integrity": {
+                  "_angular_common.Ucn2BmyRM1.js": "sha384-ifIpCfW3pytDYCF1JasK/q29l9JcykVZmVSQPMbvfrIGyBjplklPOyLqxyHVtqL7",
+                  "_angular_common_http.XnycUwbhpt.js": "sha384-IK8Nx+6NWCVROXYGp+8jufFYVZlMcU0/sA2pO54JMRAhwQCS6iZuRCEnwvAGIG0O",
+                  "_angular_core.RHjtWEkOzP.js": "sha384-K67ZQ5cbnDPIVn8WANbSD0mtv1yJTMx8mlSOumXJTrAgTrsuRNsDWfVtimzbGc8o",
+                  "_angular_core_event_dispatch_contract_min_js.JotK85OfcE.js": "sha384-5wVWeVYtx1cBT1jKmN8rQ7UM9OvfVXX8EiLwaa0Ske0MZEGspZWPPZzpPCmI7TvV",
+                  "_angular_core_primitives_di.QUc60-Xs6C.js": "sha384-6rOmacKn8k2Rcgtrc+9Jiv4npsCyzrhos2r3DUvquC7Sy2zH1Qe8r7CLOIaKbfoP",
+                  "_angular_core_primitives_event_dispatch.1A9qBws3LP.js": "sha384-MD1dEWUryHtZl1bJtQZQD2JHywLtf2noRB7QrVRtzO/zWxi/9bmM02zYvzWXySQM",
+                  "_angular_core_primitives_signals.ePwPWbaXlE.js": "sha384-LPA4je4R4YerkZL5Dsogc8kPstf4JOzHn1RFaf8Pv5R+mNyYS3zwhgqy7LAAZePH",
+                  "_angular_core_rxjs_interop.YqevhcoUQy.js": "sha384-ZmQah/VqzvO07m4LLHnI5ixj/1rxctq98QHEfgknKEma3JSgXejbnkph+m/WfWmc",
+                  "_angular_platform_browser.lAyP2N3Pw8.js": "sha384-Uqk4Pa50G3bzBAWwoZ0rCBacNLN2dyJ8QkJWL5QD6IqFLISZIk84SZzH8RmcXGlk",
+                  "chunk-2VMXMS7J.js": "sha384-IiJwn+tZf8TQkKyCcaAtb9JW90aZbS2eLcLYxvXmc4DKIkLJGSPoVR4c+hMZ/hi2",
+                  "chunk-APTZXQMF.js": "sha384-zWhh2apMCPktoaZjn6P/SeGHLy7ujJxm4zqpRZ0BLIciAD+DEHbQgnzCu06YN4vy",
+                  "chunk-K6ZMRNMW.js": "sha384-aZwtRvM310GrKNMB9tX07AS1Chpy7tOFkHUfDaJP+pAlU7dOs4PIXTpIFLeObnGV",
+                  "chunk-PAMKM67I.js": "sha384-hTdulOFDbDpZPDXTPSqo9asD5kf/Rb2nqqOwqK/IzWWXyf8kf0+N94FSvSjPLKtF",
+                  "chunk-RCIWTGS7.js": "sha384-GVoyZ7htW1QcYMK3i6Pio7FhoQCY+94M+cYKVVTZyrTUO6RQKqRpVu5T2ng478ha",
+                  "chunk-V2SUVJ7R.js": "sha384-BfAKYP5/8tfHP2fbRCyG4x5an/HWTuOKp4XtnZoJwWpXoctwT6gkvA4/b7qHWizn",
+                  "chunk-WW26EZ22.js": "sha384-sDhcZ7eQ+i0rEfRIZ4dhGpwqqr4OLIKhrNr1CpqUuynnbsK2qpp/I/cq8JVcKfl0",
+                  "rxjs.IJzVNeB5rY.js": "sha384-CND2UMO83rk1q4PmwPBkMzMidBFPpleOKv8RwUTYv7MVKgLY5QZ4rSMNPkizOXfU",
+                  "rxjs_operators.gdYSvUruih.js": "sha384-laChUqH6WQnng9RMXX09mNVUEHCCL/2hiynx8XKFxv8EpZDOXvUI6j2KJAvkz7/m",
+                  "tslib.s6WVYyl__v.js": "sha384-us48hLnAuTVi42myNvtbK0UsmSvbAjKfiZP4HjtL9tB6FogW0rizxqZPIRAbidzm"
+                },
+                "scopeUrl": "http://127.0.0.1:8088/frankenstein-meeting-room/"
+              },
+              "mermaid": {
+                "exposes": [
+                  {
+                    "file": "Bootstrap-BBNZEAEH.js",
+                    "moduleName": "http://127.0.0.1:8088/frankenstein-meeting-room/Bootstrap"
+                  }
+                ],
+                "integrity": {
+                  "Bootstrap-BBNZEAEH.js": "sha384-DPpBRZv47CVBpYfzVQiKWL76+Zh+GNRvDSY7G99RMPT+j5U8Pq7eDciHllDgRaFO",
+                  "mermaid.fMI3T940QA.js": "sha384-kstnQo1tIfL+tMgIsAHgtN6HODg7IUJOB7YxDsvWEfQKwtm2T8pJXYurn7ZK8lW/"
+                },
+                "scopeUrl": "http://127.0.0.1:8088/frankenstein-meeting-room/mermaid/"
+              },
+              "whiteboard": {
+                "exposes": [
+                  {
+                    "file": "Bootstrap-7COJRA5I.js",
+                    "moduleName": "http://127.0.0.1:8088/frankenstein-meeting-room/Bootstrap"
+                  }
+                ],
+                "integrity": {
+                  "Bootstrap-7COJRA5I.js": "sha384-7/Brmjo9gqN65lCvoMCfm1Ub5tyUw3ivabWA1NeC/UJOUrWzlfhIj0XYoFKiFEk7",
+                  "_excalidraw_excalidraw.0MlOv2WvQj.js": "sha384-gQrm6C7mOLCTYcdQFNBrh7GZ3o5hy2K2NmxwOfiJtDzs7NTkKc5hTxSBfksuKbaU",
+                  "react.QYXZqQxJ1j.js": "sha384-57khIiCnWo5tC9kEt0ibpdoHhHGtPXp1KmeWeJyyX0+UPwenA+Wj+0qvj7ajI3As",
+                  "react_dom.6SKyvL_ZIW.js": "sha384-P5wEc9b7LWwq+gIw6WZydAmGaqqKM9f1+8HOET0FxnhMqtpfCs6opvzQAXMtoyZA",
+                  "react_dom_client.lVKcx-4-HL.js": "sha384-qhRGasTGrIXFNZJfwVfTnDA2+KKAGE/O6D+GEErqa6n/c3xiyVcKH1x4FmMqeUAN",
+                  "react_dom_profiling.wPFH8wjIJf.js": "sha384-ljYfxwXdL20/jno4xQm1XDO5sL/8huAbZHNBeJ4Ov+nY5UDdOHl3ZwurHwevUCdI",
+                  "react_jsx_dev_runtime.UsMOGvdsKw.js": "sha384-Pz3qELNqQbfKZe26gJ2n/S9ZKDnDcKoBB4HKdEphutzsxBeMedPySvP+iKitw5h/",
+                  "react_jsx_runtime.RDhwXXoxCg.js": "sha384-mWHwomGyGtSC45UesaeI3hV4diuzv10CMDSAWJ1rMRQ8F+lA71uneBirgsCW/JxO"
+                },
+                "scopeUrl": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/"
+              }
+            }
+          },
+          "scoped-externals": {
+            "present": true,
+            "value": {}
+          },
+          "shared-externals": {
+            "present": true,
+            "value": {
+              "__GLOBAL__": {
+                "@angular/common": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": true,
+                      "remotes": [
+                        {
+                          "bundle": "browser-angular_common",
+                          "cached": true,
+                          "file": "_angular_common.Ucn2BmyRM1.js",
+                          "name": "__NF-HOST__",
+                          "requiredVersion": "^21.2.0",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "21.2.12"
+                    }
+                  ]
+                },
+                "@angular/common/http": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": true,
+                      "remotes": [
+                        {
+                          "bundle": "browser-angular_common",
+                          "cached": true,
+                          "file": "_angular_common_http.XnycUwbhpt.js",
+                          "name": "__NF-HOST__",
+                          "requiredVersion": "^21.2.0",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "21.2.12"
+                    }
+                  ]
+                },
+                "@angular/core": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": true,
+                      "remotes": [
+                        {
+                          "bundle": "browser-angular_core",
+                          "cached": true,
+                          "file": "_angular_core.RHjtWEkOzP.js",
+                          "name": "__NF-HOST__",
+                          "requiredVersion": "^21.2.0",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "21.2.12"
+                    }
+                  ]
+                },
+                "@angular/core/event-dispatch-contract.min.js": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": true,
+                      "remotes": [
+                        {
+                          "bundle": "browser-angular_core",
+                          "cached": true,
+                          "file": "_angular_core_event_dispatch_contract_min_js.JotK85OfcE.js",
+                          "name": "__NF-HOST__",
+                          "requiredVersion": "^21.2.0",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "21.2.12"
+                    }
+                  ]
+                },
+                "@angular/core/primitives/di": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": true,
+                      "remotes": [
+                        {
+                          "bundle": "browser-angular_core",
+                          "cached": true,
+                          "file": "_angular_core_primitives_di.QUc60-Xs6C.js",
+                          "name": "__NF-HOST__",
+                          "requiredVersion": "^21.2.0",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "21.2.12"
+                    }
+                  ]
+                },
+                "@angular/core/primitives/event-dispatch": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": true,
+                      "remotes": [
+                        {
+                          "bundle": "browser-angular_core",
+                          "cached": true,
+                          "file": "_angular_core_primitives_event_dispatch.1A9qBws3LP.js",
+                          "name": "__NF-HOST__",
+                          "requiredVersion": "^21.2.0",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "21.2.12"
+                    }
+                  ]
+                },
+                "@angular/core/primitives/signals": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": true,
+                      "remotes": [
+                        {
+                          "bundle": "browser-angular_core",
+                          "cached": true,
+                          "file": "_angular_core_primitives_signals.ePwPWbaXlE.js",
+                          "name": "__NF-HOST__",
+                          "requiredVersion": "^21.2.0",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "21.2.12"
+                    }
+                  ]
+                },
+                "@angular/core/rxjs-interop": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": true,
+                      "remotes": [
+                        {
+                          "bundle": "browser-angular_core",
+                          "cached": true,
+                          "file": "_angular_core_rxjs_interop.YqevhcoUQy.js",
+                          "name": "__NF-HOST__",
+                          "requiredVersion": "^21.2.0",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "21.2.12"
+                    }
+                  ]
+                },
+                "@angular/platform-browser": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": true,
+                      "remotes": [
+                        {
+                          "bundle": "browser-angular_platform_browser",
+                          "cached": true,
+                          "file": "_angular_platform_browser.lAyP2N3Pw8.js",
+                          "name": "__NF-HOST__",
+                          "requiredVersion": "^21.2.0",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "21.2.12"
+                    }
+                  ]
+                },
+                "@excalidraw/excalidraw": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": false,
+                      "remotes": [
+                        {
+                          "bundle": {
+                            "type": "undefined"
+                          },
+                          "cached": true,
+                          "file": "_excalidraw_excalidraw.0MlOv2WvQj.js",
+                          "name": "whiteboard",
+                          "requiredVersion": "~0.18.1",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "0.18.1"
+                    }
+                  ]
+                },
+                "mermaid": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": false,
+                      "remotes": [
+                        {
+                          "bundle": {
+                            "type": "undefined"
+                          },
+                          "cached": true,
+                          "file": "mermaid.fMI3T940QA.js",
+                          "name": "mermaid",
+                          "requiredVersion": "^11.4.1",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "11.14.0"
+                    }
+                  ]
+                },
+                "react": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": false,
+                      "remotes": [
+                        {
+                          "bundle": {
+                            "type": "undefined"
+                          },
+                          "cached": true,
+                          "file": "react.QYXZqQxJ1j.js",
+                          "name": "whiteboard",
+                          "requiredVersion": "^18.3.1",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "18.3.1"
+                    }
+                  ]
+                },
+                "react-dom": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": false,
+                      "remotes": [
+                        {
+                          "bundle": {
+                            "type": "undefined"
+                          },
+                          "cached": true,
+                          "file": "react_dom.6SKyvL_ZIW.js",
+                          "name": "whiteboard",
+                          "requiredVersion": "^18.3.1",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "18.3.1"
+                    }
+                  ]
+                },
+                "react-dom/client": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": false,
+                      "remotes": [
+                        {
+                          "bundle": {
+                            "type": "undefined"
+                          },
+                          "cached": true,
+                          "file": "react_dom_client.lVKcx-4-HL.js",
+                          "name": "whiteboard",
+                          "requiredVersion": "^18.3.1",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "18.3.1"
+                    }
+                  ]
+                },
+                "react-dom/profiling": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": false,
+                      "remotes": [
+                        {
+                          "bundle": {
+                            "type": "undefined"
+                          },
+                          "cached": true,
+                          "file": "react_dom_profiling.wPFH8wjIJf.js",
+                          "name": "whiteboard",
+                          "requiredVersion": "^18.3.1",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "18.3.1"
+                    }
+                  ]
+                },
+                "react/jsx-dev-runtime": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": false,
+                      "remotes": [
+                        {
+                          "bundle": {
+                            "type": "undefined"
+                          },
+                          "cached": true,
+                          "file": "react_jsx_dev_runtime.UsMOGvdsKw.js",
+                          "name": "whiteboard",
+                          "requiredVersion": "^18.3.1",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "18.3.1"
+                    }
+                  ]
+                },
+                "react/jsx-runtime": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": false,
+                      "remotes": [
+                        {
+                          "bundle": {
+                            "type": "undefined"
+                          },
+                          "cached": true,
+                          "file": "react_jsx_runtime.RDhwXXoxCg.js",
+                          "name": "whiteboard",
+                          "requiredVersion": "^18.3.1",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "18.3.1"
+                    }
+                  ]
+                },
+                "rxjs": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": true,
+                      "remotes": [
+                        {
+                          "bundle": "browser-rxjs",
+                          "cached": true,
+                          "file": "rxjs.IJzVNeB5rY.js",
+                          "name": "__NF-HOST__",
+                          "requiredVersion": "~7.8.0",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "7.8.2"
+                    }
+                  ]
+                },
+                "rxjs/operators": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": true,
+                      "remotes": [
+                        {
+                          "bundle": "browser-rxjs",
+                          "cached": true,
+                          "file": "rxjs_operators.gdYSvUruih.js",
+                          "name": "__NF-HOST__",
+                          "requiredVersion": "~7.8.0",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "7.8.2"
+                    }
+                  ]
+                },
+                "tslib": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": true,
+                      "remotes": [
+                        {
+                          "bundle": "browser-tslib",
+                          "cached": true,
+                          "file": "tslib.s6WVYyl__v.js",
+                          "name": "__NF-HOST__",
+                          "requiredVersion": "^2.3.0",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "2.8.1"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "shared-chunks": {
+            "present": true,
+            "value": {
+              "__NF-HOST__": {
+                "browser-angular_common": [
+                  "chunk-WW26EZ22.js"
+                ],
+                "browser-angular_core": [
+                  "chunk-RCIWTGS7.js",
+                  "chunk-K6ZMRNMW.js",
+                  "chunk-APTZXQMF.js",
+                  "chunk-V2SUVJ7R.js",
+                  "chunk-2VMXMS7J.js"
+                ],
+                "browser-rxjs": [
+                  "chunk-PAMKM67I.js"
+                ],
+                "mapping-or-exposed": []
+              }
+            }
+          }
+        }
+      }
+    },
+    "nfRegistry": {
+      "availability": "available",
+      "observedAt": "2026-07-24T13:50:22.604Z",
+      "data": {
+        "present": false
+      }
+    },
+    "domImportMaps": {
+      "availability": "available",
+      "observedAt": "2026-07-24T13:50:22.604Z",
+      "data": {
+        "count": 1,
+        "maps": [
+          {
+            "index": 0,
+            "type": "importmap-shim",
+            "parsed": true,
+            "map": {
+              "imports": [
+                {
+                  "index": 0,
+                  "specifier": "@excalidraw/excalidraw",
+                  "target": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/_excalidraw_excalidraw.0MlOv2WvQj.js"
+                },
+                {
+                  "index": 1,
+                  "specifier": "react",
+                  "target": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/react.QYXZqQxJ1j.js"
+                },
+                {
+                  "index": 2,
+                  "specifier": "react/jsx-runtime",
+                  "target": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/react_jsx_runtime.RDhwXXoxCg.js"
+                },
+                {
+                  "index": 3,
+                  "specifier": "react/jsx-dev-runtime",
+                  "target": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/react_jsx_dev_runtime.UsMOGvdsKw.js"
+                },
+                {
+                  "index": 4,
+                  "specifier": "react-dom",
+                  "target": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/react_dom.6SKyvL_ZIW.js"
+                },
+                {
+                  "index": 5,
+                  "specifier": "react-dom/client",
+                  "target": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/react_dom_client.lVKcx-4-HL.js"
+                },
+                {
+                  "index": 6,
+                  "specifier": "react-dom/profiling",
+                  "target": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/react_dom_profiling.wPFH8wjIJf.js"
+                },
+                {
+                  "index": 7,
+                  "specifier": "mermaid",
+                  "target": "http://127.0.0.1:8088/frankenstein-meeting-room/mermaid/mermaid.fMI3T940QA.js"
+                },
+                {
+                  "index": 8,
+                  "specifier": "@angular/common",
+                  "target": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_common.Ucn2BmyRM1.js"
+                },
+                {
+                  "index": 9,
+                  "specifier": "@angular/common/http",
+                  "target": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_common_http.XnycUwbhpt.js"
+                },
+                {
+                  "index": 10,
+                  "specifier": "@angular/platform-browser",
+                  "target": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_platform_browser.lAyP2N3Pw8.js"
+                },
+                {
+                  "index": 11,
+                  "specifier": "rxjs",
+                  "target": "http://127.0.0.1:8088/frankenstein-meeting-room/rxjs.IJzVNeB5rY.js"
+                },
+                {
+                  "index": 12,
+                  "specifier": "rxjs/operators",
+                  "target": "http://127.0.0.1:8088/frankenstein-meeting-room/rxjs_operators.gdYSvUruih.js"
+                },
+                {
+                  "index": 13,
+                  "specifier": "tslib",
+                  "target": "http://127.0.0.1:8088/frankenstein-meeting-room/tslib.s6WVYyl__v.js"
+                },
+                {
+                  "index": 14,
+                  "specifier": "@angular/core",
+                  "target": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_core.RHjtWEkOzP.js"
+                },
+                {
+                  "index": 15,
+                  "specifier": "@angular/core/event-dispatch-contract.min.js",
+                  "target": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_core_event_dispatch_contract_min_js.JotK85OfcE.js"
+                },
+                {
+                  "index": 16,
+                  "specifier": "@angular/core/primitives/di",
+                  "target": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_core_primitives_di.QUc60-Xs6C.js"
+                },
+                {
+                  "index": 17,
+                  "specifier": "@angular/core/primitives/event-dispatch",
+                  "target": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_core_primitives_event_dispatch.1A9qBws3LP.js"
+                },
+                {
+                  "index": 18,
+                  "specifier": "@angular/core/primitives/signals",
+                  "target": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_core_primitives_signals.ePwPWbaXlE.js"
+                },
+                {
+                  "index": 19,
+                  "specifier": "@angular/core/rxjs-interop",
+                  "target": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_core_rxjs_interop.YqevhcoUQy.js"
+                },
+                {
+                  "index": 20,
+                  "specifier": "whiteboard/./Bootstrap",
+                  "target": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/Bootstrap-7COJRA5I.js"
+                },
+                {
+                  "index": 21,
+                  "specifier": "mermaid/./Bootstrap",
+                  "target": "http://127.0.0.1:8088/frankenstein-meeting-room/mermaid/Bootstrap-BBNZEAEH.js"
+                }
+              ],
+              "scopes": [
+                {
+                  "index": 0,
+                  "scope": "http://127.0.0.1:8088/frankenstein-meeting-room/",
+                  "imports": [
+                    {
+                      "index": 0,
+                      "specifier": "@nf-internal/chunk-WW26EZ22",
+                      "target": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-WW26EZ22.js"
+                    },
+                    {
+                      "index": 1,
+                      "specifier": "@nf-internal/chunk-PAMKM67I",
+                      "target": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-PAMKM67I.js"
+                    },
+                    {
+                      "index": 2,
+                      "specifier": "@nf-internal/chunk-RCIWTGS7",
+                      "target": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-RCIWTGS7.js"
+                    },
+                    {
+                      "index": 3,
+                      "specifier": "@nf-internal/chunk-K6ZMRNMW",
+                      "target": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-K6ZMRNMW.js"
+                    },
+                    {
+                      "index": 4,
+                      "specifier": "@nf-internal/chunk-APTZXQMF",
+                      "target": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-APTZXQMF.js"
+                    },
+                    {
+                      "index": 5,
+                      "specifier": "@nf-internal/chunk-V2SUVJ7R",
+                      "target": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-V2SUVJ7R.js"
+                    },
+                    {
+                      "index": 6,
+                      "specifier": "@nf-internal/chunk-2VMXMS7J",
+                      "target": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-2VMXMS7J.js"
+                    }
+                  ]
+                }
+              ],
+              "integrity": [
+                {
+                  "index": 0,
+                  "specifier": "./whiteboard/_excalidraw_excalidraw.0MlOv2WvQj.js",
+                  "integrity": "sha384-gQrm6C7mOLCTYcdQFNBrh7GZ3o5hy2K2NmxwOfiJtDzs7NTkKc5hTxSBfksuKbaU"
+                },
+                {
+                  "index": 1,
+                  "specifier": "./whiteboard/react.QYXZqQxJ1j.js",
+                  "integrity": "sha384-57khIiCnWo5tC9kEt0ibpdoHhHGtPXp1KmeWeJyyX0+UPwenA+Wj+0qvj7ajI3As"
+                },
+                {
+                  "index": 2,
+                  "specifier": "./whiteboard/react_jsx_runtime.RDhwXXoxCg.js",
+                  "integrity": "sha384-mWHwomGyGtSC45UesaeI3hV4diuzv10CMDSAWJ1rMRQ8F+lA71uneBirgsCW/JxO"
+                },
+                {
+                  "index": 3,
+                  "specifier": "./whiteboard/react_jsx_dev_runtime.UsMOGvdsKw.js",
+                  "integrity": "sha384-Pz3qELNqQbfKZe26gJ2n/S9ZKDnDcKoBB4HKdEphutzsxBeMedPySvP+iKitw5h/"
+                },
+                {
+                  "index": 4,
+                  "specifier": "./whiteboard/react_dom.6SKyvL_ZIW.js",
+                  "integrity": "sha384-P5wEc9b7LWwq+gIw6WZydAmGaqqKM9f1+8HOET0FxnhMqtpfCs6opvzQAXMtoyZA"
+                },
+                {
+                  "index": 5,
+                  "specifier": "./whiteboard/react_dom_client.lVKcx-4-HL.js",
+                  "integrity": "sha384-qhRGasTGrIXFNZJfwVfTnDA2+KKAGE/O6D+GEErqa6n/c3xiyVcKH1x4FmMqeUAN"
+                },
+                {
+                  "index": 6,
+                  "specifier": "./whiteboard/react_dom_profiling.wPFH8wjIJf.js",
+                  "integrity": "sha384-ljYfxwXdL20/jno4xQm1XDO5sL/8huAbZHNBeJ4Ov+nY5UDdOHl3ZwurHwevUCdI"
+                },
+                {
+                  "index": 7,
+                  "specifier": "./mermaid/mermaid.fMI3T940QA.js",
+                  "integrity": "sha384-kstnQo1tIfL+tMgIsAHgtN6HODg7IUJOB7YxDsvWEfQKwtm2T8pJXYurn7ZK8lW/"
+                },
+                {
+                  "index": 8,
+                  "specifier": "./_angular_common.Ucn2BmyRM1.js",
+                  "integrity": "sha384-ifIpCfW3pytDYCF1JasK/q29l9JcykVZmVSQPMbvfrIGyBjplklPOyLqxyHVtqL7"
+                },
+                {
+                  "index": 9,
+                  "specifier": "./_angular_common_http.XnycUwbhpt.js",
+                  "integrity": "sha384-IK8Nx+6NWCVROXYGp+8jufFYVZlMcU0/sA2pO54JMRAhwQCS6iZuRCEnwvAGIG0O"
+                },
+                {
+                  "index": 10,
+                  "specifier": "./_angular_platform_browser.lAyP2N3Pw8.js",
+                  "integrity": "sha384-Uqk4Pa50G3bzBAWwoZ0rCBacNLN2dyJ8QkJWL5QD6IqFLISZIk84SZzH8RmcXGlk"
+                },
+                {
+                  "index": 11,
+                  "specifier": "./rxjs.IJzVNeB5rY.js",
+                  "integrity": "sha384-CND2UMO83rk1q4PmwPBkMzMidBFPpleOKv8RwUTYv7MVKgLY5QZ4rSMNPkizOXfU"
+                },
+                {
+                  "index": 12,
+                  "specifier": "./rxjs_operators.gdYSvUruih.js",
+                  "integrity": "sha384-laChUqH6WQnng9RMXX09mNVUEHCCL/2hiynx8XKFxv8EpZDOXvUI6j2KJAvkz7/m"
+                },
+                {
+                  "index": 13,
+                  "specifier": "./tslib.s6WVYyl__v.js",
+                  "integrity": "sha384-us48hLnAuTVi42myNvtbK0UsmSvbAjKfiZP4HjtL9tB6FogW0rizxqZPIRAbidzm"
+                },
+                {
+                  "index": 14,
+                  "specifier": "./_angular_core.RHjtWEkOzP.js",
+                  "integrity": "sha384-K67ZQ5cbnDPIVn8WANbSD0mtv1yJTMx8mlSOumXJTrAgTrsuRNsDWfVtimzbGc8o"
+                },
+                {
+                  "index": 15,
+                  "specifier": "./_angular_core_event_dispatch_contract_min_js.JotK85OfcE.js",
+                  "integrity": "sha384-5wVWeVYtx1cBT1jKmN8rQ7UM9OvfVXX8EiLwaa0Ske0MZEGspZWPPZzpPCmI7TvV"
+                },
+                {
+                  "index": 16,
+                  "specifier": "./_angular_core_primitives_di.QUc60-Xs6C.js",
+                  "integrity": "sha384-6rOmacKn8k2Rcgtrc+9Jiv4npsCyzrhos2r3DUvquC7Sy2zH1Qe8r7CLOIaKbfoP"
+                },
+                {
+                  "index": 17,
+                  "specifier": "./_angular_core_primitives_event_dispatch.1A9qBws3LP.js",
+                  "integrity": "sha384-MD1dEWUryHtZl1bJtQZQD2JHywLtf2noRB7QrVRtzO/zWxi/9bmM02zYvzWXySQM"
+                },
+                {
+                  "index": 18,
+                  "specifier": "./_angular_core_primitives_signals.ePwPWbaXlE.js",
+                  "integrity": "sha384-LPA4je4R4YerkZL5Dsogc8kPstf4JOzHn1RFaf8Pv5R+mNyYS3zwhgqy7LAAZePH"
+                },
+                {
+                  "index": 19,
+                  "specifier": "./_angular_core_rxjs_interop.YqevhcoUQy.js",
+                  "integrity": "sha384-ZmQah/VqzvO07m4LLHnI5ixj/1rxctq98QHEfgknKEma3JSgXejbnkph+m/WfWmc"
+                },
+                {
+                  "index": 20,
+                  "specifier": "./whiteboard/Bootstrap-7COJRA5I.js",
+                  "integrity": "sha384-7/Brmjo9gqN65lCvoMCfm1Ub5tyUw3ivabWA1NeC/UJOUrWzlfhIj0XYoFKiFEk7"
+                },
+                {
+                  "index": 21,
+                  "specifier": "./mermaid/Bootstrap-BBNZEAEH.js",
+                  "integrity": "sha384-DPpBRZv47CVBpYfzVQiKWL76+Zh+GNRvDSY7G99RMPT+j5U8Pq7eDciHllDgRaFO"
+                },
+                {
+                  "index": 22,
+                  "specifier": "./chunk-WW26EZ22.js",
+                  "integrity": "sha384-sDhcZ7eQ+i0rEfRIZ4dhGpwqqr4OLIKhrNr1CpqUuynnbsK2qpp/I/cq8JVcKfl0"
+                },
+                {
+                  "index": 23,
+                  "specifier": "./chunk-PAMKM67I.js",
+                  "integrity": "sha384-hTdulOFDbDpZPDXTPSqo9asD5kf/Rb2nqqOwqK/IzWWXyf8kf0+N94FSvSjPLKtF"
+                },
+                {
+                  "index": 24,
+                  "specifier": "./chunk-RCIWTGS7.js",
+                  "integrity": "sha384-GVoyZ7htW1QcYMK3i6Pio7FhoQCY+94M+cYKVVTZyrTUO6RQKqRpVu5T2ng478ha"
+                },
+                {
+                  "index": 25,
+                  "specifier": "./chunk-K6ZMRNMW.js",
+                  "integrity": "sha384-aZwtRvM310GrKNMB9tX07AS1Chpy7tOFkHUfDaJP+pAlU7dOs4PIXTpIFLeObnGV"
+                },
+                {
+                  "index": 26,
+                  "specifier": "./chunk-APTZXQMF.js",
+                  "integrity": "sha384-zWhh2apMCPktoaZjn6P/SeGHLy7ujJxm4zqpRZ0BLIciAD+DEHbQgnzCu06YN4vy"
+                },
+                {
+                  "index": 27,
+                  "specifier": "./chunk-V2SUVJ7R.js",
+                  "integrity": "sha384-BfAKYP5/8tfHP2fbRCyG4x5an/HWTuOKp4XtnZoJwWpXoctwT6gkvA4/b7qHWizn"
+                },
+                {
+                  "index": 28,
+                  "specifier": "./chunk-2VMXMS7J.js",
+                  "integrity": "sha384-IiJwn+tZf8TQkKyCcaAtb9JW90aZbS2eLcLYxvXmc4DKIkLJGSPoVR4c+hMZ/hi2"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "importShim": {
+      "availability": "available",
+      "observedAt": "2026-07-24T13:50:22.604Z",
+      "data": {
+        "present": true,
+        "descriptor": "value",
+        "valueType": "function",
+        "version": "2.8.0",
+        "supportedMethods": [
+          "addImportMap",
+          "getImportMap",
+          "resolve"
+        ],
+        "effectiveImportMap": {
+          "imports": [
+            {
+              "index": 0,
+              "specifier": "@excalidraw/excalidraw",
+              "target": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/_excalidraw_excalidraw.0MlOv2WvQj.js"
+            },
+            {
+              "index": 1,
+              "specifier": "react",
+              "target": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/react.QYXZqQxJ1j.js"
+            },
+            {
+              "index": 2,
+              "specifier": "react/jsx-runtime",
+              "target": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/react_jsx_runtime.RDhwXXoxCg.js"
+            },
+            {
+              "index": 3,
+              "specifier": "react/jsx-dev-runtime",
+              "target": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/react_jsx_dev_runtime.UsMOGvdsKw.js"
+            },
+            {
+              "index": 4,
+              "specifier": "react-dom",
+              "target": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/react_dom.6SKyvL_ZIW.js"
+            },
+            {
+              "index": 5,
+              "specifier": "react-dom/client",
+              "target": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/react_dom_client.lVKcx-4-HL.js"
+            },
+            {
+              "index": 6,
+              "specifier": "react-dom/profiling",
+              "target": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/react_dom_profiling.wPFH8wjIJf.js"
+            },
+            {
+              "index": 7,
+              "specifier": "mermaid",
+              "target": "http://127.0.0.1:8088/frankenstein-meeting-room/mermaid/mermaid.fMI3T940QA.js"
+            },
+            {
+              "index": 8,
+              "specifier": "@angular/common",
+              "target": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_common.Ucn2BmyRM1.js"
+            },
+            {
+              "index": 9,
+              "specifier": "@angular/common/http",
+              "target": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_common_http.XnycUwbhpt.js"
+            },
+            {
+              "index": 10,
+              "specifier": "@angular/platform-browser",
+              "target": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_platform_browser.lAyP2N3Pw8.js"
+            },
+            {
+              "index": 11,
+              "specifier": "rxjs",
+              "target": "http://127.0.0.1:8088/frankenstein-meeting-room/rxjs.IJzVNeB5rY.js"
+            },
+            {
+              "index": 12,
+              "specifier": "rxjs/operators",
+              "target": "http://127.0.0.1:8088/frankenstein-meeting-room/rxjs_operators.gdYSvUruih.js"
+            },
+            {
+              "index": 13,
+              "specifier": "tslib",
+              "target": "http://127.0.0.1:8088/frankenstein-meeting-room/tslib.s6WVYyl__v.js"
+            },
+            {
+              "index": 14,
+              "specifier": "@angular/core",
+              "target": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_core.RHjtWEkOzP.js"
+            },
+            {
+              "index": 15,
+              "specifier": "@angular/core/event-dispatch-contract.min.js",
+              "target": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_core_event_dispatch_contract_min_js.JotK85OfcE.js"
+            },
+            {
+              "index": 16,
+              "specifier": "@angular/core/primitives/di",
+              "target": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_core_primitives_di.QUc60-Xs6C.js"
+            },
+            {
+              "index": 17,
+              "specifier": "@angular/core/primitives/event-dispatch",
+              "target": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_core_primitives_event_dispatch.1A9qBws3LP.js"
+            },
+            {
+              "index": 18,
+              "specifier": "@angular/core/primitives/signals",
+              "target": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_core_primitives_signals.ePwPWbaXlE.js"
+            },
+            {
+              "index": 19,
+              "specifier": "@angular/core/rxjs-interop",
+              "target": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_core_rxjs_interop.YqevhcoUQy.js"
+            },
+            {
+              "index": 20,
+              "specifier": "whiteboard/./Bootstrap",
+              "target": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/Bootstrap-7COJRA5I.js"
+            },
+            {
+              "index": 21,
+              "specifier": "mermaid/./Bootstrap",
+              "target": "http://127.0.0.1:8088/frankenstein-meeting-room/mermaid/Bootstrap-BBNZEAEH.js"
+            }
+          ],
+          "scopes": [
+            {
+              "index": 0,
+              "scope": "http://127.0.0.1:8088/frankenstein-meeting-room/",
+              "imports": [
+                {
+                  "index": 0,
+                  "specifier": "@nf-internal/chunk-WW26EZ22",
+                  "target": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-WW26EZ22.js"
+                },
+                {
+                  "index": 1,
+                  "specifier": "@nf-internal/chunk-PAMKM67I",
+                  "target": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-PAMKM67I.js"
+                },
+                {
+                  "index": 2,
+                  "specifier": "@nf-internal/chunk-RCIWTGS7",
+                  "target": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-RCIWTGS7.js"
+                },
+                {
+                  "index": 3,
+                  "specifier": "@nf-internal/chunk-K6ZMRNMW",
+                  "target": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-K6ZMRNMW.js"
+                },
+                {
+                  "index": 4,
+                  "specifier": "@nf-internal/chunk-APTZXQMF",
+                  "target": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-APTZXQMF.js"
+                },
+                {
+                  "index": 5,
+                  "specifier": "@nf-internal/chunk-V2SUVJ7R",
+                  "target": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-V2SUVJ7R.js"
+                },
+                {
+                  "index": 6,
+                  "specifier": "@nf-internal/chunk-2VMXMS7J",
+                  "target": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-2VMXMS7J.js"
+                }
+              ]
+            }
+          ],
+          "integrity": [
+            {
+              "index": 0,
+              "specifier": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/_excalidraw_excalidraw.0MlOv2WvQj.js",
+              "integrity": "sha384-gQrm6C7mOLCTYcdQFNBrh7GZ3o5hy2K2NmxwOfiJtDzs7NTkKc5hTxSBfksuKbaU"
+            },
+            {
+              "index": 1,
+              "specifier": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/react.QYXZqQxJ1j.js",
+              "integrity": "sha384-57khIiCnWo5tC9kEt0ibpdoHhHGtPXp1KmeWeJyyX0+UPwenA+Wj+0qvj7ajI3As"
+            },
+            {
+              "index": 2,
+              "specifier": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/react_jsx_runtime.RDhwXXoxCg.js",
+              "integrity": "sha384-mWHwomGyGtSC45UesaeI3hV4diuzv10CMDSAWJ1rMRQ8F+lA71uneBirgsCW/JxO"
+            },
+            {
+              "index": 3,
+              "specifier": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/react_jsx_dev_runtime.UsMOGvdsKw.js",
+              "integrity": "sha384-Pz3qELNqQbfKZe26gJ2n/S9ZKDnDcKoBB4HKdEphutzsxBeMedPySvP+iKitw5h/"
+            },
+            {
+              "index": 4,
+              "specifier": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/react_dom.6SKyvL_ZIW.js",
+              "integrity": "sha384-P5wEc9b7LWwq+gIw6WZydAmGaqqKM9f1+8HOET0FxnhMqtpfCs6opvzQAXMtoyZA"
+            },
+            {
+              "index": 5,
+              "specifier": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/react_dom_client.lVKcx-4-HL.js",
+              "integrity": "sha384-qhRGasTGrIXFNZJfwVfTnDA2+KKAGE/O6D+GEErqa6n/c3xiyVcKH1x4FmMqeUAN"
+            },
+            {
+              "index": 6,
+              "specifier": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/react_dom_profiling.wPFH8wjIJf.js",
+              "integrity": "sha384-ljYfxwXdL20/jno4xQm1XDO5sL/8huAbZHNBeJ4Ov+nY5UDdOHl3ZwurHwevUCdI"
+            },
+            {
+              "index": 7,
+              "specifier": "http://127.0.0.1:8088/frankenstein-meeting-room/mermaid/mermaid.fMI3T940QA.js",
+              "integrity": "sha384-kstnQo1tIfL+tMgIsAHgtN6HODg7IUJOB7YxDsvWEfQKwtm2T8pJXYurn7ZK8lW/"
+            },
+            {
+              "index": 8,
+              "specifier": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_common.Ucn2BmyRM1.js",
+              "integrity": "sha384-ifIpCfW3pytDYCF1JasK/q29l9JcykVZmVSQPMbvfrIGyBjplklPOyLqxyHVtqL7"
+            },
+            {
+              "index": 9,
+              "specifier": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_common_http.XnycUwbhpt.js",
+              "integrity": "sha384-IK8Nx+6NWCVROXYGp+8jufFYVZlMcU0/sA2pO54JMRAhwQCS6iZuRCEnwvAGIG0O"
+            },
+            {
+              "index": 10,
+              "specifier": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_platform_browser.lAyP2N3Pw8.js",
+              "integrity": "sha384-Uqk4Pa50G3bzBAWwoZ0rCBacNLN2dyJ8QkJWL5QD6IqFLISZIk84SZzH8RmcXGlk"
+            },
+            {
+              "index": 11,
+              "specifier": "http://127.0.0.1:8088/frankenstein-meeting-room/rxjs.IJzVNeB5rY.js",
+              "integrity": "sha384-CND2UMO83rk1q4PmwPBkMzMidBFPpleOKv8RwUTYv7MVKgLY5QZ4rSMNPkizOXfU"
+            },
+            {
+              "index": 12,
+              "specifier": "http://127.0.0.1:8088/frankenstein-meeting-room/rxjs_operators.gdYSvUruih.js",
+              "integrity": "sha384-laChUqH6WQnng9RMXX09mNVUEHCCL/2hiynx8XKFxv8EpZDOXvUI6j2KJAvkz7/m"
+            },
+            {
+              "index": 13,
+              "specifier": "http://127.0.0.1:8088/frankenstein-meeting-room/tslib.s6WVYyl__v.js",
+              "integrity": "sha384-us48hLnAuTVi42myNvtbK0UsmSvbAjKfiZP4HjtL9tB6FogW0rizxqZPIRAbidzm"
+            },
+            {
+              "index": 14,
+              "specifier": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_core.RHjtWEkOzP.js",
+              "integrity": "sha384-K67ZQ5cbnDPIVn8WANbSD0mtv1yJTMx8mlSOumXJTrAgTrsuRNsDWfVtimzbGc8o"
+            },
+            {
+              "index": 15,
+              "specifier": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_core_event_dispatch_contract_min_js.JotK85OfcE.js",
+              "integrity": "sha384-5wVWeVYtx1cBT1jKmN8rQ7UM9OvfVXX8EiLwaa0Ske0MZEGspZWPPZzpPCmI7TvV"
+            },
+            {
+              "index": 16,
+              "specifier": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_core_primitives_di.QUc60-Xs6C.js",
+              "integrity": "sha384-6rOmacKn8k2Rcgtrc+9Jiv4npsCyzrhos2r3DUvquC7Sy2zH1Qe8r7CLOIaKbfoP"
+            },
+            {
+              "index": 17,
+              "specifier": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_core_primitives_event_dispatch.1A9qBws3LP.js",
+              "integrity": "sha384-MD1dEWUryHtZl1bJtQZQD2JHywLtf2noRB7QrVRtzO/zWxi/9bmM02zYvzWXySQM"
+            },
+            {
+              "index": 18,
+              "specifier": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_core_primitives_signals.ePwPWbaXlE.js",
+              "integrity": "sha384-LPA4je4R4YerkZL5Dsogc8kPstf4JOzHn1RFaf8Pv5R+mNyYS3zwhgqy7LAAZePH"
+            },
+            {
+              "index": 19,
+              "specifier": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_core_rxjs_interop.YqevhcoUQy.js",
+              "integrity": "sha384-ZmQah/VqzvO07m4LLHnI5ixj/1rxctq98QHEfgknKEma3JSgXejbnkph+m/WfWmc"
+            },
+            {
+              "index": 20,
+              "specifier": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/Bootstrap-7COJRA5I.js",
+              "integrity": "sha384-7/Brmjo9gqN65lCvoMCfm1Ub5tyUw3ivabWA1NeC/UJOUrWzlfhIj0XYoFKiFEk7"
+            },
+            {
+              "index": 21,
+              "specifier": "http://127.0.0.1:8088/frankenstein-meeting-room/mermaid/Bootstrap-BBNZEAEH.js",
+              "integrity": "sha384-DPpBRZv47CVBpYfzVQiKWL76+Zh+GNRvDSY7G99RMPT+j5U8Pq7eDciHllDgRaFO"
+            },
+            {
+              "index": 22,
+              "specifier": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-WW26EZ22.js",
+              "integrity": "sha384-sDhcZ7eQ+i0rEfRIZ4dhGpwqqr4OLIKhrNr1CpqUuynnbsK2qpp/I/cq8JVcKfl0"
+            },
+            {
+              "index": 23,
+              "specifier": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-PAMKM67I.js",
+              "integrity": "sha384-hTdulOFDbDpZPDXTPSqo9asD5kf/Rb2nqqOwqK/IzWWXyf8kf0+N94FSvSjPLKtF"
+            },
+            {
+              "index": 24,
+              "specifier": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-RCIWTGS7.js",
+              "integrity": "sha384-GVoyZ7htW1QcYMK3i6Pio7FhoQCY+94M+cYKVVTZyrTUO6RQKqRpVu5T2ng478ha"
+            },
+            {
+              "index": 25,
+              "specifier": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-K6ZMRNMW.js",
+              "integrity": "sha384-aZwtRvM310GrKNMB9tX07AS1Chpy7tOFkHUfDaJP+pAlU7dOs4PIXTpIFLeObnGV"
+            },
+            {
+              "index": 26,
+              "specifier": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-APTZXQMF.js",
+              "integrity": "sha384-zWhh2apMCPktoaZjn6P/SeGHLy7ujJxm4zqpRZ0BLIciAD+DEHbQgnzCu06YN4vy"
+            },
+            {
+              "index": 27,
+              "specifier": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-V2SUVJ7R.js",
+              "integrity": "sha384-BfAKYP5/8tfHP2fbRCyG4x5an/HWTuOKp4XtnZoJwWpXoctwT6gkvA4/b7qHWizn"
+            },
+            {
+              "index": 28,
+              "specifier": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-2VMXMS7J.js",
+              "integrity": "sha384-IiJwn+tZf8TQkKyCcaAtb9JW90aZbS2eLcLYxvXmc4DKIkLJGSPoVR4c+hMZ/hi2"
+            }
+          ]
+        }
+      }
+    },
+    "performanceResources": {
+      "availability": "available",
+      "observedAt": "2026-07-24T13:50:22.604Z",
+      "data": {
+        "records": [
+          {
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/federation.manifest.json",
+            "initiatorType": "fetch",
+            "startTimeMs": 81.9,
+            "durationMs": 2,
+            "transferSize": 613,
+            "encodedBodySize": 313,
+            "decodedBodySize": 313,
+            "responseStatus": 200
+          },
+          {
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/remoteEntry.json",
+            "initiatorType": "fetch",
+            "startTimeMs": 84.9,
+            "durationMs": 2.8,
+            "transferSize": 0,
+            "encodedBodySize": 2631,
+            "decodedBodySize": 2631,
+            "responseStatus": 200
+          },
+          {
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/mermaid/remoteEntry.json",
+            "initiatorType": "fetch",
+            "startTimeMs": 85,
+            "durationMs": 2.8,
+            "transferSize": 0,
+            "encodedBodySize": 583,
+            "decodedBodySize": 583,
+            "responseStatus": 200
+          },
+          {
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/remoteEntry.json",
+            "initiatorType": "fetch",
+            "startTimeMs": 85.1,
+            "durationMs": 2.9,
+            "transferSize": 0,
+            "encodedBodySize": 5864,
+            "decodedBodySize": 5864,
+            "responseStatus": 200
+          },
+          {
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_platform_browser.lAyP2N3Pw8.js",
+            "initiatorType": "fetch",
+            "startTimeMs": 131.3,
+            "durationMs": 2.4,
+            "transferSize": 0,
+            "encodedBodySize": 29130,
+            "decodedBodySize": 29130,
+            "responseStatus": 200
+          },
+          {
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_core.RHjtWEkOzP.js",
+            "initiatorType": "fetch",
+            "startTimeMs": 131.5,
+            "durationMs": 3.5,
+            "transferSize": 0,
+            "encodedBodySize": 342074,
+            "decodedBodySize": 342074,
+            "responseStatus": 200
+          },
+          {
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_common.Ucn2BmyRM1.js",
+            "initiatorType": "fetch",
+            "startTimeMs": 131.7,
+            "durationMs": 2.9,
+            "transferSize": 0,
+            "encodedBodySize": 79545,
+            "decodedBodySize": 79545,
+            "responseStatus": 200
+          },
+          {
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_common_http.XnycUwbhpt.js",
+            "initiatorType": "fetch",
+            "startTimeMs": 137.6,
+            "durationMs": 1.2,
+            "transferSize": 0,
+            "encodedBodySize": 44248,
+            "decodedBodySize": 44248,
+            "responseStatus": 200
+          },
+          {
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-WW26EZ22.js",
+            "initiatorType": "fetch",
+            "startTimeMs": 143.3,
+            "durationMs": 1.9,
+            "transferSize": 0,
+            "encodedBodySize": 3599,
+            "decodedBodySize": 3599,
+            "responseStatus": 200
+          },
+          {
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/rxjs.IJzVNeB5rY.js",
+            "initiatorType": "fetch",
+            "startTimeMs": 143.5,
+            "durationMs": 1.8,
+            "transferSize": 0,
+            "encodedBodySize": 14130,
+            "decodedBodySize": 14130,
+            "responseStatus": 200
+          },
+          {
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-RCIWTGS7.js",
+            "initiatorType": "fetch",
+            "startTimeMs": 151,
+            "durationMs": 5.5,
+            "transferSize": 0,
+            "encodedBodySize": 14493,
+            "decodedBodySize": 14493,
+            "responseStatus": 200
+          },
+          {
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-K6ZMRNMW.js",
+            "initiatorType": "fetch",
+            "startTimeMs": 151.2,
+            "durationMs": 6.2,
+            "transferSize": 0,
+            "encodedBodySize": 44084,
+            "decodedBodySize": 44084,
+            "responseStatus": 200
+          },
+          {
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-APTZXQMF.js",
+            "initiatorType": "fetch",
+            "startTimeMs": 151.3,
+            "durationMs": 6.2,
+            "transferSize": 0,
+            "encodedBodySize": 925,
+            "decodedBodySize": 925,
+            "responseStatus": 200
+          },
+          {
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-V2SUVJ7R.js",
+            "initiatorType": "fetch",
+            "startTimeMs": 151.5,
+            "durationMs": 6.1,
+            "transferSize": 0,
+            "encodedBodySize": 10176,
+            "decodedBodySize": 10176,
+            "responseStatus": 200
+          },
+          {
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-2VMXMS7J.js",
+            "initiatorType": "fetch",
+            "startTimeMs": 151.7,
+            "durationMs": 6,
+            "transferSize": 0,
+            "encodedBodySize": 836,
+            "decodedBodySize": 836,
+            "responseStatus": 200
+          },
+          {
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/rxjs_operators.gdYSvUruih.js",
+            "initiatorType": "fetch",
+            "startTimeMs": 151.9,
+            "durationMs": 5.9,
+            "transferSize": 0,
+            "encodedBodySize": 3078,
+            "decodedBodySize": 3078,
+            "responseStatus": 200
+          },
+          {
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-PAMKM67I.js",
+            "initiatorType": "fetch",
+            "startTimeMs": 155.8,
+            "durationMs": 3,
+            "transferSize": 0,
+            "encodedBodySize": 51392,
+            "decodedBodySize": 51392,
+            "responseStatus": 200
+          },
+          {
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/tslib.s6WVYyl__v.js",
+            "initiatorType": "fetch",
+            "startTimeMs": 165.4,
+            "durationMs": 1.3,
+            "transferSize": 0,
+            "encodedBodySize": 14542,
+            "decodedBodySize": 14542,
+            "responseStatus": 200
+          },
+          {
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/Bootstrap-7COJRA5I.js",
+            "initiatorType": "fetch",
+            "startTimeMs": 256.8,
+            "durationMs": 2.4,
+            "transferSize": 0,
+            "encodedBodySize": 2399,
+            "decodedBodySize": 2399,
+            "responseStatus": 200
+          },
+          {
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/mermaid/Bootstrap-BBNZEAEH.js",
+            "initiatorType": "fetch",
+            "startTimeMs": 257,
+            "durationMs": 2.3,
+            "transferSize": 0,
+            "encodedBodySize": 53040,
+            "decodedBodySize": 53040,
+            "responseStatus": 200
+          },
+          {
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/react_dom_client.lVKcx-4-HL.js",
+            "initiatorType": "fetch",
+            "startTimeMs": 293.7,
+            "durationMs": 3.6,
+            "transferSize": 0,
+            "encodedBodySize": 1642,
+            "decodedBodySize": 1642,
+            "responseStatus": 200
+          },
+          {
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/react.QYXZqQxJ1j.js",
+            "initiatorType": "fetch",
+            "startTimeMs": 293.9,
+            "durationMs": 3.4,
+            "transferSize": 0,
+            "encodedBodySize": 10393,
+            "decodedBodySize": 10393,
+            "responseStatus": 200
+          },
+          {
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/_excalidraw_excalidraw.0MlOv2WvQj.js",
+            "initiatorType": "fetch",
+            "startTimeMs": 294.1,
+            "durationMs": 16.5,
+            "transferSize": 0,
+            "encodedBodySize": 9244191,
+            "decodedBodySize": 9244191,
+            "responseStatus": 200
+          },
+          {
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/react_jsx_runtime.RDhwXXoxCg.js",
+            "initiatorType": "fetch",
+            "startTimeMs": 294.2,
+            "durationMs": 4,
+            "transferSize": 0,
+            "encodedBodySize": 2629,
+            "decodedBodySize": 2629,
+            "responseStatus": 200
+          },
+          {
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/mermaid/mermaid.fMI3T940QA.js",
+            "initiatorType": "fetch",
+            "startTimeMs": 295.8,
+            "durationMs": 7.3,
+            "transferSize": 0,
+            "encodedBodySize": 4033680,
+            "decodedBodySize": 4033680,
+            "responseStatus": 200
+          },
+          {
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/react_dom.6SKyvL_ZIW.js",
+            "initiatorType": "fetch",
+            "startTimeMs": 298.7,
+            "durationMs": 1.6,
+            "transferSize": 0,
+            "encodedBodySize": 210702,
+            "decodedBodySize": 210702,
+            "responseStatus": 200
+          }
+        ]
+      }
+    },
+    "federationStorage": {
+      "availability": "available",
+      "observedAt": "2026-07-24T13:50:22.604Z",
+      "data": {
+        "localStorageKeys": [
+          "frankenstein:meetings"
+        ],
+        "sessionStorageKeys": [],
+        "valuesReadForBrowserStorageKeys": [],
+        "globalRepositoryNamespace": "__NATIVE_FEDERATION__",
+        "recognizedRepositoryValues": {
+          "remotes": {
+            "present": true,
+            "value": {
+              "__NF-HOST__": {
+                "exposes": [],
+                "integrity": {
+                  "_angular_common.Ucn2BmyRM1.js": "sha384-ifIpCfW3pytDYCF1JasK/q29l9JcykVZmVSQPMbvfrIGyBjplklPOyLqxyHVtqL7",
+                  "_angular_common_http.XnycUwbhpt.js": "sha384-IK8Nx+6NWCVROXYGp+8jufFYVZlMcU0/sA2pO54JMRAhwQCS6iZuRCEnwvAGIG0O",
+                  "_angular_core.RHjtWEkOzP.js": "sha384-K67ZQ5cbnDPIVn8WANbSD0mtv1yJTMx8mlSOumXJTrAgTrsuRNsDWfVtimzbGc8o",
+                  "_angular_core_event_dispatch_contract_min_js.JotK85OfcE.js": "sha384-5wVWeVYtx1cBT1jKmN8rQ7UM9OvfVXX8EiLwaa0Ske0MZEGspZWPPZzpPCmI7TvV",
+                  "_angular_core_primitives_di.QUc60-Xs6C.js": "sha384-6rOmacKn8k2Rcgtrc+9Jiv4npsCyzrhos2r3DUvquC7Sy2zH1Qe8r7CLOIaKbfoP",
+                  "_angular_core_primitives_event_dispatch.1A9qBws3LP.js": "sha384-MD1dEWUryHtZl1bJtQZQD2JHywLtf2noRB7QrVRtzO/zWxi/9bmM02zYvzWXySQM",
+                  "_angular_core_primitives_signals.ePwPWbaXlE.js": "sha384-LPA4je4R4YerkZL5Dsogc8kPstf4JOzHn1RFaf8Pv5R+mNyYS3zwhgqy7LAAZePH",
+                  "_angular_core_rxjs_interop.YqevhcoUQy.js": "sha384-ZmQah/VqzvO07m4LLHnI5ixj/1rxctq98QHEfgknKEma3JSgXejbnkph+m/WfWmc",
+                  "_angular_platform_browser.lAyP2N3Pw8.js": "sha384-Uqk4Pa50G3bzBAWwoZ0rCBacNLN2dyJ8QkJWL5QD6IqFLISZIk84SZzH8RmcXGlk",
+                  "chunk-2VMXMS7J.js": "sha384-IiJwn+tZf8TQkKyCcaAtb9JW90aZbS2eLcLYxvXmc4DKIkLJGSPoVR4c+hMZ/hi2",
+                  "chunk-APTZXQMF.js": "sha384-zWhh2apMCPktoaZjn6P/SeGHLy7ujJxm4zqpRZ0BLIciAD+DEHbQgnzCu06YN4vy",
+                  "chunk-K6ZMRNMW.js": "sha384-aZwtRvM310GrKNMB9tX07AS1Chpy7tOFkHUfDaJP+pAlU7dOs4PIXTpIFLeObnGV",
+                  "chunk-PAMKM67I.js": "sha384-hTdulOFDbDpZPDXTPSqo9asD5kf/Rb2nqqOwqK/IzWWXyf8kf0+N94FSvSjPLKtF",
+                  "chunk-RCIWTGS7.js": "sha384-GVoyZ7htW1QcYMK3i6Pio7FhoQCY+94M+cYKVVTZyrTUO6RQKqRpVu5T2ng478ha",
+                  "chunk-V2SUVJ7R.js": "sha384-BfAKYP5/8tfHP2fbRCyG4x5an/HWTuOKp4XtnZoJwWpXoctwT6gkvA4/b7qHWizn",
+                  "chunk-WW26EZ22.js": "sha384-sDhcZ7eQ+i0rEfRIZ4dhGpwqqr4OLIKhrNr1CpqUuynnbsK2qpp/I/cq8JVcKfl0",
+                  "rxjs.IJzVNeB5rY.js": "sha384-CND2UMO83rk1q4PmwPBkMzMidBFPpleOKv8RwUTYv7MVKgLY5QZ4rSMNPkizOXfU",
+                  "rxjs_operators.gdYSvUruih.js": "sha384-laChUqH6WQnng9RMXX09mNVUEHCCL/2hiynx8XKFxv8EpZDOXvUI6j2KJAvkz7/m",
+                  "tslib.s6WVYyl__v.js": "sha384-us48hLnAuTVi42myNvtbK0UsmSvbAjKfiZP4HjtL9tB6FogW0rizxqZPIRAbidzm"
+                },
+                "scopeUrl": "http://127.0.0.1:8088/frankenstein-meeting-room/"
+              },
+              "mermaid": {
+                "exposes": [
+                  {
+                    "file": "Bootstrap-BBNZEAEH.js",
+                    "moduleName": "http://127.0.0.1:8088/frankenstein-meeting-room/Bootstrap"
+                  }
+                ],
+                "integrity": {
+                  "Bootstrap-BBNZEAEH.js": "sha384-DPpBRZv47CVBpYfzVQiKWL76+Zh+GNRvDSY7G99RMPT+j5U8Pq7eDciHllDgRaFO",
+                  "mermaid.fMI3T940QA.js": "sha384-kstnQo1tIfL+tMgIsAHgtN6HODg7IUJOB7YxDsvWEfQKwtm2T8pJXYurn7ZK8lW/"
+                },
+                "scopeUrl": "http://127.0.0.1:8088/frankenstein-meeting-room/mermaid/"
+              },
+              "whiteboard": {
+                "exposes": [
+                  {
+                    "file": "Bootstrap-7COJRA5I.js",
+                    "moduleName": "http://127.0.0.1:8088/frankenstein-meeting-room/Bootstrap"
+                  }
+                ],
+                "integrity": {
+                  "Bootstrap-7COJRA5I.js": "sha384-7/Brmjo9gqN65lCvoMCfm1Ub5tyUw3ivabWA1NeC/UJOUrWzlfhIj0XYoFKiFEk7",
+                  "_excalidraw_excalidraw.0MlOv2WvQj.js": "sha384-gQrm6C7mOLCTYcdQFNBrh7GZ3o5hy2K2NmxwOfiJtDzs7NTkKc5hTxSBfksuKbaU",
+                  "react.QYXZqQxJ1j.js": "sha384-57khIiCnWo5tC9kEt0ibpdoHhHGtPXp1KmeWeJyyX0+UPwenA+Wj+0qvj7ajI3As",
+                  "react_dom.6SKyvL_ZIW.js": "sha384-P5wEc9b7LWwq+gIw6WZydAmGaqqKM9f1+8HOET0FxnhMqtpfCs6opvzQAXMtoyZA",
+                  "react_dom_client.lVKcx-4-HL.js": "sha384-qhRGasTGrIXFNZJfwVfTnDA2+KKAGE/O6D+GEErqa6n/c3xiyVcKH1x4FmMqeUAN",
+                  "react_dom_profiling.wPFH8wjIJf.js": "sha384-ljYfxwXdL20/jno4xQm1XDO5sL/8huAbZHNBeJ4Ov+nY5UDdOHl3ZwurHwevUCdI",
+                  "react_jsx_dev_runtime.UsMOGvdsKw.js": "sha384-Pz3qELNqQbfKZe26gJ2n/S9ZKDnDcKoBB4HKdEphutzsxBeMedPySvP+iKitw5h/",
+                  "react_jsx_runtime.RDhwXXoxCg.js": "sha384-mWHwomGyGtSC45UesaeI3hV4diuzv10CMDSAWJ1rMRQ8F+lA71uneBirgsCW/JxO"
+                },
+                "scopeUrl": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/"
+              }
+            }
+          },
+          "scoped-externals": {
+            "present": true,
+            "value": {}
+          },
+          "shared-externals": {
+            "present": true,
+            "value": {
+              "__GLOBAL__": {
+                "@angular/common": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": true,
+                      "remotes": [
+                        {
+                          "bundle": "browser-angular_common",
+                          "cached": true,
+                          "file": "_angular_common.Ucn2BmyRM1.js",
+                          "name": "__NF-HOST__",
+                          "requiredVersion": "^21.2.0",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "21.2.12"
+                    }
+                  ]
+                },
+                "@angular/common/http": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": true,
+                      "remotes": [
+                        {
+                          "bundle": "browser-angular_common",
+                          "cached": true,
+                          "file": "_angular_common_http.XnycUwbhpt.js",
+                          "name": "__NF-HOST__",
+                          "requiredVersion": "^21.2.0",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "21.2.12"
+                    }
+                  ]
+                },
+                "@angular/core": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": true,
+                      "remotes": [
+                        {
+                          "bundle": "browser-angular_core",
+                          "cached": true,
+                          "file": "_angular_core.RHjtWEkOzP.js",
+                          "name": "__NF-HOST__",
+                          "requiredVersion": "^21.2.0",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "21.2.12"
+                    }
+                  ]
+                },
+                "@angular/core/event-dispatch-contract.min.js": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": true,
+                      "remotes": [
+                        {
+                          "bundle": "browser-angular_core",
+                          "cached": true,
+                          "file": "_angular_core_event_dispatch_contract_min_js.JotK85OfcE.js",
+                          "name": "__NF-HOST__",
+                          "requiredVersion": "^21.2.0",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "21.2.12"
+                    }
+                  ]
+                },
+                "@angular/core/primitives/di": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": true,
+                      "remotes": [
+                        {
+                          "bundle": "browser-angular_core",
+                          "cached": true,
+                          "file": "_angular_core_primitives_di.QUc60-Xs6C.js",
+                          "name": "__NF-HOST__",
+                          "requiredVersion": "^21.2.0",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "21.2.12"
+                    }
+                  ]
+                },
+                "@angular/core/primitives/event-dispatch": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": true,
+                      "remotes": [
+                        {
+                          "bundle": "browser-angular_core",
+                          "cached": true,
+                          "file": "_angular_core_primitives_event_dispatch.1A9qBws3LP.js",
+                          "name": "__NF-HOST__",
+                          "requiredVersion": "^21.2.0",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "21.2.12"
+                    }
+                  ]
+                },
+                "@angular/core/primitives/signals": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": true,
+                      "remotes": [
+                        {
+                          "bundle": "browser-angular_core",
+                          "cached": true,
+                          "file": "_angular_core_primitives_signals.ePwPWbaXlE.js",
+                          "name": "__NF-HOST__",
+                          "requiredVersion": "^21.2.0",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "21.2.12"
+                    }
+                  ]
+                },
+                "@angular/core/rxjs-interop": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": true,
+                      "remotes": [
+                        {
+                          "bundle": "browser-angular_core",
+                          "cached": true,
+                          "file": "_angular_core_rxjs_interop.YqevhcoUQy.js",
+                          "name": "__NF-HOST__",
+                          "requiredVersion": "^21.2.0",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "21.2.12"
+                    }
+                  ]
+                },
+                "@angular/platform-browser": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": true,
+                      "remotes": [
+                        {
+                          "bundle": "browser-angular_platform_browser",
+                          "cached": true,
+                          "file": "_angular_platform_browser.lAyP2N3Pw8.js",
+                          "name": "__NF-HOST__",
+                          "requiredVersion": "^21.2.0",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "21.2.12"
+                    }
+                  ]
+                },
+                "@excalidraw/excalidraw": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": false,
+                      "remotes": [
+                        {
+                          "bundle": {
+                            "type": "undefined"
+                          },
+                          "cached": true,
+                          "file": "_excalidraw_excalidraw.0MlOv2WvQj.js",
+                          "name": "whiteboard",
+                          "requiredVersion": "~0.18.1",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "0.18.1"
+                    }
+                  ]
+                },
+                "mermaid": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": false,
+                      "remotes": [
+                        {
+                          "bundle": {
+                            "type": "undefined"
+                          },
+                          "cached": true,
+                          "file": "mermaid.fMI3T940QA.js",
+                          "name": "mermaid",
+                          "requiredVersion": "^11.4.1",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "11.14.0"
+                    }
+                  ]
+                },
+                "react": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": false,
+                      "remotes": [
+                        {
+                          "bundle": {
+                            "type": "undefined"
+                          },
+                          "cached": true,
+                          "file": "react.QYXZqQxJ1j.js",
+                          "name": "whiteboard",
+                          "requiredVersion": "^18.3.1",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "18.3.1"
+                    }
+                  ]
+                },
+                "react-dom": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": false,
+                      "remotes": [
+                        {
+                          "bundle": {
+                            "type": "undefined"
+                          },
+                          "cached": true,
+                          "file": "react_dom.6SKyvL_ZIW.js",
+                          "name": "whiteboard",
+                          "requiredVersion": "^18.3.1",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "18.3.1"
+                    }
+                  ]
+                },
+                "react-dom/client": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": false,
+                      "remotes": [
+                        {
+                          "bundle": {
+                            "type": "undefined"
+                          },
+                          "cached": true,
+                          "file": "react_dom_client.lVKcx-4-HL.js",
+                          "name": "whiteboard",
+                          "requiredVersion": "^18.3.1",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "18.3.1"
+                    }
+                  ]
+                },
+                "react-dom/profiling": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": false,
+                      "remotes": [
+                        {
+                          "bundle": {
+                            "type": "undefined"
+                          },
+                          "cached": true,
+                          "file": "react_dom_profiling.wPFH8wjIJf.js",
+                          "name": "whiteboard",
+                          "requiredVersion": "^18.3.1",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "18.3.1"
+                    }
+                  ]
+                },
+                "react/jsx-dev-runtime": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": false,
+                      "remotes": [
+                        {
+                          "bundle": {
+                            "type": "undefined"
+                          },
+                          "cached": true,
+                          "file": "react_jsx_dev_runtime.UsMOGvdsKw.js",
+                          "name": "whiteboard",
+                          "requiredVersion": "^18.3.1",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "18.3.1"
+                    }
+                  ]
+                },
+                "react/jsx-runtime": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": false,
+                      "remotes": [
+                        {
+                          "bundle": {
+                            "type": "undefined"
+                          },
+                          "cached": true,
+                          "file": "react_jsx_runtime.RDhwXXoxCg.js",
+                          "name": "whiteboard",
+                          "requiredVersion": "^18.3.1",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "18.3.1"
+                    }
+                  ]
+                },
+                "rxjs": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": true,
+                      "remotes": [
+                        {
+                          "bundle": "browser-rxjs",
+                          "cached": true,
+                          "file": "rxjs.IJzVNeB5rY.js",
+                          "name": "__NF-HOST__",
+                          "requiredVersion": "~7.8.0",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "7.8.2"
+                    }
+                  ]
+                },
+                "rxjs/operators": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": true,
+                      "remotes": [
+                        {
+                          "bundle": "browser-rxjs",
+                          "cached": true,
+                          "file": "rxjs_operators.gdYSvUruih.js",
+                          "name": "__NF-HOST__",
+                          "requiredVersion": "~7.8.0",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "7.8.2"
+                    }
+                  ]
+                },
+                "tslib": {
+                  "dirty": false,
+                  "versions": [
+                    {
+                      "action": "share",
+                      "host": true,
+                      "remotes": [
+                        {
+                          "bundle": "browser-tslib",
+                          "cached": true,
+                          "file": "tslib.s6WVYyl__v.js",
+                          "name": "__NF-HOST__",
+                          "requiredVersion": "^2.3.0",
+                          "strictVersion": true
+                        }
+                      ],
+                      "tag": "2.8.1"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "shared-chunks": {
+            "present": true,
+            "value": {
+              "__NF-HOST__": {
+                "browser-angular_common": [
+                  "chunk-WW26EZ22.js"
+                ],
+                "browser-angular_core": [
+                  "chunk-RCIWTGS7.js",
+                  "chunk-K6ZMRNMW.js",
+                  "chunk-APTZXQMF.js",
+                  "chunk-V2SUVJ7R.js",
+                  "chunk-2VMXMS7J.js"
+                ],
+                "browser-rxjs": [
+                  "chunk-PAMKM67I.js"
+                ],
+                "mapping-or-exposed": []
+              }
+            }
+          }
+        }
+      }
+    },
+    "frames": {
+      "availability": "available",
+      "observedAt": "2026-07-24T13:50:22.604Z",
+      "data": {
+        "top": {
+          "logicalPageId": "frankenstein-shell",
+          "url": "http://127.0.0.1:8088/frankenstein-meeting-room/",
+          "origin": "http://127.0.0.1:8088",
+          "path": "/frankenstein-meeting-room/"
+        },
+        "childFrames": []
+      }
+    },
+    "remoteMounts": {
+      "availability": "available",
+      "observedAt": "2026-07-24T13:50:22.604Z",
+      "data": {
+        "whiteboardRemoteCount": 1,
+        "mermaidRemoteCount": 1
+      }
+    },
+    "devtoolsNetwork": {
+      "availability": "available",
+      "observedAt": "2026-07-24T13:50:22.812Z",
+      "data": {
+        "requests": [
+          {
+            "requestId": "90",
+            "method": "GET",
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/federation.manifest.json",
+            "outcome": "200"
+          },
+          {
+            "requestId": "91",
+            "method": "GET",
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/remoteEntry.json",
+            "outcome": "200"
+          },
+          {
+            "requestId": "92",
+            "method": "GET",
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/mermaid/remoteEntry.json",
+            "outcome": "200"
+          },
+          {
+            "requestId": "93",
+            "method": "GET",
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/remoteEntry.json",
+            "outcome": "200"
+          },
+          {
+            "requestId": "95",
+            "method": "GET",
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_platform_browser.lAyP2N3Pw8.js",
+            "outcome": "200"
+          },
+          {
+            "requestId": "96",
+            "method": "GET",
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_core.RHjtWEkOzP.js",
+            "outcome": "200"
+          },
+          {
+            "requestId": "97",
+            "method": "GET",
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_common.Ucn2BmyRM1.js",
+            "outcome": "200"
+          },
+          {
+            "requestId": "98",
+            "method": "GET",
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/_angular_common_http.XnycUwbhpt.js",
+            "outcome": "200"
+          },
+          {
+            "requestId": "99",
+            "method": "GET",
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-WW26EZ22.js",
+            "outcome": "200"
+          },
+          {
+            "requestId": "100",
+            "method": "GET",
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/rxjs.IJzVNeB5rY.js",
+            "outcome": "200"
+          },
+          {
+            "requestId": "101",
+            "method": "GET",
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-RCIWTGS7.js",
+            "outcome": "200"
+          },
+          {
+            "requestId": "102",
+            "method": "GET",
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-K6ZMRNMW.js",
+            "outcome": "200"
+          },
+          {
+            "requestId": "103",
+            "method": "GET",
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-APTZXQMF.js",
+            "outcome": "200"
+          },
+          {
+            "requestId": "104",
+            "method": "GET",
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-V2SUVJ7R.js",
+            "outcome": "200"
+          },
+          {
+            "requestId": "105",
+            "method": "GET",
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-2VMXMS7J.js",
+            "outcome": "200"
+          },
+          {
+            "requestId": "106",
+            "method": "GET",
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/rxjs_operators.gdYSvUruih.js",
+            "outcome": "200"
+          },
+          {
+            "requestId": "107",
+            "method": "GET",
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/chunk-PAMKM67I.js",
+            "outcome": "200"
+          },
+          {
+            "requestId": "108",
+            "method": "GET",
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/tslib.s6WVYyl__v.js",
+            "outcome": "200"
+          },
+          {
+            "requestId": "125",
+            "method": "GET",
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/Bootstrap-7COJRA5I.js",
+            "outcome": "200"
+          },
+          {
+            "requestId": "126",
+            "method": "GET",
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/mermaid/Bootstrap-BBNZEAEH.js",
+            "outcome": "200"
+          },
+          {
+            "requestId": "127",
+            "method": "GET",
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/react_dom_client.lVKcx-4-HL.js",
+            "outcome": "200"
+          },
+          {
+            "requestId": "128",
+            "method": "GET",
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/react.QYXZqQxJ1j.js",
+            "outcome": "200"
+          },
+          {
+            "requestId": "129",
+            "method": "GET",
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/_excalidraw_excalidraw.0MlOv2WvQj.js",
+            "outcome": "200"
+          },
+          {
+            "requestId": "130",
+            "method": "GET",
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/react_jsx_runtime.RDhwXXoxCg.js",
+            "outcome": "200"
+          },
+          {
+            "requestId": "131",
+            "method": "GET",
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/mermaid/mermaid.fMI3T940QA.js",
+            "outcome": "200"
+          },
+          {
+            "requestId": "132",
+            "method": "GET",
+            "url": "http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/react_dom.6SKyvL_ZIW.js",
+            "outcome": "200"
+          }
+        ]
+      }
+    },
+    "federationArtifacts": {
+      "availability": "available",
+      "observedAt": "2026-07-24T13:50:22.812Z",
+      "data": {
+        "references": [
+          "artifacts/production-manifest.json",
+          "artifacts/production-shell-remote-entry.json",
+          "artifacts/production-whiteboard-remote-entry.json",
+          "artifacts/production-mermaid-remote-entry.json"
+        ]
+      }
+    }
+  },
+  "collectionErrors": [],
+  "passivity": {
+    "algorithm": "sha256-canonical-json",
+    "scope": [
+      "nativeFederationGlobals",
+      "domImportMaps",
+      "recognizedFederationStorage"
+    ],
+    "beforeSha256": "5e686f24de209d2925a810bf9bf7c23a6a5cb57318d03e5635bec8adfba66742",
+    "afterSha256": "5e686f24de209d2925a810bf9bf7c23a6a5cb57318d03e5635bec8adfba66742",
+    "equal": true,
+    "projectionReferences": {
+      "nativeFederationGlobals": "/channels/nativeFederationGlobals/data",
+      "domImportMaps": "/channels/domImportMaps/data",
+      "recognizedFederationStorage": "/channels/federationStorage/data/recognizedRepositoryValues"
+    }
+  },
+  "schemaVersion": "frankenstein-runtime-capture/1",
+  "runId": "20260724T134007Z",
+  "captureId": "production-04-remote-interaction",
+  "sequence": 4,
+  "mode": "production",
+  "phase": "remote-interaction",
+  "capturedAt": "2026-07-24T13:50:22.812Z",
+  "exercise": {
+    "kind": "intentional-user-interaction",
+    "action": "click",
+    "target": "calendar-event-button",
+    "purpose": "mount-remote-ui",
+    "businessValuesRecorded": false
+  },
+  "phaseEvidence": {
+    "whiteboardRemoteMounted": true,
+    "mermaidRemoteMounted": true
+  }
+}

@@ -1,6 +1,8 @@
 import { provideRouter } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
+import { PRIMARY_FIXTURE_ID, SNAPSHOT_PROVIDER } from 'devtools-bridge';
 import { App } from './app';
+import { appConfig } from './app.config';
 import { routes } from './app.routes';
 
 describe('App', () => {
@@ -27,5 +29,18 @@ describe('App', () => {
       a.textContent?.trim(),
     );
     expect(labels).toEqual(['Remotes & Exposes', 'Shared Dependencies', 'Import Map']);
+  });
+});
+
+// T2: dev mode serves fixture-backed snapshots through the real DI wiring.
+describe('appConfig snapshot provider', () => {
+  it('provides the primary fixture snapshot', async () => {
+    TestBed.configureTestingModule({ providers: [...appConfig.providers] });
+    const provider = TestBed.inject(SNAPSHOT_PROVIDER);
+    const snapshot = await provider.captureSnapshot();
+    expect(snapshot.schemaVersion).toBe(1);
+    expect(snapshot.capture.mode).toBe('passive');
+    expect(Object.keys(snapshot.runtime!.remotes)).toContain('whiteboard');
+    expect(PRIMARY_FIXTURE_ID).toBe('frankenstein-production');
   });
 });
