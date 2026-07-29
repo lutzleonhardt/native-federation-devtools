@@ -1,0 +1,50 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.shell-nav {
+  display: flex;
+  gap: 2px;
+  padding: 0 4px;
+  background: var(--nf-color-surface);
+  border-bottom: 1px solid var(--nf-color-border);
+}
+
+.shell-nav a {
+  padding: 5px 8px;
+  color: var(--nf-color-text-muted);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+}
+
+.shell-nav a:hover {
+  color: var(--nf-color-text);
+}
+
+.shell-nav a.active {
+  color: var(--nf-color-text);
+  border-bottom-color: var(--nf-color-accent);
+}
+
+.shell-nav a:focus-visible {
+  outline: 2px solid var(--nf-color-focus-ring);
+  outline-offset: -2px;
+}
+
+.shell-content {
+  flex: 1;
+  overflow: auto;
+  padding: 8px 12px;
+}
+
+.shell-content h1 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.view-placeholder {
+  color: var(--nf-color-text-muted);
+}

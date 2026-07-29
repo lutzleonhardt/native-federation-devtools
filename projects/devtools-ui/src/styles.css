@@ -1,0 +1,65 @@
+/* Theme tokens for the DevTools panel.
+ *
+ * Every color in the panel must resolve from one of these custom
+ * properties. The extension's devtools bootstrap passes the DevTools theme
+ * as a `?theme=` query parameter on the panel URL; main.ts sets it as
+ * `data-theme="dark" | "light"` on <html> before the app renders. When the
+ * attribute is absent (ng serve in a plain browser without the parameter)
+ * the `prefers-color-scheme` media query applies the dark set.
+ */
+
+:root {
+  color-scheme: light;
+
+  --nf-color-bg: #ffffff;
+  --nf-color-surface: #f1f3f4;
+  --nf-color-border: #d9d9d9;
+  --nf-color-text: #202124;
+  --nf-color-text-muted: #5f6368;
+  --nf-color-accent: #1a73e8;
+  --nf-color-accent-contrast: #ffffff;
+  --nf-color-focus-ring: #1a73e8;
+}
+
+/* Dark palette — keep in sync with the [data-theme='dark'] block below. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+
+    --nf-color-bg: #202124;
+    --nf-color-surface: #292a2d;
+    --nf-color-border: #494c50;
+    --nf-color-text: #e8eaed;
+    --nf-color-text-muted: #9aa0a6;
+    --nf-color-accent: #8ab4f8;
+    --nf-color-accent-contrast: #202124;
+    --nf-color-focus-ring: #8ab4f8;
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --nf-color-bg: #202124;
+  --nf-color-surface: #292a2d;
+  --nf-color-border: #494c50;
+  --nf-color-text: #e8eaed;
+  --nf-color-text-muted: #9aa0a6;
+  --nf-color-accent: #8ab4f8;
+  --nf-color-accent-contrast: #202124;
+  --nf-color-focus-ring: #8ab4f8;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--nf-color-bg);
+  color: var(--nf-color-text);
+  font-family: system-ui, sans-serif;
+  font-size: 12px;
+  line-height: 1.5;
+}
