@@ -1,0 +1,21 @@
+.badge {
+  display: inline-block;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 10px;
+  line-height: 1.4;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--nf-color-warning-text);
+  border: 1px solid var(--nf-color-warning-border);
+}
+
+.badge-partial {
+  background: var(--nf-color-warning-bg);
+}
+
+.badge-ambiguous {
+  background: transparent;
+  border-style: dashed;
+  font-style: italic;
+}

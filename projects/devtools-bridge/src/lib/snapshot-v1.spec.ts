@@ -80,8 +80,9 @@ describe('primary fixture derives from the frankenstein production capture (T2-A
 describe('synthetic fixtures (T2-AC-02)', () => {
   const synthetic = fixtureEntries.filter(([id]) => id !== PRIMARY_FIXTURE_ID);
 
-  it('exist for missing-channel, not-recognized, and empty-page states', () => {
+  it('exist for collision, missing-channel, not-recognized, and empty-page states', () => {
     expect(synthetic.map(([id]) => id).sort()).toEqual([
+      'synthetic-collision',
       'synthetic-empty-page',
       'synthetic-missing-channel',
       'synthetic-not-recognized',
@@ -108,6 +109,14 @@ describe('synthetic fixtures (T2-AC-02)', () => {
     expect(channel.state).toBe('not-recognized');
     expect(channel.state !== 'available' && channel.reason.length > 0).toBe(true);
     expect(fixture.runtime).toBeNull();
+  });
+
+  it('collision: two distinct remotes expose the same module key', () => {
+    const fixture = FIXTURES['synthetic-collision'];
+    const remotes = fixture.runtime!.remotes;
+    const collidingKey = remotes['calendar'].exposes[0].moduleName;
+    expect(remotes['chat'].exposes[0].moduleName).toBe(collidingKey);
+    expect(remotes['calendar'].exposes[0].file).not.toBe(remotes['chat'].exposes[0].file);
   });
 
   it('empty-page: zero maps is an observation, not missing evidence', () => {

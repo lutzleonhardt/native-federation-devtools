@@ -1,5 +1,6 @@
 import { SnapshotV1 } from '../snapshot-v1';
 import { frankensteinProductionFixture } from './frankenstein-production.fixture';
+import { syntheticCollisionFixture } from './synthetic-collision.fixture';
 import { syntheticEmptyPageFixture } from './synthetic-empty-page.fixture';
 import { syntheticMissingChannelFixture } from './synthetic-missing-channel.fixture';
 import { syntheticNotRecognizedFixture } from './synthetic-not-recognized.fixture';
@@ -10,6 +11,7 @@ import { syntheticNotRecognizedFixture } from './synthetic-not-recognized.fixtur
  */
 export const FIXTURES = {
   'frankenstein-production': frankensteinProductionFixture,
+  'synthetic-collision': syntheticCollisionFixture,
   'synthetic-missing-channel': syntheticMissingChannelFixture,
   'synthetic-not-recognized': syntheticNotRecognizedFixture,
   'synthetic-empty-page': syntheticEmptyPageFixture,

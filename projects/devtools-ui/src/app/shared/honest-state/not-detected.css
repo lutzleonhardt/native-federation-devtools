@@ -1,0 +1,15 @@
+.not-detected {
+  padding: 24px 12px;
+  text-align: center;
+}
+
+.not-detected-title {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.not-detected-reason {
+  margin: 0;
+  color: var(--nf-color-text-muted);
+}

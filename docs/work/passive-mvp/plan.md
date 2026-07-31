@@ -467,6 +467,84 @@ steps and result in the task log.
 - A post-load passive snapshot carries no network evidence — that is
   expected; transport evidence belongs to Phase 2 recording.
 
+## Task 9: Channel-state tab indicators and shell-level refresh
+
+### Instructions
+
+Surface the page-level channel state in the shell navigation and
+consolidate the snapshot actions there: one snapshot feeds all views, so
+refresh and capture metadata belong to the shell, not to a single view.
+
+Move the manual refresh action and the capture meta (page URL,
+captured-at) from the Remotes & Exposes view toolbar into the shell.
+Refresh keeps re-invoking `captureSnapshot()` through the
+`SNAPSHOT_PROVIDER` token via the shared root-provided `SnapshotStore`
+(from Task 3) — shell and views must share the same store instance so a
+refresh updates tabs and the active view together.
+
+Add a per-tab channel-state indicator to the shell nav. Mapping: the
+Remotes & Exposes tab and the Shared Dependencies tab reflect
+`nativeFederationGlobals` (the resolver outcome reads from the same
+runtime repositories); the Import Map tab aggregates `domImportMaps` +
+`importShim` — both yielded data → available, exactly one → partial,
+none → off.
+
+Visual vocabulary (honest, non-alarming): `available` renders quietly
+(no indicator); `unavailable` renders as a muted "off" dot — a normal
+state on non-federated pages, not an error; `not-recognized` renders in
+the warning tone (`--nf-color-warning-*` tokens from Task 3); the
+partial aggregate uses the partial semantics of the Task-3 honest-state
+primitives (dots may reuse the tokens rather than embedding the badge
+component — tab density wins). Channel reasons appear verbatim as
+tooltips. While capturing and on capture error, tabs claim no channel
+state at all.
+
+Cover with fixture-driven component tests through the App shell,
+including a counting provider for the moved refresh action.
+
+### Acceptance
+
+- **T9-AC-01** — With the primary fixture (all channels available), tabs
+  render without indicators and the shell shows page URL and
+  captured-at.
+- **T9-AC-02** — With the missing-channel fixture, the two
+  runtime-backed tabs show the muted unavailable indicator with the
+  channel reason as tooltip; the Import Map tab shows the partial
+  aggregate (one of two import-map channels yielded data). Contributes
+  to XC-04.
+- **T9-AC-03** — With the not-recognized fixture, the runtime-backed
+  tabs show the warning-tone indicator; no tab or view invents data.
+  Contributes to XC-04.
+- **T9-AC-04** — Shell refresh re-invokes `captureSnapshot()` (verified
+  with a counting fixture provider) and updates tab indicators and the
+  active view from the same store instance.
+- **T9-AC-05** — The Remotes & Exposes view no longer carries its own
+  refresh/meta toolbar; its honest-state rendering is unchanged and its
+  Task-3 component tests stay green (adjusted only for the moved
+  toolbar).
+
+### Key Locations
+
+- devtools-ui shell: `app.ts`, `app.html`, `app.css` (nav indicators,
+  refresh, meta)
+- `projects/devtools-ui/src/app/shared/snapshot-store.ts` (shared
+  instance; no API change expected)
+- `projects/devtools-ui/src/app/views/remotes-exposes.*` (toolbar
+  removal)
+
+### Key Discoveries
+
+- Motivated by fixture review in Task 3: `synthetic-missing-channel` and
+  `synthetic-empty-page` carry the identical `nativeFederationGlobals`
+  state, so the Remotes view legitimately renders them identically — the
+  difference (one document import map vs. zero) only lives in import-map
+  evidence. Tab indicators surface that difference at a glance without
+  any view interpreting foreign channels.
+- Tab ↔ channel mapping is not 1:1 and that is fine: two runtime-backed
+  tabs share one channel; the Import Map tab aggregates two.
+- The Task-3 `partial` primitive exists but has no consumer yet; the
+  Import Map tab aggregate is its first real use case.
+
 ## Cross-Cutting Acceptance
 
 - **XC-01** — Passive capture never mutates the inspected page: no
@@ -482,4 +560,4 @@ steps and result in the task log.
   an automated check from Task 2 onward. **Touches:** T2, T8.
 - **XC-04** — Every view renders missing/partial/ambiguous or
   not-recognized states instead of invented data; unknown is never
-  converted into false certainty. **Touches:** T3, T4, T5.
+  converted into false certainty. **Touches:** T3, T4, T5, T9.

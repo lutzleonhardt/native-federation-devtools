@@ -1,0 +1,74 @@
+<section class="view">
+  <header class="view-toolbar">
+    <h1>Remotes &amp; Exposes</h1>
+    <button
+      type="button"
+      class="nf-button"
+      (click)="refresh()"
+      [disabled]="state().status === 'capturing'"
+    >
+      Refresh
+    </button>
+    @if (state(); as s) {
+      @if (s.status === 'captured') {
+        <span class="view-meta">
+          {{ s.snapshot.capture.pageUrl }} · {{ s.snapshot.capture.capturedAt }}
+        </span>
+      }
+    }
+  </header>
+
+  @if (state(); as s) {
+    @if (s.status === 'capturing') {
+      <p class="view-placeholder">Capturing snapshot…</p>
+    } @else if (s.status === 'error') {
+      <nf-missing-evidence [reason]="'Snapshot capture failed: ' + s.message" />
+    } @else {
+      @if (s.snapshot.channels.nativeFederationGlobals; as channel) {
+        @if (channel.state === 'not-recognized') {
+          <nf-not-detected [reason]="channel.reason" />
+        } @else if (channel.state === 'unavailable') {
+          <nf-missing-evidence [reason]="channel.reason" />
+        } @else if (!s.snapshot.runtime) {
+          <nf-missing-evidence
+            reason="Channel reports available but no runtime projection was captured — inconsistent snapshot."
+          />
+        } @else if (rows().length === 0) {
+          <p class="view-observation">
+            Native Federation runtime detected — zero remotes registered.
+          </p>
+        } @else {
+          <table class="nf-table">
+            <thead>
+              <tr>
+                <th>Remote</th>
+                <th>Scope URL</th>
+                <th>Expose key</th>
+                <th>File</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of rows(); track row.remoteName + '::' + row.exposeKey) {
+                <tr>
+                  <td class="cell-remote">
+                    {{ row.remoteName }}
+                    @if (row.isHost) {
+                      <span class="nf-tag">host</span>
+                    }
+                  </td>
+                  <td>{{ row.scopeUrl }}</td>
+                  @if (row.exposeKey !== null) {
+                    <td>{{ row.exposeKey }}</td>
+                    <td>{{ row.file }}</td>
+                  } @else {
+                    <td class="cell-empty" colspan="2">no exposes registered</td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      }
+    }
+  }
+</section>

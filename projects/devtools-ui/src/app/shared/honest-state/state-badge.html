@@ -1,0 +1,7 @@
+<span
+  class="badge"
+  [class.badge-partial]="kind() === 'partial'"
+  [class.badge-ambiguous]="kind() === 'ambiguous'"
+  [attr.title]="note() ?? null"
+  >{{ kind() }}</span
+>

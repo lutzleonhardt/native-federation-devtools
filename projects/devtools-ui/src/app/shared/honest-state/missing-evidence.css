@@ -1,0 +1,17 @@
+.missing {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  border-left: 3px solid var(--nf-color-warning-border);
+  background: var(--nf-color-surface);
+}
+
+.missing-label {
+  font-weight: 600;
+  color: var(--nf-color-warning-text);
+}
+
+.missing-reason {
+  color: var(--nf-color-text-muted);
+}
