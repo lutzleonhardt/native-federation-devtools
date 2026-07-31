@@ -164,6 +164,42 @@ Out of scope for the first product; listed without design detail:
 - Framework detection
 - Timelines
 
+### Backlog candidate: consumer perspective on shared dependencies
+
+*(Idea from Lutz during Task 4, 2026-07-31 — park for a Phase-2 `/plan`.)*
+
+The Phase-1 Shared Dependencies view is provider-centric: it shows who
+provides the selected version and the participants recorded under it. The
+actual debugging question is consumer-centric — "remote `mermaid` declared
+`react@^13`, what does it *get*, and where is the mismatch?"
+
+Evidence basis (both passive, two layers correlated, never merged):
+
+- **Runtime resolver outcome** records the demands: per-participant
+  `requiredVersion` under each version tag, plus the action.
+- **Effective browser resolution** records the delivery side: import-map
+  `scopes` state which file a specifier resolves to for imports from a
+  remote's scope. The *version* of a mapped target is not in the map — it
+  is derived by joining target file names against the repositories' `file`
+  fields, and must stay visible as a cross-layer correlation.
+- Limits: resolution is not loading (transport provenance stays Phase 2);
+  declared-but-unregistered claims stay Phase 2; a requirement/outcome
+  mismatch is mechanically checkable (semver) and rendered as a marker,
+  never as an inferred resolver motive.
+
+UI direction (discussed, not decided): cross-linked detail views first —
+package → all declarations with outcome and mismatch markers; remote → its
+dependencies with resolution status; expandable rows in the existing table
+as the cheapest first stage. A node-edge topology graph (Obsidian-style)
+stays a later, separate lens: good for coupling overview, weak for the
+precise version question.
+
+Prerequisite before designing: the capture corpus demonstrates no
+cross-remote version conflict, and the repository shape of the losing
+declaration (participant under the winning tag vs. own `scope`/`skip`
+entry) is unverified. Extend the Frankenstein lab app to produce a real
+conflict and capture it first — fixture-first, like Phase 1.
+
 ## 7. Prior art — not templates
 
 The private `nf-chrome-plugin` repository is a frozen earlier attempt: its
