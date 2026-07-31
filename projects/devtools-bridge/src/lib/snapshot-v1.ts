@@ -75,6 +75,9 @@ export interface ExternalV1 {
 /** scope ('__GLOBAL__' or a scope URL) → package name → external. */
 export type ExternalScopesV1 = Record<string, Record<string, ExternalV1>>;
 
+/** Reserved remote name under which the host registers itself in the repositories. */
+export const NF_HOST = '__NF-HOST__';
+
 /**
  * Projection of the four repositories on `__NATIVE_FEDERATION__`.
  * Non-null only when the channel is available and all four repositories

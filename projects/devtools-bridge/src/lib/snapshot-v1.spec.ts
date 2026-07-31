@@ -80,11 +80,12 @@ describe('primary fixture derives from the frankenstein production capture (T2-A
 describe('synthetic fixtures (T2-AC-02)', () => {
   const synthetic = fixtureEntries.filter(([id]) => id !== PRIMARY_FIXTURE_ID);
 
-  it('exist for collision, missing-channel, not-recognized, and empty-page states', () => {
+  it('exist for collision, missing-channel, multi-version, not-recognized, and empty-page states', () => {
     expect(synthetic.map(([id]) => id).sort()).toEqual([
       'synthetic-collision',
       'synthetic-empty-page',
       'synthetic-missing-channel',
+      'synthetic-multi-version',
       'synthetic-not-recognized',
     ]);
   });
@@ -117,6 +118,16 @@ describe('synthetic fixtures (T2-AC-02)', () => {
     const collidingKey = remotes['calendar'].exposes[0].moduleName;
     expect(remotes['chat'].exposes[0].moduleName).toBe(collidingKey);
     expect(remotes['calendar'].exposes[0].file).not.toBe(remotes['chat'].exposes[0].file);
+  });
+
+  it('multi-version: one package carries two distinct version tags, neither marked as winner', () => {
+    const fixture = FIXTURES['synthetic-multi-version'];
+    const versions = fixture.runtime!.sharedExternals['__GLOBAL__']['ui-lib'].versions;
+    expect(versions).toHaveLength(2);
+    expect(versions.map((version) => version.tag)).toEqual(['1.2.3', '2.0.0']);
+    // The DTO records both tags as plain entries — no field singles one out.
+    expect(versions.map((version) => version.action)).toEqual(['share', 'share']);
+    expect(versions.map((version) => version.remotes[0].name)).toEqual(['calendar', 'chat']);
   });
 
   it('empty-page: zero maps is an observation, not missing evidence', () => {
