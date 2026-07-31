@@ -39,12 +39,5 @@
   padding: 8px 12px;
 }
 
-.shell-content h1 {
-  margin: 0 0 8px;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.view-placeholder {
-  color: var(--nf-color-text-muted);
-}
+/* View-level classes (h1, .view-placeholder, …) live in the global
+ * styles.css — routed views are outside this component's style scope. */

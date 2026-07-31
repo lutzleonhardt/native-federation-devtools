@@ -4,6 +4,12 @@ import { FixtureSnapshotProvider, fixtureIdFromQuery, SNAPSHOT_PROVIDER } from '
 
 import { routes } from './app.routes';
 
+// Read at module-evaluation time, before bootstrap: the hash-location
+// router rewrites the URL during its initial navigation and drops the
+// `?fixture=` search part, so a lazy read inside the provider factory
+// (first run when a view injects the store) always comes up empty.
+const initialFixtureId = fixtureIdFromQuery(location.search);
+
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
@@ -14,7 +20,7 @@ export const appConfig: ApplicationConfig = {
     // The live provider replaces this in the packaged extension (Task 8).
     {
       provide: SNAPSHOT_PROVIDER,
-      useFactory: () => new FixtureSnapshotProvider(fixtureIdFromQuery(location.search)),
+      useFactory: () => new FixtureSnapshotProvider(initialFixtureId),
     },
   ],
 };
