@@ -33,6 +33,11 @@
   outline-offset: -2px;
 }
 
+.shell-export {
+  margin-left: auto;
+  align-self: center;
+}
+
 .shell-content {
   flex: 1;
   overflow: auto;

@@ -2,6 +2,7 @@ import { SnapshotV1 } from '../snapshot-v1';
 import { frankensteinProductionFixture } from './frankenstein-production.fixture';
 import { syntheticCollisionFixture } from './synthetic-collision.fixture';
 import { syntheticEmptyPageFixture } from './synthetic-empty-page.fixture';
+import { syntheticHostileFixture } from './synthetic-hostile.fixture';
 import { syntheticMissingChannelFixture } from './synthetic-missing-channel.fixture';
 import { syntheticMultiVersionFixture } from './synthetic-multi-version.fixture';
 import { syntheticNoImportMapsFixture } from './synthetic-no-import-maps.fixture';
@@ -14,6 +15,7 @@ import { syntheticNotRecognizedFixture } from './synthetic-not-recognized.fixtur
 export const FIXTURES = {
   'frankenstein-production': frankensteinProductionFixture,
   'synthetic-collision': syntheticCollisionFixture,
+  'synthetic-hostile': syntheticHostileFixture,
   'synthetic-missing-channel': syntheticMissingChannelFixture,
   'synthetic-multi-version': syntheticMultiVersionFixture,
   'synthetic-no-import-maps': syntheticNoImportMapsFixture,
