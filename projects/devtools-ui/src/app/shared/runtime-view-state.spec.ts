@@ -57,7 +57,6 @@ describe('runtimeViewState', () => {
     expect(result).toEqual({
       kind: 'ready',
       capture: snapshot.capture,
-      snapshot,
       runtime: snapshot.runtime!,
     });
   });
