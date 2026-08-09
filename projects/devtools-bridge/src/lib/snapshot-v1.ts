@@ -52,7 +52,11 @@ export interface ExternalRemoteV1 {
   name: string;
   requiredVersion: string;
   strictVersion: boolean;
-  file: string;
+  /**
+   * Bundle file recorded by older runtimes; null on runtimes that record
+   * per-entry file maps instead (not collected in Phase 1).
+   */
+  file: string | null;
   cached: boolean;
 }
 
@@ -80,8 +84,11 @@ export const NF_HOST = '__NF-HOST__';
 
 /**
  * Projection of the four repositories on `__NATIVE_FEDERATION__`.
- * Non-null only when the channel is available and all four repositories
- * were present (otherwise the channel is 'not-recognized').
+ * Non-null only when the channel is available: the repositories were
+ * present and readable (otherwise the channel is 'not-recognized').
+ * Exception: the runtime creates `scoped-externals` lazily, so an
+ * explicitly absent repository is the observation "zero entries" and
+ * projects to an empty `scopedExternals`.
  */
 export interface RuntimeRepositoriesV1 {
   /** remote name → remote; '__NF-HOST__' is the host's own registration. */

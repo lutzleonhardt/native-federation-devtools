@@ -87,6 +87,99 @@ describe('unrecognized shapes (T7-AC-04)', () => {
     expect(JSON.stringify(snapshot)).not.toContain('not-an-object');
   });
 
+  it('projects a lazily-absent scoped-externals repository as zero entries', () => {
+    // Playground-shaped global: the runtime creates `scoped-externals`
+    // lazily, so a page without scoped externals has no such key at all.
+    const sandbox = makeBarePage({
+      __NATIVE_FEDERATION__: {
+        remotes: {},
+        'shared-externals': {},
+        'shared-chunks': {},
+      },
+    });
+    const raw = evaluateProbe(PASSIVE_PROBE_SOURCE, sandbox);
+    const snapshot = mapProbeResult(raw, null, { capturedAt: CAPTURED_AT });
+
+    expect(snapshot.channels.nativeFederationGlobals).toEqual({ state: 'available' });
+    expect(snapshot.runtime).toEqual({
+      remotes: {},
+      scopedExternals: {},
+      sharedExternals: {},
+      sharedChunks: {},
+    });
+    expect(snapshot.errors).toEqual([]);
+  });
+
+  it('projects newer-runtime external remotes without a file field (entries map dropped)', () => {
+    // Playground-shaped shared external (Angular 22 runtime): remotes carry
+    // `bundle` + `entries` instead of a single `file`.
+    const sandbox = makeBarePage({
+      __NATIVE_FEDERATION__: {
+        remotes: {},
+        'shared-externals': {
+          __GLOBAL__: {
+            '@angular/core': {
+              dirty: false,
+              versions: [
+                {
+                  tag: '22.0.8',
+                  action: 'share',
+                  host: true,
+                  remotes: [
+                    {
+                      name: '__NF-HOST__',
+                      bundle: 'browser-angular_core',
+                      strictVersion: true,
+                      cached: true,
+                      requiredVersion: '~22.0.0',
+                      entries: { '@angular/core': '_angular_core.EWio10v_5e.js' },
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+        'shared-chunks': {},
+      },
+    });
+    const raw = evaluateProbe(PASSIVE_PROBE_SOURCE, sandbox);
+    const snapshot = mapProbeResult(raw, null, { capturedAt: CAPTURED_AT });
+
+    expect(snapshot.channels.nativeFederationGlobals).toEqual({ state: 'available' });
+    expect(snapshot.runtime?.sharedExternals['__GLOBAL__']['@angular/core'].versions[0].remotes).toEqual([
+      {
+        name: '__NF-HOST__',
+        requiredVersion: '~22.0.0',
+        strictVersion: true,
+        file: null,
+        cached: true,
+      },
+    ]);
+    expect(snapshot.errors).toEqual([]);
+    // The uncollected newer-runtime fields never cross the allowlist.
+    expect(JSON.stringify(snapshot)).not.toContain('browser-angular_core');
+    expect(JSON.stringify(snapshot)).not.toContain('_angular_core.EWio10v_5e.js');
+  });
+
+  it('keeps not-recognized when scoped-externals exists but is unreadable', () => {
+    const nf: Record<string, unknown> = {
+      remotes: {},
+      'shared-externals': {},
+      'shared-chunks': {},
+    };
+    Object.defineProperty(nf, 'scoped-externals', { get: () => ({}) });
+    const sandbox = makeBarePage({ __NATIVE_FEDERATION__: nf });
+    const raw = evaluateProbe(PASSIVE_PROBE_SOURCE, sandbox);
+    const snapshot = mapProbeResult(raw, null, { capturedAt: CAPTURED_AT });
+
+    expect(snapshot.channels.nativeFederationGlobals).toEqual({
+      state: 'not-recognized',
+      reason: 'global present but repositories missing or unreadable: scoped-externals',
+    });
+    expect(snapshot.runtime).toBeNull();
+  });
+
   it('yields unavailable when the global is absent', () => {
     const snapshot = capturePage(makeBarePage());
     expect(snapshot.channels.nativeFederationGlobals).toEqual({

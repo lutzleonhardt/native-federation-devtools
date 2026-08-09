@@ -9,7 +9,10 @@ import { join } from 'node:path';
 const extensionDir = fileURLToPath(new URL('../dist/extension', import.meta.url));
 
 const jsChecks = [
-  { label: 'eval(', pattern: /\beval\(/ },
+  // `inspectedWindow.eval(` is the one sanctioned DevTools API call
+  // (Task 8, the bridge's probe channel); any other `eval(` — bare or
+  // via another object — still fails the build.
+  { label: 'eval(', pattern: /(?<!inspectedWindow\.)\beval\(/ },
   { label: 'new Function(', pattern: /new Function\(/ },
   { label: 'zone.js', pattern: /zone\.js|__zone_symbol__/ },
 ];
