@@ -4,7 +4,8 @@
   "compileOnSave": false,
   "compilerOptions": {
     "paths": {
-      "devtools-bridge": ["./projects/devtools-bridge/src/public-api.ts"]
+      "devtools-bridge": ["./projects/devtools-bridge/src/public-api.ts"],
+      "collector": ["./projects/collector/src/public-api.ts"]
     },
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
@@ -35,6 +36,9 @@
     },
     {
       "path": "./projects/devtools-bridge/tsconfig.spec.json"
+    },
+    {
+      "path": "./projects/collector/tsconfig.lib.json"
     }
   ]
 }

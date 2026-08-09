@@ -29,6 +29,7 @@ describe('fixture privacy scan (T2-AC-03)', () => {
     poisoned['cookies'] = 'sessionid=abc123';
     (poisoned['importMaps'] as { effective: { integrityFor: string[] } }).effective.integrityFor.push(
       'sha384-57khIiCnWo5tC9kEt0ibpdoHhHGtPXp1KmeWeJyyX0+UPwenA+Wj+0qvj7ajI3As',
+      '/assets/app.js?signature=leaked#state',
     );
 
     const violations = scanForPrivacyViolations(poisoned);
@@ -38,6 +39,8 @@ describe('fixture privacy scan (T2-AC-03)', () => {
     expect(messages).toContain('fragment');
     expect(messages).toContain("forbidden key 'cookies'");
     expect(messages).toContain('SRI integrity hash');
+    expect(messages).toContain('relative URL carries a query string');
+    expect(messages).toContain('relative URL carries a fragment');
   });
 });
 

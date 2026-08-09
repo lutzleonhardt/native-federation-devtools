@@ -5,7 +5,8 @@
  * Walks a JSON value and reports:
  *  - keys that suggest raw page data (cookies, headers, bodies, credentials,
  *    tokens, business data)
- *  - URL values carrying userinfo, query, or fragment
+ *  - URL values carrying userinfo, query, or fragment — absolute URLs and
+ *    relative URL-shaped strings (`/`, `./`, `../`) alike
  *  - SRI integrity hashes copied as values (presence lists only)
  */
 
@@ -45,6 +46,13 @@ export function scanForPrivacyViolations(
       }
       if (url.hash !== '') {
         violations.push({ path, message: 'URL carries a fragment' });
+      }
+    } else if (/^(\/|\.\/|\.\.\/)/.test(value)) {
+      if (value.includes('?')) {
+        violations.push({ path, message: 'relative URL carries a query string' });
+      }
+      if (value.includes('#')) {
+        violations.push({ path, message: 'relative URL carries a fragment' });
       }
     }
     return violations;

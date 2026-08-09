@@ -1,0 +1,13 @@
+/* Typecheck config for the framework-free collector library. Unlike the
+   Angular libraries this project is never packaged — `npm run test:collector`
+   runs `tsc --noEmit` over it before the vitest suite. Test helpers and specs
+   need node builtins and are checked by vitest at runtime instead. */
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": []
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["**/*.spec.ts", "src/testing/**"]
+}
