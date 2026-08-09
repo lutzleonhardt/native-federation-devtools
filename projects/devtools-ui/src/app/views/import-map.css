@@ -1,0 +1,60 @@
+.layer-caption {
+  margin: 0 0 0.75rem;
+  color: var(--nf-color-text-muted);
+}
+
+.imports-section h2,
+.scope-group h2,
+.effective-aspect h2 {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--nf-color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.scope-group,
+.effective-aspect {
+  margin-top: 1.5rem;
+}
+
+.scope-url {
+  text-transform: none;
+  letter-spacing: normal;
+  font-family: ui-monospace, 'Cascadia Mono', Menlo, Consolas, monospace;
+}
+
+/* Fixed layout with shared column widths so the stacked section tables align. */
+.nf-table {
+  table-layout: fixed;
+}
+
+.col-specifier {
+  width: 320px;
+}
+
+.col-integrity {
+  width: 6rem;
+}
+
+.nf-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cell-specifier {
+  font-weight: 600;
+}
+
+.document-map-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-family: ui-monospace, 'Cascadia Mono', Menlo, Consolas, monospace;
+  font-size: 11px;
+}
+
+.document-map-list li + li {
+  margin-top: 0.25rem;
+}

@@ -4,6 +4,7 @@ import { syntheticCollisionFixture } from './synthetic-collision.fixture';
 import { syntheticEmptyPageFixture } from './synthetic-empty-page.fixture';
 import { syntheticMissingChannelFixture } from './synthetic-missing-channel.fixture';
 import { syntheticMultiVersionFixture } from './synthetic-multi-version.fixture';
+import { syntheticNoImportMapsFixture } from './synthetic-no-import-maps.fixture';
 import { syntheticNotRecognizedFixture } from './synthetic-not-recognized.fixture';
 
 /**
@@ -15,6 +16,7 @@ export const FIXTURES = {
   'synthetic-collision': syntheticCollisionFixture,
   'synthetic-missing-channel': syntheticMissingChannelFixture,
   'synthetic-multi-version': syntheticMultiVersionFixture,
+  'synthetic-no-import-maps': syntheticNoImportMapsFixture,
   'synthetic-not-recognized': syntheticNotRecognizedFixture,
   'synthetic-empty-page': syntheticEmptyPageFixture,
 } satisfies Record<string, SnapshotV1>;

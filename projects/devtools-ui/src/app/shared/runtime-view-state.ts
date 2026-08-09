@@ -1,4 +1,4 @@
-import { CaptureMetaV1, RuntimeRepositoriesV1, SnapshotV1 } from 'devtools-bridge';
+import { CaptureMetaV1, RuntimeRepositoriesV1 } from 'devtools-bridge';
 
 import { SnapshotState } from './snapshot-store';
 
@@ -23,7 +23,6 @@ export type RuntimeViewState =
   | {
       kind: 'ready';
       capture: CaptureMetaV1;
-      snapshot: SnapshotV1;
       runtime: RuntimeRepositoriesV1;
     };
 
@@ -50,5 +49,5 @@ export function runtimeViewState(state: SnapshotState): RuntimeViewState {
       capture: snapshot.capture,
     };
   }
-  return { kind: 'ready', capture: snapshot.capture, snapshot, runtime: snapshot.runtime };
+  return { kind: 'ready', capture: snapshot.capture, runtime: snapshot.runtime };
 }

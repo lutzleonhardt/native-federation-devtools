@@ -80,12 +80,13 @@ describe('primary fixture derives from the frankenstein production capture (T2-A
 describe('synthetic fixtures (T2-AC-02)', () => {
   const synthetic = fixtureEntries.filter(([id]) => id !== PRIMARY_FIXTURE_ID);
 
-  it('exist for collision, missing-channel, multi-version, not-recognized, and empty-page states', () => {
+  it('exist for collision, missing-channel, multi-version, no-import-maps, not-recognized, and empty-page states', () => {
     expect(synthetic.map(([id]) => id).sort()).toEqual([
       'synthetic-collision',
       'synthetic-empty-page',
       'synthetic-missing-channel',
       'synthetic-multi-version',
+      'synthetic-no-import-maps',
       'synthetic-not-recognized',
     ]);
   });
@@ -128,6 +129,16 @@ describe('synthetic fixtures (T2-AC-02)', () => {
     // The DTO records both tags as plain entries — no field singles one out.
     expect(versions.map((version) => version.action)).toEqual(['share', 'share']);
     expect(versions.map((version) => version.remotes[0].name)).toEqual(['calendar', 'chat']);
+  });
+
+  it('no-import-maps: both import-map channels are unavailable with reasons and importMaps is null', () => {
+    const fixture: SnapshotV1 = FIXTURES['synthetic-no-import-maps'];
+    const { domImportMaps, importShim } = fixture.channels;
+    expect(domImportMaps.state).toBe('unavailable');
+    expect(importShim.state).toBe('unavailable');
+    expect(domImportMaps.state !== 'available' && domImportMaps.reason.length > 0).toBe(true);
+    expect(importShim.state !== 'available' && importShim.reason.length > 0).toBe(true);
+    expect(fixture.importMaps).toBeNull();
   });
 
   it('empty-page: zero maps is an observation, not missing evidence', () => {
