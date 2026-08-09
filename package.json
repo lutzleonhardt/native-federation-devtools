@@ -8,7 +8,8 @@
     "build:extension": "node scripts/build-extension.mjs",
     "check:panel-bundle": "node scripts/check-panel-bundle.mjs",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test devtools-ui && ng test devtools-bridge && npm run test:guards",
+    "test": "ng test devtools-ui && ng test devtools-bridge && npm run test:collector && npm run test:guards",
+    "test:collector": "tsc -p projects/collector/tsconfig.lib.json && vitest run --config vitest.collector.config.mts",
     "test:guards": "vitest run --config vitest.guards.config.mts"
   },
   "private": true,
