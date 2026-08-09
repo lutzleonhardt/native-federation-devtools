@@ -80,10 +80,11 @@ describe('primary fixture derives from the frankenstein production capture (T2-A
 describe('synthetic fixtures (T2-AC-02)', () => {
   const synthetic = fixtureEntries.filter(([id]) => id !== PRIMARY_FIXTURE_ID);
 
-  it('exist for collision, missing-channel, multi-version, no-import-maps, not-recognized, and empty-page states', () => {
+  it('exist for collision, empty-page, hostile, missing-channel, multi-version, no-import-maps, and not-recognized states', () => {
     expect(synthetic.map(([id]) => id).sort()).toEqual([
       'synthetic-collision',
       'synthetic-empty-page',
+      'synthetic-hostile',
       'synthetic-missing-channel',
       'synthetic-multi-version',
       'synthetic-no-import-maps',
@@ -139,6 +140,20 @@ describe('synthetic fixtures (T2-AC-02)', () => {
     expect(domImportMaps.state !== 'available' && domImportMaps.reason.length > 0).toBe(true);
     expect(importShim.state !== 'available' && importShim.reason.length > 0).toBe(true);
     expect(fixture.importMaps).toBeNull();
+  });
+
+  it('hostile: all channels available, adversarial-but-sanitized data, non-empty errors', () => {
+    const fixture = FIXTURES['synthetic-hostile'];
+    expect(Object.values(fixture.channels).map((channel) => channel.state)).toEqual([
+      'available',
+      'available',
+      'available',
+    ]);
+    expect(fixture.runtime).not.toBeNull();
+    expect(fixture.importMaps!.effective).not.toBeNull();
+    expect(fixture.errors.length).toBeGreaterThan(0);
+    // Errors survive with nested detail — the export must carry them verbatim.
+    expect(fixture.errors[0].detail).toMatchObject({ repository: 'sharedChunks' });
   });
 
   it('empty-page: zero maps is an observation, not missing evidence', () => {
