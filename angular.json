@@ -29,6 +29,12 @@
           },
           "configurations": {
             "production": {
+              "fileReplacements": [
+                {
+                  "replace": "projects/devtools-ui/src/environments/environment.ts",
+                  "with": "projects/devtools-ui/src/environments/environment.extension.ts"
+                }
+              ],
               "optimization": {
                 "scripts": true,
                 "fonts": true,

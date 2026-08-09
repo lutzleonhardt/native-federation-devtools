@@ -49,6 +49,15 @@ const REPOSITORY_KEYS = [
 type RepositoryKey = (typeof REPOSITORY_KEYS)[number];
 
 /**
+ * Repositories the runtime creates lazily: on pages that never register
+ * such an entry the key does not exist at all (seen in the wild — the
+ * native-federation playground has no `scoped-externals`). An explicitly
+ * absent optional repository is the observation "zero entries" and maps
+ * to an empty projection; an unreadable one still means `not-recognized`.
+ */
+const OPTIONAL_REPOSITORY_KEYS: ReadonlySet<RepositoryKey> = new Set(['scoped-externals']);
+
+/**
  * `rawProbe` is the evaluated `PASSIVE_PROBE_SOURCE` result; `rawShimMap`
  * is the evaluated `SHIM_MAP_PROBE_SOURCE` result, or `null`/`undefined`
  * when the shim probe was not run (e.g. because the main probe reported no
@@ -194,6 +203,14 @@ function mapRuntime(
   const missing: string[] = [];
   for (const key of REPOSITORY_KEYS) {
     const repository = dataValue(repositories, key);
+    if (
+      OPTIONAL_REPOSITORY_KEYS.has(key) &&
+      isObjectLike(repository) &&
+      dataValue(repository, 'present') === false
+    ) {
+      projected[key] = {};
+      continue;
+    }
     const readable =
       isObjectLike(repository) &&
       dataValue(repository, 'present') === true &&
@@ -347,7 +364,7 @@ function toExternalRemotes(
     const name = dataValue(remoteRaw, 'name');
     const requiredVersion = dataValue(remoteRaw, 'requiredVersion');
     const file = dataValue(remoteRaw, 'file');
-    if (typeof name !== 'string' || typeof requiredVersion !== 'string' || typeof file !== 'string') {
+    if (typeof name !== 'string' || typeof requiredVersion !== 'string') {
       appendError(errors, limits, 'mapper', 'external-remote-incomplete', { path });
       continue;
     }
@@ -355,7 +372,9 @@ function toExternalRemotes(
       name,
       requiredVersion,
       strictVersion: dataValue(remoteRaw, 'strictVersion') === true,
-      file,
+      // Newer runtimes record per-entry files instead of one bundle file
+      // (not collected in Phase 1) — the remote is still a real participant.
+      file: typeof file === 'string' ? file : null,
       cached: dataValue(remoteRaw, 'cached') === true,
     });
   }

@@ -60,6 +60,9 @@ function channelState(channel, presentPath, missingReason) {
 // --- runtime repositories -------------------------------------------------
 
 const REPOSITORY_KEYS = ['remotes', 'scoped-externals', 'shared-externals', 'shared-chunks'];
+// Created lazily by the runtime — explicitly absent means "zero entries"
+// and projects to {}; mirrors the collector mapper's rule.
+const OPTIONAL_REPOSITORY_KEYS = new Set(['scoped-externals']);
 
 function projectRemotes(value) {
   const out = {};
@@ -90,7 +93,9 @@ function projectExternalScopes(value) {
             name: r.name,
             requiredVersion: r.requiredVersion,
             strictVersion: r.strictVersion === true,
-            file: r.file,
+            // Mirrors the collector mapper: newer runtimes have no single
+            // bundle file per external remote.
+            file: typeof r.file === 'string' ? r.file : null,
             cached: r.cached === true,
           })),
         })),
@@ -116,7 +121,11 @@ let nfChannel = channelState(globals, true, 'window.__NATIVE_FEDERATION__ is not
 let runtime = null;
 if (nfChannel.state === 'available') {
   const repositories = globals.data.repositories ?? {};
-  const missing = REPOSITORY_KEYS.filter((key) => repositories[key]?.present !== true);
+  const missing = REPOSITORY_KEYS.filter(
+    (key) =>
+      repositories[key]?.present !== true &&
+      !(OPTIONAL_REPOSITORY_KEYS.has(key) && repositories[key]?.present === false),
+  );
   if (missing.length > 0) {
     nfChannel = {
       state: 'not-recognized',
@@ -125,7 +134,10 @@ if (nfChannel.state === 'available') {
   } else {
     runtime = {
       remotes: projectRemotes(repositories['remotes'].value),
-      scopedExternals: projectExternalScopes(repositories['scoped-externals'].value),
+      scopedExternals:
+        repositories['scoped-externals']?.present === true
+          ? projectExternalScopes(repositories['scoped-externals'].value)
+          : {},
       sharedExternals: projectExternalScopes(repositories['shared-externals'].value),
       sharedChunks: projectSharedChunks(repositories['shared-chunks'].value),
     };
