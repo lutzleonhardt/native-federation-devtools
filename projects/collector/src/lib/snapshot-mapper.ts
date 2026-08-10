@@ -49,13 +49,19 @@ const REPOSITORY_KEYS = [
 type RepositoryKey = (typeof REPOSITORY_KEYS)[number];
 
 /**
- * Repositories the runtime creates lazily: on pages that never register
- * such an entry the key does not exist at all (seen in the wild — the
- * native-federation playground has no `scoped-externals`). An explicitly
- * absent optional repository is the observation "zero entries" and maps
- * to an empty projection; an unreadable one still means `not-recognized`.
+ * Repositories the runtime creates lazily: the orchestrator's storage
+ * writes a key on its first dirty commit only, so pages that never
+ * register such an entry have no key at all — seen in the wild for
+ * `scoped-externals` (playground), and true for `shared-chunks` on
+ * non-dense builds (chunks ship as scoped pseudo-externals there). An
+ * explicitly absent optional repository is the observation "zero entries"
+ * and maps to an empty projection; an unreadable one still means
+ * `not-recognized`.
  */
-const OPTIONAL_REPOSITORY_KEYS: ReadonlySet<RepositoryKey> = new Set(['scoped-externals']);
+const OPTIONAL_REPOSITORY_KEYS: ReadonlySet<RepositoryKey> = new Set([
+  'scoped-externals',
+  'shared-chunks',
+]);
 
 /**
  * `rawProbe` is the evaluated `PASSIVE_PROBE_SOURCE` result; `rawShimMap`

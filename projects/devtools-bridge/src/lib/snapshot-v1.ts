@@ -86,9 +86,9 @@ export const NF_HOST = '__NF-HOST__';
  * Projection of the four repositories on `__NATIVE_FEDERATION__`.
  * Non-null only when the channel is available: the repositories were
  * present and readable (otherwise the channel is 'not-recognized').
- * Exception: the runtime creates `scoped-externals` lazily, so an
- * explicitly absent repository is the observation "zero entries" and
- * projects to an empty `scopedExternals`.
+ * Exception: the runtime creates `scoped-externals` and `shared-chunks`
+ * lazily, so an explicitly absent repository of these is the observation
+ * "zero entries" and projects to an empty container.
  */
 export interface RuntimeRepositoriesV1 {
   /** remote name → remote; '__NF-HOST__' is the host's own registration. */

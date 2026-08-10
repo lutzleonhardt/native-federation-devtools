@@ -62,7 +62,7 @@ function channelState(channel, presentPath, missingReason) {
 const REPOSITORY_KEYS = ['remotes', 'scoped-externals', 'shared-externals', 'shared-chunks'];
 // Created lazily by the runtime — explicitly absent means "zero entries"
 // and projects to {}; mirrors the collector mapper's rule.
-const OPTIONAL_REPOSITORY_KEYS = new Set(['scoped-externals']);
+const OPTIONAL_REPOSITORY_KEYS = new Set(['scoped-externals', 'shared-chunks']);
 
 function projectRemotes(value) {
   const out = {};
@@ -139,7 +139,10 @@ if (nfChannel.state === 'available') {
           ? projectExternalScopes(repositories['scoped-externals'].value)
           : {},
       sharedExternals: projectExternalScopes(repositories['shared-externals'].value),
-      sharedChunks: projectSharedChunks(repositories['shared-chunks'].value),
+      sharedChunks:
+        repositories['shared-chunks']?.present === true
+          ? projectSharedChunks(repositories['shared-chunks'].value)
+          : {},
     };
   }
 }
