@@ -110,6 +110,29 @@ describe('unrecognized shapes (T7-AC-04)', () => {
     expect(snapshot.errors).toEqual([]);
   });
 
+  it('projects a lazily-absent shared-chunks repository as zero entries', () => {
+    // Non-dense-build shape: chunks ship as scoped pseudo-externals, the
+    // shared-chunks repo never goes dirty, so its key never exists.
+    const sandbox = makeBarePage({
+      __NATIVE_FEDERATION__: {
+        remotes: {},
+        'scoped-externals': {},
+        'shared-externals': {},
+      },
+    });
+    const raw = evaluateProbe(PASSIVE_PROBE_SOURCE, sandbox);
+    const snapshot = mapProbeResult(raw, null, { capturedAt: CAPTURED_AT });
+
+    expect(snapshot.channels.nativeFederationGlobals).toEqual({ state: 'available' });
+    expect(snapshot.runtime).toEqual({
+      remotes: {},
+      scopedExternals: {},
+      sharedExternals: {},
+      sharedChunks: {},
+    });
+    expect(snapshot.errors).toEqual([]);
+  });
+
   it('projects newer-runtime external remotes without a file field (entries map dropped)', () => {
     // Playground-shaped shared external (Angular 22 runtime): remotes carry
     // `bundle` + `entries` instead of a single `file`.
