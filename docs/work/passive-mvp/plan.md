@@ -467,57 +467,51 @@ steps and result in the task log.
 - A post-load passive snapshot carries no network evidence — that is
   expected; transport evidence belongs to Phase 2 recording.
 
-## Task 9: Channel-state tab indicators and shell-level refresh
+## Task 9: Shell-level refresh and capture metadata
+
+> **Amended 2026-08-10** (original block in git history): the per-tab
+> channel-state indicators are deferred — their channel↔tab mapping was
+> defined over the V1 tab triple, which the V2 proposal
+> (`docs/specs/native-federation-devtools-v2.md`) replaces with a new
+> tab set (Packages · Remotes · Import Map · Diagnostics). Building the
+> mapping, aggregate semantics, and shell tests against the outgoing
+> tabs would be immediate redesign mass; view-level honest states (T3–T5,
+> XC-04) carry the honesty guarantee meanwhile. The indicator intent —
+> nav-level channel state with the honest visual vocabulary (unavailable
+> as muted off-dot, not an error; not-recognized in warning tone;
+> capturing claims no state; reasons verbatim as tooltips) — moves into
+> the V2 spec input, where nav-level channel signaling is currently
+> unspecified. This task keeps the V2-compatible half: shell-level
+> refresh and capture-metadata consolidation, which the V2
+> one-store architecture requires anyway.
 
 ### Instructions
 
-Surface the page-level channel state in the shell navigation and
-consolidate the snapshot actions there: one snapshot feeds all views, so
-refresh and capture metadata belong to the shell, not to a single view.
+Consolidate the snapshot actions in the shell: one snapshot feeds all
+views, so refresh and capture metadata belong to the shell, not to a
+single view.
 
 Move the manual refresh action and the capture meta (page URL,
 captured-at) from the Remotes & Exposes view toolbar into the shell.
 Refresh keeps re-invoking `captureSnapshot()` through the
 `SNAPSHOT_PROVIDER` token via the shared root-provided `SnapshotStore`
 (from Task 3) — shell and views must share the same store instance so a
-refresh updates tabs and the active view together.
-
-Add a per-tab channel-state indicator to the shell nav. Mapping: the
-Remotes & Exposes tab and the Shared Dependencies tab reflect
-`nativeFederationGlobals` (the resolver outcome reads from the same
-runtime repositories); the Import Map tab aggregates `domImportMaps` +
-`importShim` — both yielded data → available, exactly one → partial,
-none → off.
-
-Visual vocabulary (honest, non-alarming): `available` renders quietly
-(no indicator); `unavailable` renders as a muted "off" dot — a normal
-state on non-federated pages, not an error; `not-recognized` renders in
-the warning tone (`--nf-color-warning-*` tokens from Task 3); the
-partial aggregate uses the partial semantics of the Task-3 honest-state
-primitives (dots may reuse the tokens rather than embedding the badge
-component — tab density wins). Channel reasons appear verbatim as
-tooltips. While capturing and on capture error, tabs claim no channel
-state at all.
+refresh updates the active view.
 
 Cover with fixture-driven component tests through the App shell,
 including a counting provider for the moved refresh action.
 
 ### Acceptance
 
-- **T9-AC-01** — With the primary fixture (all channels available), tabs
-  render without indicators and the shell shows page URL and
-  captured-at.
-- **T9-AC-02** — With the missing-channel fixture, the two
-  runtime-backed tabs show the muted unavailable indicator with the
-  channel reason as tooltip; the Import Map tab shows the partial
-  aggregate (one of two import-map channels yielded data). Contributes
-  to XC-04.
-- **T9-AC-03** — With the not-recognized fixture, the runtime-backed
-  tabs show the warning-tone indicator; no tab or view invents data.
-  Contributes to XC-04.
+- **T9-AC-01** — With the primary fixture, the shell shows page URL and
+  captured-at. (Amended: the tab-indicator half is deferred to V2.)
+- **T9-AC-02** — N/A (amended 2026-08-10): per-tab unavailable/partial
+  indicators deferred to the V2 shell design.
+- **T9-AC-03** — N/A (amended 2026-08-10): warning-tone indicators
+  deferred to the V2 shell design.
 - **T9-AC-04** — Shell refresh re-invokes `captureSnapshot()` (verified
-  with a counting fixture provider) and updates tab indicators and the
-  active view from the same store instance.
+  with a counting fixture provider) and updates the active view from the
+  same store instance.
 - **T9-AC-05** — The Remotes & Exposes view no longer carries its own
   refresh/meta toolbar; its honest-state rendering is unchanged and its
   Task-3 component tests stay green (adjusted only for the moved
@@ -525,8 +519,7 @@ including a counting provider for the moved refresh action.
 
 ### Key Locations
 
-- devtools-ui shell: `app.ts`, `app.html`, `app.css` (nav indicators,
-  refresh, meta)
+- devtools-ui shell: `app.ts`, `app.html`, `app.css` (refresh, meta)
 - `projects/devtools-ui/src/app/shared/snapshot-store.ts` (shared
   instance; no API change expected)
 - `projects/devtools-ui/src/app/views/remotes-exposes.*` (toolbar
@@ -534,16 +527,14 @@ including a counting provider for the moved refresh action.
 
 ### Key Discoveries
 
-- Motivated by fixture review in Task 3: `synthetic-missing-channel` and
-  `synthetic-empty-page` carry the identical `nativeFederationGlobals`
-  state, so the Remotes view legitimately renders them identically — the
-  difference (one document import map vs. zero) only lives in import-map
-  evidence. Tab indicators surface that difference at a glance without
+- Preserved for the V2 spec input (deferred with the indicators):
+  `synthetic-missing-channel` and `synthetic-empty-page` carry the
+  identical `nativeFederationGlobals` state — the difference (one
+  document import map vs. zero) only lives in import-map evidence, and
+  nav-level channel state is the at-a-glance way to surface it without
   any view interpreting foreign channels.
-- Tab ↔ channel mapping is not 1:1 and that is fine: two runtime-backed
-  tabs share one channel; the Import Map tab aggregates two.
-- The Task-3 `partial` primitive exists but has no consumer yet; the
-  Import Map tab aggregate is its first real use case.
+- The Task-3 `partial` primitive still has no consumer; its first real
+  use case (the import-map channel aggregate) moves to V2.
 
 ## Cross-Cutting Acceptance
 
@@ -560,4 +551,6 @@ including a counting provider for the moved refresh action.
   an automated check from Task 2 onward. **Touches:** T2, T8.
 - **XC-04** — Every view renders missing/partial/ambiguous or
   not-recognized states instead of invented data; unknown is never
-  converted into false certainty. **Touches:** T3, T4, T5, T9.
+  converted into false certainty. **Touches:** T3, T4, T5. (T9's
+  indicator contribution removed by the 2026-08-10 amendment — deferred
+  to V2.)
