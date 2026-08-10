@@ -33,9 +33,31 @@
   outline-offset: -2px;
 }
 
-.shell-export {
+.shell-actions {
+  display: flex;
+  gap: 4px;
   margin-left: auto;
   align-self: center;
+}
+
+.shell-status {
+  display: flex;
+  gap: 8px;
+  padding: 2px 12px;
+  color: var(--nf-color-text-muted);
+  background: var(--nf-color-surface);
+  border-bottom: 1px solid var(--nf-color-border);
+  white-space: nowrap;
+}
+
+.shell-status-url {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shell-status-time {
+  flex: none;
 }
 
 .shell-content {

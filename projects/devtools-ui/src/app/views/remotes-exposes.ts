@@ -47,8 +47,4 @@ export class RemotesExposes {
         : [{ ...base, exposeKey: null, file: null }];
     });
   });
-
-  protected refresh(): void {
-    void this.store.refresh();
-  }
 }

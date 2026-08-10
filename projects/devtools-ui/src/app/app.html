@@ -3,16 +3,33 @@
     <a routerLink="/remotes" routerLinkActive="active">Remotes &amp; Exposes</a>
     <a routerLink="/shared" routerLinkActive="active">Shared Dependencies</a>
     <a routerLink="/import-map" routerLinkActive="active">Import Map</a>
-    <button
-      type="button"
-      class="nf-button shell-export"
-      (click)="exporter.exportCurrent()"
-      [disabled]="!exporter.canExport()"
-      title="Download the current snapshot as a JSON file"
-    >
-      Export JSON
-    </button>
+    <span class="shell-actions">
+      <button
+        type="button"
+        class="nf-button shell-refresh"
+        (click)="refresh()"
+        [disabled]="capturing()"
+        title="Capture a fresh snapshot of the inspected page"
+      >
+        Refresh
+      </button>
+      <button
+        type="button"
+        class="nf-button shell-export"
+        (click)="exporter.exportCurrent()"
+        [disabled]="!exporter.canExport()"
+        title="Download the current snapshot as a JSON file"
+      >
+        Export JSON
+      </button>
+    </span>
   </nav>
+  @if (capture(); as capture) {
+    <div class="shell-status">
+      <span class="shell-status-url" [title]="capture.pageUrl">{{ capture.pageUrl }}</span>
+      <span class="shell-status-time">{{ capture.capturedAt }}</span>
+    </div>
+  }
   <main class="shell-content">
     <router-outlet />
   </main>

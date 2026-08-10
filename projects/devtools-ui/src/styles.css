@@ -83,22 +83,6 @@ body {
   font-weight: 600;
 }
 
-.view-toolbar {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.view-toolbar h1 {
-  margin: 0;
-}
-
-.view-meta {
-  margin-left: auto;
-  color: var(--nf-color-text-muted);
-}
-
 .view-placeholder,
 .view-observation {
   color: var(--nf-color-text-muted);

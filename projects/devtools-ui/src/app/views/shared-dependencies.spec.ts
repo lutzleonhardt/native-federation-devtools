@@ -114,14 +114,6 @@ describe('SharedDependencies', () => {
     expect(el.querySelector('.claims-aspect')).toBeNull();
   });
 
-  // The capture identity (page, timestamp) stays visible for every captured
-  // snapshot — including one where nothing was detected.
-  it('keeps the capture meta visible in the not-detected state', async () => {
-    const { fixture } = await renderView('synthetic-not-recognized');
-    const meta = (fixture.nativeElement as HTMLElement).querySelector('.view-meta');
-    expect(meta?.textContent).toContain('synthetic-fixture.example');
-  });
-
   // Missing channel: honest unavailable state with the captured reason.
   it('renders the missing-evidence state when the globals channel is unavailable', async () => {
     const { fixture } = await renderView('synthetic-missing-channel');
@@ -140,21 +132,5 @@ describe('SharedDependencies', () => {
       'zero shared packages registered',
     );
     expect(el.querySelector('.nf-table')).toBeNull();
-  });
-
-  // Refresh requests a new snapshot through the provider (same store wiring
-  // as the Remotes view).
-  it('refresh re-invokes captureSnapshot() through the provider', async () => {
-    const { fixture, provider } = await renderView('frankenstein-production');
-    expect(provider.calls).toBe(1);
-
-    const button = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
-      '.nf-button',
-    )!;
-    button.click();
-    await settle(fixture);
-
-    expect(provider.calls).toBe(2);
-    expect(rowCells(fixture)).toHaveLength(20);
   });
 });
