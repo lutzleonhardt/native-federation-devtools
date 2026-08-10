@@ -3,7 +3,7 @@ import { FIXTURES, FixtureId, SNAPSHOT_PROVIDER, SnapshotProvider, SnapshotV1 } 
 
 import { RemotesExposes } from './remotes-exposes';
 
-/** Fixture-backed provider that counts captureSnapshot() invocations (T3-AC-05). */
+/** Fixture-backed provider that counts captureSnapshot() invocations. */
 class CountingFixtureProvider implements SnapshotProvider {
   calls = 0;
 
@@ -100,20 +100,5 @@ describe('RemotesExposes', () => {
       'window.__NATIVE_FEDERATION__ is not defined',
     );
     expect(el.querySelector('.nf-table')).toBeNull();
-  });
-
-  // T3-AC-05: refresh requests a new snapshot through the provider.
-  it('refresh re-invokes captureSnapshot() through the provider', async () => {
-    const { fixture, provider } = await renderView('frankenstein-production');
-    expect(provider.calls).toBe(1);
-
-    const button = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
-      '.nf-button',
-    )!;
-    button.click();
-    await settle(fixture);
-
-    expect(provider.calls).toBe(2);
-    expect(rowCells(fixture)).toHaveLength(3);
   });
 });

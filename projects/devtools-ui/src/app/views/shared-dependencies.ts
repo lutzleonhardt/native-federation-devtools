@@ -86,8 +86,4 @@ export class SharedDependencies {
       ),
     );
   });
-
-  protected refresh(): void {
-    void this.store.refresh();
-  }
 }

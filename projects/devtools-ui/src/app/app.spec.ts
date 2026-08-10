@@ -1,7 +1,8 @@
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { TestBed } from '@angular/core/testing';
 import {
   FIXTURES,
+  FixtureId,
   PRIMARY_FIXTURE_ID,
   SNAPSHOT_PROVIDER,
   SnapshotProvider,
@@ -15,6 +16,22 @@ import { SnapshotExportService } from './shared/snapshot-export.service';
 class StubSnapshotProvider implements SnapshotProvider {
   captureSnapshot(): Promise<SnapshotV1> {
     return Promise.resolve(structuredClone(FIXTURES[PRIMARY_FIXTURE_ID]));
+  }
+}
+
+/**
+ * Fixture-backed provider that counts captureSnapshot() invocations and
+ * serves the listed fixtures in call order (the last one repeats).
+ */
+class SequenceSnapshotProvider implements SnapshotProvider {
+  calls = 0;
+
+  constructor(private readonly fixtureIds: readonly FixtureId[]) {}
+
+  captureSnapshot(): Promise<SnapshotV1> {
+    const id = this.fixtureIds[Math.min(this.calls, this.fixtureIds.length - 1)];
+    this.calls++;
+    return Promise.resolve(structuredClone(FIXTURES[id]));
   }
 }
 
@@ -66,6 +83,62 @@ describe('App', () => {
 
     await settle(fixture);
     expect(button.disabled).toBe(false);
+  });
+
+  // T9-AC-01: the shell shows the capture identity (page URL, captured-at)
+  // once a snapshot exists; while capturing it claims no state.
+  it('shows page URL and captured-at in the shell status once captured', async () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.shell-status')).toBeNull();
+    expect(el.querySelector<HTMLButtonElement>('.shell-refresh')!.disabled).toBe(true);
+
+    await settle(fixture);
+    const status = el.querySelector('.shell-status')!;
+    expect(status.textContent).toContain('http://127.0.0.1:8088/frankenstein-meeting-room/');
+    expect(status.textContent).toContain('2026-07-24T13:50:22.812Z');
+    expect(el.querySelector<HTMLButtonElement>('.shell-refresh')!.disabled).toBe(false);
+  });
+
+  // The capture identity stays visible for every captured snapshot — including
+  // one where nothing was detected (guarantee moved here with the meta, from
+  // the view specs).
+  it('keeps the capture meta visible when nothing was detected', async () => {
+    const provider = new SequenceSnapshotProvider(['synthetic-not-recognized']);
+    TestBed.overrideProvider(SNAPSHOT_PROVIDER, { useValue: provider });
+    const fixture = TestBed.createComponent(App);
+    await settle(fixture);
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('.shell-status')?.textContent,
+    ).toContain('synthetic-fixture.example');
+  });
+
+  // T9-AC-04: shell refresh re-invokes captureSnapshot() through the shared
+  // store, and the active view renders the new snapshot from the same instance.
+  it('refresh re-captures and updates the active view through the shared store', async () => {
+    const provider = new SequenceSnapshotProvider([
+      'frankenstein-production',
+      'synthetic-collision',
+    ]);
+    TestBed.overrideProvider(SNAPSHOT_PROVIDER, { useValue: provider });
+    const fixture = TestBed.createComponent(App);
+    await TestBed.inject(Router).navigateByUrl('/remotes');
+    await settle(fixture);
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(provider.calls).toBe(1);
+    expect(el.querySelector('.nf-table')?.textContent).toContain('whiteboard');
+
+    el.querySelector<HTMLButtonElement>('.shell-refresh')!.click();
+    await settle(fixture);
+
+    expect(provider.calls).toBe(2);
+    const table = el.querySelector('.nf-table')!;
+    expect(table.textContent).toContain('calendar');
+    expect(table.textContent).not.toContain('whiteboard');
+    // The shell meta follows the refreshed snapshot too.
+    expect(el.querySelector('.shell-status')?.textContent).toContain('synthetic-fixture.example');
   });
 
   // T6: clicking the button delegates to the export service.

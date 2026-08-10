@@ -57,8 +57,4 @@ export class ImportMap {
       imports: toRows(scope.imports, integrityFor),
     }));
   });
-
-  protected refresh(): void {
-    void this.store.refresh();
-  }
 }

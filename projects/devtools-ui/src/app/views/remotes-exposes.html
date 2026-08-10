@@ -1,20 +1,7 @@
 <section class="view">
   @let v = vm();
 
-  <header class="view-toolbar">
-    <h1>Remotes &amp; Exposes</h1>
-    <button
-      type="button"
-      class="nf-button"
-      (click)="refresh()"
-      [disabled]="v.kind === 'capturing'"
-    >
-      Refresh
-    </button>
-    @if (v.capture; as capture) {
-      <span class="view-meta">{{ capture.pageUrl }} · {{ capture.capturedAt }}</span>
-    }
-  </header>
+  <h1>Remotes &amp; Exposes</h1>
 
   @switch (v.kind) {
     @case ('capturing') {

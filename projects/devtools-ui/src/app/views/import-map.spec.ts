@@ -149,27 +149,4 @@ describe('ImportMap', () => {
     );
   });
 
-  // The capture identity (page, timestamp) stays visible for every captured
-  // snapshot — including one without any import-map evidence.
-  it('keeps the capture meta visible in the missing state', async () => {
-    const { fixture } = await renderView('synthetic-no-import-maps');
-    const meta = (fixture.nativeElement as HTMLElement).querySelector('.view-meta');
-    expect(meta?.textContent).toContain('synthetic-fixture.example');
-  });
-
-  // Refresh requests a new snapshot through the provider (same store wiring
-  // as the other views).
-  it('refresh re-invokes captureSnapshot() through the provider', async () => {
-    const { fixture, provider } = await renderView('frankenstein-production');
-    expect(provider.calls).toBe(1);
-
-    const button = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>(
-      '.nf-button',
-    )!;
-    button.click();
-    await settle(fixture);
-
-    expect(provider.calls).toBe(2);
-    expect(rowCells(fixture, '.imports-section .nf-table')).toHaveLength(22);
-  });
 });
