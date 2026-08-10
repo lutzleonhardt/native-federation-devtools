@@ -102,6 +102,26 @@ into `__NATIVE_FEDERATION__`:
 - `loadRemoteModule` never fetches or writes — it only reads the repo
   (`expose-module-loader.ts:17`). Registry mutation after init happens
   only through dynamic remote-entry initialization.
+- Version rows are sorted newest-first at every commit
+  (`store-remote-entry.ts:199-207`) — a display-order guarantee views
+  may rely on.
+- `dirty: true` **can appear in committed state**: a dynamic override
+  evicts the replaced remote's copies and marks the affected externals
+  dirty (`store-remote-entry.ts:35-44`), but the dynamic pipeline only
+  re-resolves externals the replacement entry still declares — the rest
+  is persisted dirty. Render as "pending re-election", not as
+  corruption.
+- A dynamic init that fails mid-merge leaves its partial mutations in
+  the in-memory repositories; there is no rollback, and the **next
+  successful commit persists them** (`createFederationResult` catches
+  the error and continues in non-strict mode). A capture may therefore
+  contain remnants of a failed dynamic init — an interpretation caveat
+  for Diagnostics findings.
+- `__NATIVE_FEDERATION__` is only the **default** storage namespace:
+  `storageNamespace` renames it and a custom `storage` adapter can move
+  it off `globalThis` entirely (`storage.config.ts:4-8`). An absent
+  global under a custom namespace is indistinguishable from "no
+  federation" — a documented coverage bound of passive capture.
 
 ### 2.4 Chunks, dense and legacy representation
 
@@ -141,6 +161,31 @@ into `__NATIVE_FEDERATION__`:
 - V1 §6 derives mapped-target versions "against the repositories' `file`
   fields" — that is the old generation; current registries carry
   `entries` maps (2.4).
+
+### 2.6 Import-map commit mechanics (collector-relevant)
+
+- The default configuration writes **native**
+  `<script type="importmap">` tags (`use-default.ts:10`); es-module-shims
+  is not part of the default path. `useShimImportMap` writes
+  `importmap-shim` tags in shim mode and native tags in polyfill mode
+  (`use-import-shim.ts:15-16`). An absent `importShim` global is the
+  *normal* state for default-config hosts, not a degraded one.
+- The init flow commits with `override: true`, removing previous tags of
+  the same type; **dynamic inits append** one additional tag each
+  (`replace-in-dom.ts:8-20`, `init.flow.ts:18` vs.
+  `init-remote-entry.flow.ts:14`). After n dynamic inits the DOM holds
+  n+1 map tags; the effective map is a merge performed by the browser
+  (native) or the shim.
+- Collector consequences: `domImportMaps` must collect **all** tags of
+  both types in document order; only `importShim.getImportMap()` reports
+  a browser-merged effective map, and only where the shim exists. This
+  refines the 4.6 channel mapping: exactly one populated channel is the
+  *expected healthy state per mode*, so "exactly one → partial" would
+  mislabel default-config and shim-mode pages alike — partial should key
+  off observed tag types instead (e.g. `importmap-shim` tags present but
+  the shim yielded nothing).
+- Write-side only, irrelevant to reading: Trusted Types policy
+  (default name `nfo`, `replace-in-dom.ts:14`).
 
 ## 3. Architecture: one store, three pivots
 
@@ -424,6 +469,32 @@ not view content — one snapshot feeds all views. This lands in V1
 already (amended Task 9: shell-level refresh, toolbar consolidation);
 V2 inherits it and adds no per-view capture actions.
 
+### 4.8 Rendering approach
+
+Design proposal (implementation guidance, not evidence-backed):
+
+- **Stay hand-rolled HTML/CSS** — the V1 approach carries. Component
+  libraries (Material, PrimeNG, grid widgets) are the wrong trade for a
+  DevTools panel: foreign aesthetics next to DevTools chrome, theming
+  fights, bundle weight, and MV3 CSP requires everything bundled anyway.
+  Nothing in the sketches needs one: the V2 widget set is a tree-table,
+  a master-detail split (CSS grid), badges, key-value lists, and a
+  search overlay.
+- **Codify the implied internal kit** instead: `tree-table`,
+  `detail-pane`, `badge`, `kv-list`, the shared participant→resolution
+  row (3.3), search overlay — plus one design-token stylesheet (CSS
+  custom properties).
+- **Tree-table pattern:** flatten the hierarchy in the computed
+  projection (rows carry depth + expanded flags; expansion state is UI
+  state, not store state) and render a flat list. Keeps templates dumb
+  and composes with virtual scrolling for the large flat tables
+  (import map). Behavior-only utilities from Angular CDK (virtual
+  scroll, overlay, focus management) are acceptable; Material styling
+  is not.
+- **Theme:** follow DevTools via `chrome.devtools.panels.themeName`,
+  light/dark through the token sheet; monospace for identifiers
+  (specifiers, files, versions); DevTools-native density.
+
 ## 5. Honest states in V2
 
 Carried over from V1: *missing*, *partial*, *ambiguous*; resolution ≠
@@ -488,10 +559,16 @@ request ≠ execution. New, source-backed:
 - **G — Provider derivation edge cases.** URL-prefix matching against
   `scopeUrl` assumes distinct scope prefixes per remote; validate against
   same-origin remotes sharing a path prefix.
+- **H — Effective-map merge semantics.** With appended native import-map
+  tags (2.6), the browser defines the effective merge; the collector
+  reads tags, not the merge. Against a fixture with at least one dynamic
+  init, compare the document-order tag merge with
+  `importShim.getImportMap()` where available, and pin the store's merge
+  algorithm to the validated behavior.
 
 ### Fixture strategy
 
-All four questions are answerable with artificial fixtures, on two tiers
+These questions are answerable with artificial fixtures, on two tiers
 that prove different things:
 
 - **Tier 1 — seeded pages.** The extension reads only
