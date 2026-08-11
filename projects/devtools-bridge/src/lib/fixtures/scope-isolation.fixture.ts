@@ -7,7 +7,7 @@
 
 import { SnapshotV1 } from '../snapshot-v1';
 
-export const scopeIsolationFixture = {
+export const scopeIsolationFixture: SnapshotV1 = {
   "schemaVersion": 1,
   "capture": {
     "pageUrl": "http://localhost:4300/",
@@ -120,7 +120,29 @@ export const scopeIsolationFixture = {
         "kind": "importmap",
         "parsed": true,
         "importCount": 2,
-        "scopeCount": 1
+        "scopeCount": 1,
+        "imports": [
+          {
+            "specifier": "@nf-lab/conflict-lib",
+            "target": "./_nf_lab_conflict_lib.jvcc6K1csg.js"
+          },
+          {
+            "specifier": "mfe1/./Component",
+            "target": "./mfe1/Component-RJXV7SVT.js"
+          }
+        ],
+        "scopes": [
+          {
+            "scope": "./mfe1/",
+            "imports": [
+              {
+                "specifier": "@nf-lab/conflict-lib",
+                "target": "./mfe1/_nf_lab_conflict_lib.JF7uEdSVsN.js"
+              }
+            ]
+          }
+        ],
+        "integrity": {}
       }
     ],
     "effective": {
@@ -130,4 +152,4 @@ export const scopeIsolationFixture = {
     }
   },
   "errors": []
-} satisfies SnapshotV1;
+};

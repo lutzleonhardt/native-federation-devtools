@@ -7,7 +7,7 @@
 
 import { SnapshotV1 } from '../snapshot-v1';
 
-export const nonDenseFixture = {
+export const nonDenseFixture: SnapshotV1 = {
   "schemaVersion": 1,
   "capture": {
     "pageUrl": "http://localhost:4300/",
@@ -534,7 +534,105 @@ export const nonDenseFixture = {
         "kind": "importmap",
         "parsed": true,
         "importCount": 15,
-        "scopeCount": 1
+        "scopeCount": 1,
+        "imports": [
+          {
+            "specifier": "@nf-lab/conflict-lib",
+            "target": "./mfe3/_nf_lab_conflict_lib.JF7uEdSVsN.js"
+          },
+          {
+            "specifier": "@angular/common",
+            "target": "./mfe3/_angular_common.2lRkWlIXsD.js"
+          },
+          {
+            "specifier": "@angular/common/http",
+            "target": "./mfe3/_angular_common_http.93X-PjezxZ.js"
+          },
+          {
+            "specifier": "@angular/core",
+            "target": "./mfe3/_angular_core.X3ivyfrWNn.js"
+          },
+          {
+            "specifier": "@angular/core/event-dispatch-contract.min.js",
+            "target": "./mfe3/_angular_core_event_dispatch_contract_min_js.3axcNP9xmW.js"
+          },
+          {
+            "specifier": "@angular/core/primitives/di",
+            "target": "./mfe3/_angular_core_primitives_di.EObUKH7oSG.js"
+          },
+          {
+            "specifier": "@angular/core/primitives/event-dispatch",
+            "target": "./mfe3/_angular_core_primitives_event_dispatch.hU2Qzjyqeh.js"
+          },
+          {
+            "specifier": "@angular/core/primitives/signals",
+            "target": "./mfe3/_angular_core_primitives_signals.CVk74cDF7r.js"
+          },
+          {
+            "specifier": "@angular/core/rxjs-interop",
+            "target": "./mfe3/_angular_core_rxjs_interop.__1TDonEXD.js"
+          },
+          {
+            "specifier": "@angular/elements",
+            "target": "./mfe3/_angular_elements.ktmx-SsBF0.js"
+          },
+          {
+            "specifier": "@angular/platform-browser",
+            "target": "./mfe3/_angular_platform_browser.djzJcPG8PR.js"
+          },
+          {
+            "specifier": "rxjs",
+            "target": "./mfe3/rxjs.AD771FvZRA.js"
+          },
+          {
+            "specifier": "rxjs/operators",
+            "target": "./mfe3/rxjs_operators.t7RGhKl4M9.js"
+          },
+          {
+            "specifier": "tslib",
+            "target": "./mfe3/tslib.BX2MinpEcV.js"
+          },
+          {
+            "specifier": "mfe3/./Component",
+            "target": "./mfe3/Component-KYAYWGQO.js"
+          }
+        ],
+        "scopes": [
+          {
+            "scope": "./mfe3/",
+            "imports": [
+              {
+                "specifier": "@nf-internal/chunk-G4MQRHIT",
+                "target": "./mfe3/chunk-G4MQRHIT.js"
+              },
+              {
+                "specifier": "@nf-internal/chunk-CTZ4MUAG",
+                "target": "./mfe3/chunk-CTZ4MUAG.js"
+              },
+              {
+                "specifier": "@nf-internal/chunk-3O3QUTWM",
+                "target": "./mfe3/chunk-3O3QUTWM.js"
+              },
+              {
+                "specifier": "@nf-internal/chunk-DXWTOITO",
+                "target": "./mfe3/chunk-DXWTOITO.js"
+              },
+              {
+                "specifier": "@nf-internal/chunk-DLJHBHZE",
+                "target": "./mfe3/chunk-DLJHBHZE.js"
+              },
+              {
+                "specifier": "@nf-internal/chunk-PZNONLPT",
+                "target": "./mfe3/chunk-PZNONLPT.js"
+              },
+              {
+                "specifier": "@nf-internal/chunk-KNUKVBCT",
+                "target": "./mfe3/chunk-KNUKVBCT.js"
+              }
+            ]
+          }
+        ],
+        "integrity": {}
       }
     ],
     "effective": {
@@ -544,4 +642,4 @@ export const nonDenseFixture = {
     }
   },
   "errors": []
-} satisfies SnapshotV1;
+};

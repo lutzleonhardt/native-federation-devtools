@@ -467,9 +467,18 @@ describe('URL sanitization (T7-AC-05)', () => {
       expect(JSON.stringify(snapshot)).not.toContain(leak);
     }
 
-    // The raw document map text (with its query) is reduced to counts.
+    // The document map tag's content rides the same allowlist projection —
+    // the raw text (with its query) never reaches the snapshot.
     expect(snapshot.importMaps!.documentMaps).toEqual([
-      { kind: 'importmap', parsed: true, importCount: 1, scopeCount: 0 },
+      {
+        kind: 'importmap',
+        parsed: true,
+        importCount: 1,
+        scopeCount: 0,
+        imports: [{ specifier: 'a', target: '/a.js' }],
+        scopes: [],
+        integrity: {},
+      },
     ]);
     expect(JSON.stringify(snapshot)).not.toContain('token-like');
 
@@ -492,9 +501,89 @@ describe('URL sanitization (T7-AC-05)', () => {
       reason: 'importShim present but the effective map could not be read',
     });
     expect(snapshot.errors.some((error) => error.code === 'map-call-threw')).toBe(true);
-    // The hostile document map's query URL exists only as counts.
+    // The hostile document map's query survives only stripped from the
+    // projected tag content.
+    expect(snapshot.importMaps!.documentMaps[0].imports).toEqual([
+      { specifier: 'a', target: '/a.js' },
+    ]);
     expect(JSON.stringify(snapshot)).not.toContain('hidden');
     expect(scanForPrivacyViolations(snapshot)).toEqual([]);
+  });
+});
+
+describe('document map tag content', () => {
+  const tagNode = (type: string, text: string) => ({
+    getAttribute: (name: string) => (name === 'type' ? type : null),
+    textContent: text,
+  });
+  const captureTags = (nodes: unknown[]): SnapshotV1 => {
+    const sandbox = makeBarePage({
+      document: { readyState: 'complete', querySelectorAll: () => nodes },
+    });
+    const raw = evaluateProbe(PASSIVE_PROBE_SOURCE, sandbox);
+    return mapProbeResult(raw, null, { capturedAt: CAPTURED_AT });
+  };
+
+  it('projects per-tag imports, scopes, and integrity with hash values kept', () => {
+    const validSri = `sha384-${'B'.repeat(64)}`;
+    const snapshot = captureTags([
+      tagNode(
+        'importmap-shim',
+        JSON.stringify({
+          imports: { pkg: './pkg.js' },
+          scopes: { './mfe1/': { inner: './inner.js' } },
+          integrity: { './pkg.js': validSri },
+        }),
+      ),
+      tagNode('importmap-shim', '{"imports":{"pkg":"./pkg-v2.js"}}'),
+    ]);
+
+    expect(snapshot.importMaps!.documentMaps).toEqual([
+      {
+        kind: 'importmap-shim',
+        parsed: true,
+        importCount: 1,
+        scopeCount: 1,
+        imports: [{ specifier: 'pkg', target: './pkg.js' }],
+        scopes: [{ scope: './mfe1/', imports: [{ specifier: 'inner', target: './inner.js' }] }],
+        integrity: { './pkg.js': validSri },
+      },
+      {
+        kind: 'importmap-shim',
+        parsed: true,
+        importCount: 1,
+        scopeCount: 0,
+        imports: [{ specifier: 'pkg', target: './pkg-v2.js' }],
+        scopes: [],
+        integrity: {},
+      },
+    ]);
+    expect(scanForPrivacyViolations(snapshot)).toEqual([]);
+  });
+
+  it('records an unparsable tag as parsed:false with no content claim', () => {
+    const snapshot = captureTags([tagNode('importmap', 'not json {')]);
+
+    expect(snapshot.importMaps!.documentMaps).toEqual([
+      {
+        kind: 'importmap',
+        parsed: false,
+        importCount: 0,
+        scopeCount: 0,
+        imports: [],
+        scopes: [],
+        integrity: {},
+      },
+    ]);
+  });
+
+  it('rejects an invalid SRI value in tag integrity loudly', () => {
+    const snapshot = captureTags([
+      tagNode('importmap-shim', '{"integrity":{"./pkg.js":"not-an-sri"}}'),
+    ]);
+
+    expect(snapshot.importMaps!.documentMaps[0].integrity).toEqual({});
+    expect(snapshot.errors.some((error) => error.code === 'invalid-integrity')).toBe(true);
   });
 });
 

@@ -169,13 +169,26 @@ export interface ImportMapScopeV1 {
   imports: ImportMapEntryV1[];
 }
 
-/** A document-declared import map — counts only; the merged result lives in `effective`. */
+/**
+ * A document-declared import map. The tags are the map ground truth: the
+ * V2 store merges them in document order into the page's effective map, so
+ * each tag carries its parsed content — as-authored, meaning targets,
+ * scope prefixes, and integrity keys stay relative when the tag wrote them
+ * relative; resolving against the page base is the store's job. Counts
+ * reflect the raw tag JSON, content is the sanitized projection — entries
+ * an attacker-shaped tag loses to sanitization make the two diverge.
+ */
 export interface DocumentImportMapV1 {
   /** Script type, demonstrated: 'importmap-shim'. */
   kind: string;
   parsed: boolean;
   importCount: number;
   scopeCount: number;
+  /** Empty when `parsed` is false — an unparsable tag has no content claim. */
+  imports: ImportMapEntryV1[];
+  scopes: ImportMapScopeV1[];
+  /** As-authored URL → SRI hash; hash values are collected by policy. */
+  integrity: Record<string, string>;
 }
 
 export interface EffectiveImportMapV1 {

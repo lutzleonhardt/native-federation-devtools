@@ -11,7 +11,7 @@
 
 import { SnapshotV1 } from '../snapshot-v1';
 
-export const frankensteinLiveFixture = {
+export const frankensteinLiveFixture: SnapshotV1 = {
   "schemaVersion": 1,
   "capture": {
     "pageUrl": "https://lutzleonhardt.de/frankenstein-meeting-room/",
@@ -681,7 +681,163 @@ export const frankensteinLiveFixture = {
         "kind": "importmap-shim",
         "parsed": true,
         "importCount": 22,
-        "scopeCount": 1
+        "scopeCount": 1,
+        "imports": [
+          {
+            "specifier": "@excalidraw/excalidraw",
+            "target": "./whiteboard/_excalidraw_excalidraw.0MlOv2WvQj.js"
+          },
+          {
+            "specifier": "react",
+            "target": "./whiteboard/react.QYXZqQxJ1j.js"
+          },
+          {
+            "specifier": "react/jsx-runtime",
+            "target": "./whiteboard/react_jsx_runtime.RDhwXXoxCg.js"
+          },
+          {
+            "specifier": "react/jsx-dev-runtime",
+            "target": "./whiteboard/react_jsx_dev_runtime.UsMOGvdsKw.js"
+          },
+          {
+            "specifier": "react-dom",
+            "target": "./whiteboard/react_dom.6SKyvL_ZIW.js"
+          },
+          {
+            "specifier": "react-dom/client",
+            "target": "./whiteboard/react_dom_client.lVKcx-4-HL.js"
+          },
+          {
+            "specifier": "react-dom/profiling",
+            "target": "./whiteboard/react_dom_profiling.wPFH8wjIJf.js"
+          },
+          {
+            "specifier": "mermaid",
+            "target": "./mermaid/mermaid.fMI3T940QA.js"
+          },
+          {
+            "specifier": "@angular/common",
+            "target": "./_angular_common.Ucn2BmyRM1.js"
+          },
+          {
+            "specifier": "@angular/common/http",
+            "target": "./_angular_common_http.XnycUwbhpt.js"
+          },
+          {
+            "specifier": "@angular/platform-browser",
+            "target": "./_angular_platform_browser.lAyP2N3Pw8.js"
+          },
+          {
+            "specifier": "rxjs",
+            "target": "./rxjs.IJzVNeB5rY.js"
+          },
+          {
+            "specifier": "rxjs/operators",
+            "target": "./rxjs_operators.gdYSvUruih.js"
+          },
+          {
+            "specifier": "tslib",
+            "target": "./tslib.s6WVYyl__v.js"
+          },
+          {
+            "specifier": "@angular/core",
+            "target": "./_angular_core.RHjtWEkOzP.js"
+          },
+          {
+            "specifier": "@angular/core/event-dispatch-contract.min.js",
+            "target": "./_angular_core_event_dispatch_contract_min_js.JotK85OfcE.js"
+          },
+          {
+            "specifier": "@angular/core/primitives/di",
+            "target": "./_angular_core_primitives_di.QUc60-Xs6C.js"
+          },
+          {
+            "specifier": "@angular/core/primitives/event-dispatch",
+            "target": "./_angular_core_primitives_event_dispatch.1A9qBws3LP.js"
+          },
+          {
+            "specifier": "@angular/core/primitives/signals",
+            "target": "./_angular_core_primitives_signals.ePwPWbaXlE.js"
+          },
+          {
+            "specifier": "@angular/core/rxjs-interop",
+            "target": "./_angular_core_rxjs_interop.YqevhcoUQy.js"
+          },
+          {
+            "specifier": "whiteboard/./Bootstrap",
+            "target": "./whiteboard/Bootstrap-7COJRA5I.js"
+          },
+          {
+            "specifier": "mermaid/./Bootstrap",
+            "target": "./mermaid/Bootstrap-BBNZEAEH.js"
+          }
+        ],
+        "scopes": [
+          {
+            "scope": "./",
+            "imports": [
+              {
+                "specifier": "@nf-internal/chunk-WW26EZ22",
+                "target": "./chunk-WW26EZ22.js"
+              },
+              {
+                "specifier": "@nf-internal/chunk-PAMKM67I",
+                "target": "./chunk-PAMKM67I.js"
+              },
+              {
+                "specifier": "@nf-internal/chunk-RCIWTGS7",
+                "target": "./chunk-RCIWTGS7.js"
+              },
+              {
+                "specifier": "@nf-internal/chunk-K6ZMRNMW",
+                "target": "./chunk-K6ZMRNMW.js"
+              },
+              {
+                "specifier": "@nf-internal/chunk-APTZXQMF",
+                "target": "./chunk-APTZXQMF.js"
+              },
+              {
+                "specifier": "@nf-internal/chunk-V2SUVJ7R",
+                "target": "./chunk-V2SUVJ7R.js"
+              },
+              {
+                "specifier": "@nf-internal/chunk-2VMXMS7J",
+                "target": "./chunk-2VMXMS7J.js"
+              }
+            ]
+          }
+        ],
+        "integrity": {
+          "./whiteboard/_excalidraw_excalidraw.0MlOv2WvQj.js": "sha384-gQrm6C7mOLCTYcdQFNBrh7GZ3o5hy2K2NmxwOfiJtDzs7NTkKc5hTxSBfksuKbaU",
+          "./whiteboard/react.QYXZqQxJ1j.js": "sha384-57khIiCnWo5tC9kEt0ibpdoHhHGtPXp1KmeWeJyyX0+UPwenA+Wj+0qvj7ajI3As",
+          "./whiteboard/react_jsx_runtime.RDhwXXoxCg.js": "sha384-mWHwomGyGtSC45UesaeI3hV4diuzv10CMDSAWJ1rMRQ8F+lA71uneBirgsCW/JxO",
+          "./whiteboard/react_jsx_dev_runtime.UsMOGvdsKw.js": "sha384-Pz3qELNqQbfKZe26gJ2n/S9ZKDnDcKoBB4HKdEphutzsxBeMedPySvP+iKitw5h/",
+          "./whiteboard/react_dom.6SKyvL_ZIW.js": "sha384-P5wEc9b7LWwq+gIw6WZydAmGaqqKM9f1+8HOET0FxnhMqtpfCs6opvzQAXMtoyZA",
+          "./whiteboard/react_dom_client.lVKcx-4-HL.js": "sha384-qhRGasTGrIXFNZJfwVfTnDA2+KKAGE/O6D+GEErqa6n/c3xiyVcKH1x4FmMqeUAN",
+          "./whiteboard/react_dom_profiling.wPFH8wjIJf.js": "sha384-ljYfxwXdL20/jno4xQm1XDO5sL/8huAbZHNBeJ4Ov+nY5UDdOHl3ZwurHwevUCdI",
+          "./mermaid/mermaid.fMI3T940QA.js": "sha384-kstnQo1tIfL+tMgIsAHgtN6HODg7IUJOB7YxDsvWEfQKwtm2T8pJXYurn7ZK8lW/",
+          "./_angular_common.Ucn2BmyRM1.js": "sha384-ifIpCfW3pytDYCF1JasK/q29l9JcykVZmVSQPMbvfrIGyBjplklPOyLqxyHVtqL7",
+          "./_angular_common_http.XnycUwbhpt.js": "sha384-IK8Nx+6NWCVROXYGp+8jufFYVZlMcU0/sA2pO54JMRAhwQCS6iZuRCEnwvAGIG0O",
+          "./_angular_platform_browser.lAyP2N3Pw8.js": "sha384-Uqk4Pa50G3bzBAWwoZ0rCBacNLN2dyJ8QkJWL5QD6IqFLISZIk84SZzH8RmcXGlk",
+          "./rxjs.IJzVNeB5rY.js": "sha384-CND2UMO83rk1q4PmwPBkMzMidBFPpleOKv8RwUTYv7MVKgLY5QZ4rSMNPkizOXfU",
+          "./rxjs_operators.gdYSvUruih.js": "sha384-laChUqH6WQnng9RMXX09mNVUEHCCL/2hiynx8XKFxv8EpZDOXvUI6j2KJAvkz7/m",
+          "./tslib.s6WVYyl__v.js": "sha384-us48hLnAuTVi42myNvtbK0UsmSvbAjKfiZP4HjtL9tB6FogW0rizxqZPIRAbidzm",
+          "./_angular_core.RHjtWEkOzP.js": "sha384-K67ZQ5cbnDPIVn8WANbSD0mtv1yJTMx8mlSOumXJTrAgTrsuRNsDWfVtimzbGc8o",
+          "./_angular_core_event_dispatch_contract_min_js.JotK85OfcE.js": "sha384-5wVWeVYtx1cBT1jKmN8rQ7UM9OvfVXX8EiLwaa0Ske0MZEGspZWPPZzpPCmI7TvV",
+          "./_angular_core_primitives_di.QUc60-Xs6C.js": "sha384-6rOmacKn8k2Rcgtrc+9Jiv4npsCyzrhos2r3DUvquC7Sy2zH1Qe8r7CLOIaKbfoP",
+          "./_angular_core_primitives_event_dispatch.1A9qBws3LP.js": "sha384-MD1dEWUryHtZl1bJtQZQD2JHywLtf2noRB7QrVRtzO/zWxi/9bmM02zYvzWXySQM",
+          "./_angular_core_primitives_signals.ePwPWbaXlE.js": "sha384-LPA4je4R4YerkZL5Dsogc8kPstf4JOzHn1RFaf8Pv5R+mNyYS3zwhgqy7LAAZePH",
+          "./_angular_core_rxjs_interop.YqevhcoUQy.js": "sha384-ZmQah/VqzvO07m4LLHnI5ixj/1rxctq98QHEfgknKEma3JSgXejbnkph+m/WfWmc",
+          "./whiteboard/Bootstrap-7COJRA5I.js": "sha384-7/Brmjo9gqN65lCvoMCfm1Ub5tyUw3ivabWA1NeC/UJOUrWzlfhIj0XYoFKiFEk7",
+          "./mermaid/Bootstrap-BBNZEAEH.js": "sha384-DPpBRZv47CVBpYfzVQiKWL76+Zh+GNRvDSY7G99RMPT+j5U8Pq7eDciHllDgRaFO",
+          "./chunk-WW26EZ22.js": "sha384-sDhcZ7eQ+i0rEfRIZ4dhGpwqqr4OLIKhrNr1CpqUuynnbsK2qpp/I/cq8JVcKfl0",
+          "./chunk-PAMKM67I.js": "sha384-hTdulOFDbDpZPDXTPSqo9asD5kf/Rb2nqqOwqK/IzWWXyf8kf0+N94FSvSjPLKtF",
+          "./chunk-RCIWTGS7.js": "sha384-GVoyZ7htW1QcYMK3i6Pio7FhoQCY+94M+cYKVVTZyrTUO6RQKqRpVu5T2ng478ha",
+          "./chunk-K6ZMRNMW.js": "sha384-aZwtRvM310GrKNMB9tX07AS1Chpy7tOFkHUfDaJP+pAlU7dOs4PIXTpIFLeObnGV",
+          "./chunk-APTZXQMF.js": "sha384-zWhh2apMCPktoaZjn6P/SeGHLy7ujJxm4zqpRZ0BLIciAD+DEHbQgnzCu06YN4vy",
+          "./chunk-V2SUVJ7R.js": "sha384-BfAKYP5/8tfHP2fbRCyG4x5an/HWTuOKp4XtnZoJwWpXoctwT6gkvA4/b7qHWizn",
+          "./chunk-2VMXMS7J.js": "sha384-IiJwn+tZf8TQkKyCcaAtb9JW90aZbS2eLcLYxvXmc4DKIkLJGSPoVR4c+hMZ/hi2"
+        }
       }
     ],
     "effective": {
@@ -844,4 +1000,4 @@ export const frankensteinLiveFixture = {
     }
   },
   "errors": []
-} satisfies SnapshotV1;
+};

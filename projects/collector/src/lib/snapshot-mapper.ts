@@ -5,9 +5,10 @@
  * inspected page, so on a hostile page they are attacker-shaped
  * regardless of what the probes intended to return. Everything is read
  * defensively, re-projected through the schema allowlist (which sanitizes
- * every URL), and reduced to the DTO shape — raw document import-map text
- * never reaches the snapshot (counts only). Channel states follow the
- * honest-state rules of the DTO:
+ * every URL), and reduced to the DTO shape — document import-map tags are
+ * parsed here and their content rides the same allowlist projection as the
+ * shim map; the raw tag text itself never reaches the snapshot. Channel
+ * states follow the honest-state rules of the DTO:
  * missing evidence is an explicit state with a reason, never an invented
  * default, and an unrecognized shape yields `not-recognized` with no raw
  * data copied.
@@ -33,7 +34,7 @@ import type {
 } from 'devtools-bridge';
 import { COLLECTOR_VERSION, DEFAULT_LIMITS, type CollectorLimits } from './constants';
 import { appendError, projectCollectionError, type CollectionError } from './errors';
-import { createContext, dataValue, isObjectLike } from './safe';
+import { createContext, dataValue, defineSafe, isObjectLike } from './safe';
 import { sanitizeUrl } from './privacy';
 import { EFFECTIVE_IMPORT_MAP_SCHEMA, projectSchema, REPOSITORY_SCHEMAS } from './runtime-schema';
 
@@ -99,7 +100,11 @@ export function mapProbeResult(
   const globals = dataValue(rawProbe, 'globals');
 
   const { nfChannel, runtime } = mapRuntime(dataValue(globals, 'nativeFederation'), errors, limits);
-  const { domChannel, documentMaps } = mapDocumentMaps(dataValue(rawProbe, 'importMaps'), limits);
+  const { domChannel, documentMaps } = mapDocumentMaps(
+    dataValue(rawProbe, 'importMaps'),
+    errors,
+    limits,
+  );
   const { shimChannel, effective } = mapEffective(
     dataValue(globals, 'importShim'),
     rawShimMap,
@@ -535,6 +540,7 @@ function toSharedChunks(value: unknown): Record<string, Record<string, string[]>
 
 function mapDocumentMaps(
   value: unknown,
+  errors: CollectionError[],
   limits: CollectorLimits,
 ): { domChannel: ChannelStateV1; documentMaps: DocumentImportMapV1[] } {
   if (!Array.isArray(value)) {
@@ -557,6 +563,7 @@ function mapDocumentMaps(
     let parsed = false;
     let importCount = 0;
     let scopeCount = 0;
+    let content: MapContent = { imports: [], scopes: [], integrity: {} };
     if (typeof text === 'string') {
       try {
         const parsedMap: unknown = JSON.parse(text);
@@ -566,12 +573,19 @@ function mapDocumentMaps(
           const scopes = dataValue(parsedMap, 'scopes');
           importCount = isObjectLike(imports) ? Object.keys(imports).length : 0;
           scopeCount = isObjectLike(scopes) ? Object.keys(scopes).length : 0;
+          const path = `documentMaps[${documentMaps.length}]`;
+          const projection = projectSchema(
+            parsedMap,
+            EFFECTIVE_IMPORT_MAP_SCHEMA,
+            createContext(limits, errors, 'mapper', path),
+          );
+          content = toMapContent(projection, errors, limits, path);
         }
       } catch {
         // parsed stays false — the DTO records the parse failure as data.
       }
     }
-    documentMaps.push({ kind, parsed, importCount, scopeCount });
+    documentMaps.push({ kind, parsed, importCount, scopeCount, ...content });
   }
   return { domChannel: { state: 'available' }, documentMaps };
 }
@@ -643,7 +657,34 @@ function toEffective(
   errors: CollectionError[],
   limits: CollectorLimits,
 ): EffectiveImportMapV1 {
-  const imports = toEntries(dataValue(value, 'imports'), errors, limits, 'effectiveImportMap.imports');
+  const content = toMapContent(value, errors, limits, 'effectiveImportMap');
+  // The shim map's SRI hash values are dropped here — presence only; the
+  // per-tag document-map integrity keeps them by policy.
+  return {
+    imports: content.imports,
+    scopes: content.scopes,
+    integrityFor: Object.keys(content.integrity),
+  };
+}
+
+interface MapContent {
+  imports: ImportMapEntryV1[];
+  scopes: ImportMapScopeV1[];
+  integrity: Record<string, string>;
+}
+
+/**
+ * Converts an allowlist-projected import map (shim map or parsed document
+ * tag) to the DTO shape. The integrity projection keys are already
+ * sanitized URLs and the values validated SRI hashes.
+ */
+function toMapContent(
+  value: unknown,
+  errors: CollectionError[],
+  limits: CollectorLimits,
+  path: string,
+): MapContent {
+  const imports = toEntries(dataValue(value, 'imports'), errors, limits, `${path}.imports`);
   const scopes: ImportMapScopeV1[] = [];
   const scopesRaw = dataValue(value, 'scopes');
   if (isObjectLike(scopesRaw)) {
@@ -651,21 +692,26 @@ function toEffective(
       const scope = sanitizeMaybeUrl(scopeKey);
       if (scope === null) {
         appendError(errors, limits, 'mapper', 'scope-key-dropped', {
-          path: 'effectiveImportMap.scopes',
+          path: `${path}.scopes`,
         });
         continue;
       }
       scopes.push({
         scope,
-        imports: toEntries(scopeImports, errors, limits, 'effectiveImportMap.scopes'),
+        imports: toEntries(scopeImports, errors, limits, `${path}.scopes`),
       });
     }
   }
-  // The integrity projection keys are already sanitized target URLs; the
-  // SRI hash values are dropped here — presence only.
   const integrityRaw = dataValue(value, 'integrity');
-  const integrityFor = isObjectLike(integrityRaw) ? Object.keys(integrityRaw) : [];
-  return { imports, scopes, integrityFor };
+  const integrity: Record<string, string> = {};
+  if (isObjectLike(integrityRaw)) {
+    for (const [urlKey, hash] of Object.entries(integrityRaw)) {
+      if (typeof hash === 'string') {
+        defineSafe(integrity, urlKey, hash);
+      }
+    }
+  }
+  return { imports, scopes, integrity };
 }
 
 function toEntries(

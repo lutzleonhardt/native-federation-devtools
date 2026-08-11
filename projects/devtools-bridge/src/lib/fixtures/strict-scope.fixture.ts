@@ -7,7 +7,7 @@
 
 import { SnapshotV1 } from '../snapshot-v1';
 
-export const strictScopeFixture = {
+export const strictScopeFixture: SnapshotV1 = {
   "schemaVersion": 1,
   "capture": {
     "pageUrl": "http://localhost:4300/",
@@ -134,7 +134,38 @@ export const strictScopeFixture = {
         "kind": "importmap",
         "parsed": true,
         "importCount": 2,
-        "scopeCount": 2
+        "scopeCount": 2,
+        "imports": [
+          {
+            "specifier": "mfe1/./Component",
+            "target": "./mfe1/Component-RJXV7SVT.js"
+          },
+          {
+            "specifier": "mfe2/./Component",
+            "target": "./mfe2/Component-52VOYNCY.js"
+          }
+        ],
+        "scopes": [
+          {
+            "scope": "./mfe2/",
+            "imports": [
+              {
+                "specifier": "@nf-lab/conflict-lib",
+                "target": "./mfe2/_nf_lab_conflict_lib.jvcc6K1csg.js"
+              }
+            ]
+          },
+          {
+            "scope": "./mfe1/",
+            "imports": [
+              {
+                "specifier": "@nf-lab/conflict-lib",
+                "target": "./mfe1/_nf_lab_conflict_lib.JF7uEdSVsN.js"
+              }
+            ]
+          }
+        ],
+        "integrity": {}
       }
     ],
     "effective": {
@@ -144,4 +175,4 @@ export const strictScopeFixture = {
     }
   },
   "errors": []
-} satisfies SnapshotV1;
+};

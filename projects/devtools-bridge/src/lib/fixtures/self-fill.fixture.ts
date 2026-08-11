@@ -7,7 +7,7 @@
 
 import { SnapshotV1 } from '../snapshot-v1';
 
-export const selfFillFixture = {
+export const selfFillFixture: SnapshotV1 = {
   "schemaVersion": 1,
   "capture": {
     "pageUrl": "http://localhost:4300/",
@@ -163,7 +163,27 @@ export const selfFillFixture = {
         "kind": "importmap",
         "parsed": true,
         "importCount": 4,
-        "scopeCount": 0
+        "scopeCount": 0,
+        "imports": [
+          {
+            "specifier": "@nf-lab/conflict-lib",
+            "target": "./mfe2/_nf_lab_conflict_lib.jvcc6K1csg.js"
+          },
+          {
+            "specifier": "@nf-lab/conflict-lib/extra",
+            "target": "./mfe1/_nf_lab_conflict_lib_extra.GWjTDmPaoo.js"
+          },
+          {
+            "specifier": "mfe1/./Component",
+            "target": "./mfe1/Component-44JBHEBG.js"
+          },
+          {
+            "specifier": "mfe2/./Component",
+            "target": "./mfe2/Component-52VOYNCY.js"
+          }
+        ],
+        "scopes": [],
+        "integrity": {}
       }
     ],
     "effective": {
@@ -173,4 +193,4 @@ export const selfFillFixture = {
     }
   },
   "errors": []
-} satisfies SnapshotV1;
+};
