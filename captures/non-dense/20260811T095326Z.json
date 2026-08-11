@@ -1,0 +1,463 @@
+{
+  "schemaVersion": "lab-lossless-capture/1",
+  "capturedAt": "2026-08-11T09:53:58.741Z",
+  "scenario": {
+    "scenarioId": "non-dense",
+    "orchestratorCommit": "8e5e0b3",
+    "ready": true,
+    "readyError": null
+  },
+  "page": {
+    "url": "http://localhost:4300/",
+    "origin": "http://localhost:4300",
+    "path": "/",
+    "title": "VnfHost",
+    "readyState": "complete"
+  },
+  "collector": {
+    "probe": "lab-capture-dump/1",
+    "sanitization": "lossless"
+  },
+  "channels": {
+    "nativeFederationGlobals": {
+      "availability": "available",
+      "observedAt": "2026-08-11T09:53:58.741Z",
+      "data": {
+        "present": true,
+        "valueType": "object",
+        "namespaceKeys": [
+          "remotes",
+          "scoped-externals",
+          "shared-externals",
+          "shared-chunks"
+        ],
+        "namespace": {
+          "remotes": {
+            "mfe3": {
+              "scopeUrl": "./mfe3/",
+              "exposes": [
+                {
+                  "moduleName": "./Component",
+                  "file": "Component-KYAYWGQO.js"
+                }
+              ]
+            },
+            "__NF-HOST__": {
+              "scopeUrl": "./",
+              "exposes": []
+            }
+          },
+          "scoped-externals": {
+            "mfe3": {
+              "@nf-internal/chunk-G4MQRHIT": {
+                "tag": "0.0.0",
+                "entries": {
+                  "@nf-internal/chunk-G4MQRHIT": "chunk-G4MQRHIT.js"
+                }
+              },
+              "@nf-internal/chunk-CTZ4MUAG": {
+                "tag": "0.0.0",
+                "entries": {
+                  "@nf-internal/chunk-CTZ4MUAG": "chunk-CTZ4MUAG.js"
+                }
+              },
+              "@nf-internal/chunk-3O3QUTWM": {
+                "tag": "0.0.0",
+                "entries": {
+                  "@nf-internal/chunk-3O3QUTWM": "chunk-3O3QUTWM.js"
+                }
+              },
+              "@nf-internal/chunk-DXWTOITO": {
+                "tag": "0.0.0",
+                "entries": {
+                  "@nf-internal/chunk-DXWTOITO": "chunk-DXWTOITO.js"
+                }
+              },
+              "@nf-internal/chunk-DLJHBHZE": {
+                "tag": "0.0.0",
+                "entries": {
+                  "@nf-internal/chunk-DLJHBHZE": "chunk-DLJHBHZE.js"
+                }
+              },
+              "@nf-internal/chunk-PZNONLPT": {
+                "tag": "0.0.0",
+                "entries": {
+                  "@nf-internal/chunk-PZNONLPT": "chunk-PZNONLPT.js"
+                }
+              },
+              "@nf-internal/chunk-KNUKVBCT": {
+                "tag": "0.0.0",
+                "entries": {
+                  "@nf-internal/chunk-KNUKVBCT": "chunk-KNUKVBCT.js"
+                }
+              }
+            }
+          },
+          "shared-externals": {
+            "__GLOBAL__": {
+              "@nf-lab/conflict-lib": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "1.0.0",
+                    "action": "share",
+                    "host": false,
+                    "remotes": [
+                      {
+                        "name": "mfe3",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "file:../../packages/conflict-lib/v1",
+                        "entries": {
+                          "@nf-lab/conflict-lib": "_nf_lab_conflict_lib.JF7uEdSVsN.js"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "@angular/common": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "22.0.8",
+                    "action": "share",
+                    "host": false,
+                    "remotes": [
+                      {
+                        "name": "mfe3",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "~22.0.0",
+                        "entries": {
+                          "@angular/common": "_angular_common.2lRkWlIXsD.js"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "@angular/common/http": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "22.0.8",
+                    "action": "share",
+                    "host": false,
+                    "remotes": [
+                      {
+                        "name": "mfe3",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "~22.0.0",
+                        "entries": {
+                          "@angular/common/http": "_angular_common_http.93X-PjezxZ.js"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "@angular/core": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "22.0.8",
+                    "action": "share",
+                    "host": false,
+                    "remotes": [
+                      {
+                        "name": "mfe3",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "~22.0.0",
+                        "entries": {
+                          "@angular/core": "_angular_core.X3ivyfrWNn.js"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "@angular/core/event-dispatch-contract.min.js": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "22.0.8",
+                    "action": "share",
+                    "host": false,
+                    "remotes": [
+                      {
+                        "name": "mfe3",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "~22.0.0",
+                        "entries": {
+                          "@angular/core/event-dispatch-contract.min.js": "_angular_core_event_dispatch_contract_min_js.3axcNP9xmW.js"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "@angular/core/primitives/di": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "22.0.8",
+                    "action": "share",
+                    "host": false,
+                    "remotes": [
+                      {
+                        "name": "mfe3",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "~22.0.0",
+                        "entries": {
+                          "@angular/core/primitives/di": "_angular_core_primitives_di.EObUKH7oSG.js"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "@angular/core/primitives/event-dispatch": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "22.0.8",
+                    "action": "share",
+                    "host": false,
+                    "remotes": [
+                      {
+                        "name": "mfe3",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "~22.0.0",
+                        "entries": {
+                          "@angular/core/primitives/event-dispatch": "_angular_core_primitives_event_dispatch.hU2Qzjyqeh.js"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "@angular/core/primitives/signals": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "22.0.8",
+                    "action": "share",
+                    "host": false,
+                    "remotes": [
+                      {
+                        "name": "mfe3",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "~22.0.0",
+                        "entries": {
+                          "@angular/core/primitives/signals": "_angular_core_primitives_signals.CVk74cDF7r.js"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "@angular/core/rxjs-interop": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "22.0.8",
+                    "action": "share",
+                    "host": false,
+                    "remotes": [
+                      {
+                        "name": "mfe3",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "~22.0.0",
+                        "entries": {
+                          "@angular/core/rxjs-interop": "_angular_core_rxjs_interop.__1TDonEXD.js"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "@angular/elements": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "22.0.8",
+                    "action": "share",
+                    "host": false,
+                    "remotes": [
+                      {
+                        "name": "mfe3",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "~22.0.0",
+                        "entries": {
+                          "@angular/elements": "_angular_elements.ktmx-SsBF0.js"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "@angular/platform-browser": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "22.0.8",
+                    "action": "share",
+                    "host": false,
+                    "remotes": [
+                      {
+                        "name": "mfe3",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "~22.0.0",
+                        "entries": {
+                          "@angular/platform-browser": "_angular_platform_browser.djzJcPG8PR.js"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "rxjs": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "7.8.2",
+                    "action": "share",
+                    "host": false,
+                    "remotes": [
+                      {
+                        "name": "mfe3",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "~7.8.0",
+                        "entries": {
+                          "rxjs": "rxjs.AD771FvZRA.js"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "rxjs/operators": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "7.8.2",
+                    "action": "share",
+                    "host": false,
+                    "remotes": [
+                      {
+                        "name": "mfe3",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "~7.8.0",
+                        "entries": {
+                          "rxjs/operators": "rxjs_operators.t7RGhKl4M9.js"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "tslib": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "2.8.1",
+                    "action": "share",
+                    "host": false,
+                    "remotes": [
+                      {
+                        "name": "mfe3",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "^2.3.0",
+                        "entries": {
+                          "tslib": "tslib.BX2MinpEcV.js"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "shared-chunks": {
+            "__NF-HOST__": {
+              "mapping-or-exposed": []
+            }
+          }
+        }
+      }
+    },
+    "domImportMaps": {
+      "availability": "available",
+      "observedAt": "2026-08-11T09:53:58.741Z",
+      "data": {
+        "count": 1,
+        "maps": [
+          {
+            "index": 0,
+            "type": "importmap",
+            "text": "{\"imports\":{\"@nf-lab/conflict-lib\":\"./mfe3/_nf_lab_conflict_lib.JF7uEdSVsN.js\",\"@angular/common\":\"./mfe3/_angular_common.2lRkWlIXsD.js\",\"@angular/common/http\":\"./mfe3/_angular_common_http.93X-PjezxZ.js\",\"@angular/core\":\"./mfe3/_angular_core.X3ivyfrWNn.js\",\"@angular/core/event-dispatch-contract.min.js\":\"./mfe3/_angular_core_event_dispatch_contract_min_js.3axcNP9xmW.js\",\"@angular/core/primitives/di\":\"./mfe3/_angular_core_primitives_di.EObUKH7oSG.js\",\"@angular/core/primitives/event-dispatch\":\"./mfe3/_angular_core_primitives_event_dispatch.hU2Qzjyqeh.js\",\"@angular/core/primitives/signals\":\"./mfe3/_angular_core_primitives_signals.CVk74cDF7r.js\",\"@angular/core/rxjs-interop\":\"./mfe3/_angular_core_rxjs_interop.__1TDonEXD.js\",\"@angular/elements\":\"./mfe3/_angular_elements.ktmx-SsBF0.js\",\"@angular/platform-browser\":\"./mfe3/_angular_platform_browser.djzJcPG8PR.js\",\"rxjs\":\"./mfe3/rxjs.AD771FvZRA.js\",\"rxjs/operators\":\"./mfe3/rxjs_operators.t7RGhKl4M9.js\",\"tslib\":\"./mfe3/tslib.BX2MinpEcV.js\",\"mfe3/./Component\":\"./mfe3/Component-KYAYWGQO.js\"},\"scopes\":{\"./mfe3/\":{\"@nf-internal/chunk-G4MQRHIT\":\"./mfe3/chunk-G4MQRHIT.js\",\"@nf-internal/chunk-CTZ4MUAG\":\"./mfe3/chunk-CTZ4MUAG.js\",\"@nf-internal/chunk-3O3QUTWM\":\"./mfe3/chunk-3O3QUTWM.js\",\"@nf-internal/chunk-DXWTOITO\":\"./mfe3/chunk-DXWTOITO.js\",\"@nf-internal/chunk-DLJHBHZE\":\"./mfe3/chunk-DLJHBHZE.js\",\"@nf-internal/chunk-PZNONLPT\":\"./mfe3/chunk-PZNONLPT.js\",\"@nf-internal/chunk-KNUKVBCT\":\"./mfe3/chunk-KNUKVBCT.js\"}}}",
+            "parsed": true,
+            "map": {
+              "imports": {
+                "@nf-lab/conflict-lib": "./mfe3/_nf_lab_conflict_lib.JF7uEdSVsN.js",
+                "@angular/common": "./mfe3/_angular_common.2lRkWlIXsD.js",
+                "@angular/common/http": "./mfe3/_angular_common_http.93X-PjezxZ.js",
+                "@angular/core": "./mfe3/_angular_core.X3ivyfrWNn.js",
+                "@angular/core/event-dispatch-contract.min.js": "./mfe3/_angular_core_event_dispatch_contract_min_js.3axcNP9xmW.js",
+                "@angular/core/primitives/di": "./mfe3/_angular_core_primitives_di.EObUKH7oSG.js",
+                "@angular/core/primitives/event-dispatch": "./mfe3/_angular_core_primitives_event_dispatch.hU2Qzjyqeh.js",
+                "@angular/core/primitives/signals": "./mfe3/_angular_core_primitives_signals.CVk74cDF7r.js",
+                "@angular/core/rxjs-interop": "./mfe3/_angular_core_rxjs_interop.__1TDonEXD.js",
+                "@angular/elements": "./mfe3/_angular_elements.ktmx-SsBF0.js",
+                "@angular/platform-browser": "./mfe3/_angular_platform_browser.djzJcPG8PR.js",
+                "rxjs": "./mfe3/rxjs.AD771FvZRA.js",
+                "rxjs/operators": "./mfe3/rxjs_operators.t7RGhKl4M9.js",
+                "tslib": "./mfe3/tslib.BX2MinpEcV.js",
+                "mfe3/./Component": "./mfe3/Component-KYAYWGQO.js"
+              },
+              "scopes": {
+                "./mfe3/": {
+                  "@nf-internal/chunk-G4MQRHIT": "./mfe3/chunk-G4MQRHIT.js",
+                  "@nf-internal/chunk-CTZ4MUAG": "./mfe3/chunk-CTZ4MUAG.js",
+                  "@nf-internal/chunk-3O3QUTWM": "./mfe3/chunk-3O3QUTWM.js",
+                  "@nf-internal/chunk-DXWTOITO": "./mfe3/chunk-DXWTOITO.js",
+                  "@nf-internal/chunk-DLJHBHZE": "./mfe3/chunk-DLJHBHZE.js",
+                  "@nf-internal/chunk-PZNONLPT": "./mfe3/chunk-PZNONLPT.js",
+                  "@nf-internal/chunk-KNUKVBCT": "./mfe3/chunk-KNUKVBCT.js"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "importShim": {
+      "availability": "available",
+      "observedAt": "2026-08-11T09:53:58.741Z",
+      "data": {
+        "present": true,
+        "valueType": "function",
+        "version": null,
+        "map": {
+          "imports": {},
+          "scopes": {},
+          "integrity": {}
+        }
+      }
+    }
+  },
+  "collectionErrors": []
+}

@@ -1,0 +1,187 @@
+{
+  "schemaVersion": "lab-lossless-capture/1",
+  "capturedAt": "2026-08-11T09:56:47.357Z",
+  "scenario": {
+    "scenarioId": "dynamic-init-shim",
+    "orchestratorCommit": "8e5e0b3",
+    "ready": true,
+    "readyError": null
+  },
+  "page": {
+    "url": "http://localhost:4300/",
+    "origin": "http://localhost:4300",
+    "path": "/",
+    "title": "VnfHost",
+    "readyState": "complete"
+  },
+  "collector": {
+    "probe": "lab-capture-dump/1",
+    "sanitization": "lossless"
+  },
+  "channels": {
+    "nativeFederationGlobals": {
+      "availability": "available",
+      "observedAt": "2026-08-11T09:56:47.357Z",
+      "data": {
+        "present": true,
+        "valueType": "object",
+        "namespaceKeys": [
+          "remotes",
+          "shared-externals",
+          "shared-chunks"
+        ],
+        "namespace": {
+          "remotes": {
+            "mfe1": {
+              "scopeUrl": "./mfe1/",
+              "exposes": [
+                {
+                  "moduleName": "./Component",
+                  "file": "Component-RJXV7SVT.js"
+                }
+              ],
+              "integrity": {
+                "_nf_lab_conflict_lib.JF7uEdSVsN.js": "sha384-YzSmpZn3CZ6us9IawjsujujyYXGN6i5Tkev0sl+S99x81IEVGuamUeQD1qfRLT2L",
+                "Component-RJXV7SVT.js": "sha384-aDdQ8FmNPkw5O84YvEXmIuU6/v3MMTaOeBI4FdVifv02iDXaJxWLXSq333+oWInw"
+              }
+            },
+            "__NF-HOST__": {
+              "scopeUrl": "./",
+              "exposes": [],
+              "integrity": {}
+            },
+            "mfe2": {
+              "scopeUrl": "./mfe2/",
+              "exposes": [
+                {
+                  "moduleName": "./Component",
+                  "file": "Component-52VOYNCY.js"
+                }
+              ],
+              "integrity": {
+                "_nf_lab_conflict_lib.jvcc6K1csg.js": "sha384-rN4JDxmCuqtOCX80/olE4QQjGHSN3qCLyXQpEreM0atoIBJ9uXY/XbsGekChWdRl",
+                "Component-52VOYNCY.js": "sha384-n93aw505e2EWoWC2/K8bbUa+TLfAGSP7JMMCwPZyKzj41f+0TTNvVy99N//aGIU+"
+              }
+            }
+          },
+          "shared-externals": {
+            "__GLOBAL__": {
+              "@nf-lab/conflict-lib": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "2.0.0",
+                    "action": "skip",
+                    "host": false,
+                    "remotes": [
+                      {
+                        "name": "mfe2",
+                        "bundle": "browser-shared",
+                        "strictVersion": false,
+                        "cached": false,
+                        "requiredVersion": ">=1.0.0 <3.0.0",
+                        "entries": {
+                          "@nf-lab/conflict-lib": "_nf_lab_conflict_lib.jvcc6K1csg.js"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "tag": "1.0.0",
+                    "action": "share",
+                    "host": false,
+                    "remotes": [
+                      {
+                        "name": "mfe1",
+                        "bundle": "browser-shared",
+                        "strictVersion": false,
+                        "cached": true,
+                        "requiredVersion": ">=1.0.0 <3.0.0",
+                        "entries": {
+                          "@nf-lab/conflict-lib": "_nf_lab_conflict_lib.JF7uEdSVsN.js"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "shared-chunks": {
+            "mfe1": {
+              "mapping-or-exposed": []
+            },
+            "__NF-HOST__": {
+              "mapping-or-exposed": []
+            },
+            "mfe2": {
+              "mapping-or-exposed": []
+            }
+          }
+        }
+      }
+    },
+    "domImportMaps": {
+      "availability": "available",
+      "observedAt": "2026-08-11T09:56:47.357Z",
+      "data": {
+        "count": 2,
+        "maps": [
+          {
+            "index": 0,
+            "type": "importmap-shim",
+            "text": "{\"imports\":{\"@nf-lab/conflict-lib\":\"./mfe1/_nf_lab_conflict_lib.JF7uEdSVsN.js\",\"mfe1/./Component\":\"./mfe1/Component-RJXV7SVT.js\"},\"integrity\":{\"./mfe1/_nf_lab_conflict_lib.JF7uEdSVsN.js\":\"sha384-YzSmpZn3CZ6us9IawjsujujyYXGN6i5Tkev0sl+S99x81IEVGuamUeQD1qfRLT2L\",\"./mfe1/Component-RJXV7SVT.js\":\"sha384-aDdQ8FmNPkw5O84YvEXmIuU6/v3MMTaOeBI4FdVifv02iDXaJxWLXSq333+oWInw\"}}",
+            "parsed": true,
+            "map": {
+              "imports": {
+                "@nf-lab/conflict-lib": "./mfe1/_nf_lab_conflict_lib.JF7uEdSVsN.js",
+                "mfe1/./Component": "./mfe1/Component-RJXV7SVT.js"
+              },
+              "integrity": {
+                "./mfe1/_nf_lab_conflict_lib.JF7uEdSVsN.js": "sha384-YzSmpZn3CZ6us9IawjsujujyYXGN6i5Tkev0sl+S99x81IEVGuamUeQD1qfRLT2L",
+                "./mfe1/Component-RJXV7SVT.js": "sha384-aDdQ8FmNPkw5O84YvEXmIuU6/v3MMTaOeBI4FdVifv02iDXaJxWLXSq333+oWInw"
+              }
+            }
+          },
+          {
+            "index": 1,
+            "type": "importmap-shim",
+            "text": "{\"imports\":{\"mfe2/./Component\":\"./mfe2/Component-52VOYNCY.js\"},\"integrity\":{\"./mfe2/Component-52VOYNCY.js\":\"sha384-n93aw505e2EWoWC2/K8bbUa+TLfAGSP7JMMCwPZyKzj41f+0TTNvVy99N//aGIU+\"}}",
+            "parsed": true,
+            "map": {
+              "imports": {
+                "mfe2/./Component": "./mfe2/Component-52VOYNCY.js"
+              },
+              "integrity": {
+                "./mfe2/Component-52VOYNCY.js": "sha384-n93aw505e2EWoWC2/K8bbUa+TLfAGSP7JMMCwPZyKzj41f+0TTNvVy99N//aGIU+"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "importShim": {
+      "availability": "available",
+      "observedAt": "2026-08-11T09:56:47.357Z",
+      "data": {
+        "present": true,
+        "valueType": "function",
+        "version": null,
+        "map": {
+          "imports": {
+            "@nf-lab/conflict-lib": "http://localhost:4300/mfe1/_nf_lab_conflict_lib.JF7uEdSVsN.js",
+            "mfe1/./Component": "http://localhost:4300/mfe1/Component-RJXV7SVT.js",
+            "mfe2/./Component": "http://localhost:4300/mfe2/Component-52VOYNCY.js"
+          },
+          "scopes": {},
+          "integrity": {
+            "http://localhost:4300/mfe1/_nf_lab_conflict_lib.JF7uEdSVsN.js": "sha384-YzSmpZn3CZ6us9IawjsujujyYXGN6i5Tkev0sl+S99x81IEVGuamUeQD1qfRLT2L",
+            "http://localhost:4300/mfe1/Component-RJXV7SVT.js": "sha384-aDdQ8FmNPkw5O84YvEXmIuU6/v3MMTaOeBI4FdVifv02iDXaJxWLXSq333+oWInw",
+            "http://localhost:4300/mfe2/Component-52VOYNCY.js": "sha384-n93aw505e2EWoWC2/K8bbUa+TLfAGSP7JMMCwPZyKzj41f+0TTNvVy99N//aGIU+"
+          }
+        }
+      }
+    }
+  },
+  "collectionErrors": []
+}

@@ -1,9 +1,49 @@
 # Capture corpus (checked-in subset)
 
-Raw runtime captures that the fixture derivation
-(`scripts/derive-fixture.mjs`) consumes. Checking the capture in makes the
-derivation reproducible for everyone — the full corpus (more phases, more
-apps) lives in a private research repository.
+Raw runtime captures. Two corpora live here:
+
+- the **lab lossless scenario corpus** (`<scenario>/` directories +
+  `manifest.json`) — the V2 shape-validation ground truth, and
+- the legacy **frankenstein capture** (`frankenstein/`) that the V1
+  fixture derivation (`scripts/derive-fixture.mjs`) consumes.
+
+## Lab lossless scenario corpus (V2)
+
+One capture per scenario of the playground scenario catalog (separate
+repository, `nf/playground`, branch `lab/v2-scenarios` — see
+`captures/manifest.json` for the exact commits). Envelope
+`lab-lossless-capture/1`: the full `__NATIVE_FEDERATION__` registry
+namespace cloned **losslessly** (no allowlist, no caps), the DOM
+import-map tag inventory, and the effective `importShim.getImportMap()`
+copy including SRI integrity hash values.
+
+Produced by evaluating `scripts/lab-capture-dump.js` unchanged in the
+served scenario page (chrome-devtools MCP session; the probe is one
+async function expression and works identically from any headless CDP
+driver). Regeneration:
+
+1. playground checkout: `node run-scenario.mjs <scenario>` (serves on
+   `http://localhost:4300/`),
+2. evaluate `scripts/lab-capture-dump.js` in the page, save the result
+   as `captures/<scenario>/<runstamp>.json` (pretty-printed, 2 spaces),
+3. `node scripts/build-lab-manifest.mjs` — rewrites `manifest.json`
+   (per-file sha256, commits, probe hash),
+4. `node scripts/validate-lab-corpus.mjs` — checks hashes, scenario
+   set, envelope structure, and per-scenario losslessness evidence.
+
+A re-capture of the same scenario is semantically identical to the
+committed file modulo `capturedAt`/`observedAt` timestamps (verified
+A→A including a full rebuild).
+
+The captures are lab data of this project's own scenario runner
+(vanilla lab elements, `@nf-lab/conflict-lib` version levers). The
+lab-data-only policy below applies; SRI hashes may stay.
+
+## Frankenstein capture (V1 fixture source)
+
+Consumed by `scripts/derive-fixture.mjs`. Checking the capture in makes
+the derivation reproducible for everyone — the full corpus (more
+phases, more apps) lives in a private research repository.
 
 ## Provenance
 

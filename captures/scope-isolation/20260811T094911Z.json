@@ -1,0 +1,145 @@
+{
+  "schemaVersion": "lab-lossless-capture/1",
+  "capturedAt": "2026-08-11T09:49:43.007Z",
+  "scenario": {
+    "scenarioId": "scope-isolation",
+    "orchestratorCommit": "8e5e0b3",
+    "ready": true,
+    "readyError": null
+  },
+  "page": {
+    "url": "http://localhost:4300/",
+    "origin": "http://localhost:4300",
+    "path": "/",
+    "title": "VnfHost",
+    "readyState": "complete"
+  },
+  "collector": {
+    "probe": "lab-capture-dump/1",
+    "sanitization": "lossless"
+  },
+  "channels": {
+    "nativeFederationGlobals": {
+      "availability": "available",
+      "observedAt": "2026-08-11T09:49:43.006Z",
+      "data": {
+        "present": true,
+        "valueType": "object",
+        "namespaceKeys": [
+          "remotes",
+          "shared-externals",
+          "shared-chunks"
+        ],
+        "namespace": {
+          "remotes": {
+            "mfe1": {
+              "scopeUrl": "./mfe1/",
+              "exposes": [
+                {
+                  "moduleName": "./Component",
+                  "file": "Component-RJXV7SVT.js"
+                }
+              ]
+            },
+            "__NF-HOST__": {
+              "scopeUrl": "./",
+              "exposes": []
+            }
+          },
+          "shared-externals": {
+            "__GLOBAL__": {
+              "@nf-lab/conflict-lib": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "2.0.0",
+                    "action": "share",
+                    "host": true,
+                    "remotes": [
+                      {
+                        "name": "__NF-HOST__",
+                        "bundle": "browser-shared",
+                        "strictVersion": false,
+                        "cached": true,
+                        "requiredVersion": ">=1.0.0 <3.0.0",
+                        "entries": {
+                          "@nf-lab/conflict-lib": "_nf_lab_conflict_lib.jvcc6K1csg.js"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "tag": "1.0.0",
+                    "action": "scope",
+                    "host": false,
+                    "remotes": [
+                      {
+                        "name": "mfe1",
+                        "bundle": "browser-shared",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "~1.0.0",
+                        "entries": {
+                          "@nf-lab/conflict-lib": "_nf_lab_conflict_lib.JF7uEdSVsN.js"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "shared-chunks": {
+            "mfe1": {
+              "mapping-or-exposed": []
+            },
+            "__NF-HOST__": {
+              "mapping-or-exposed": []
+            }
+          }
+        }
+      }
+    },
+    "domImportMaps": {
+      "availability": "available",
+      "observedAt": "2026-08-11T09:49:43.006Z",
+      "data": {
+        "count": 1,
+        "maps": [
+          {
+            "index": 0,
+            "type": "importmap",
+            "text": "{\"imports\":{\"@nf-lab/conflict-lib\":\"./_nf_lab_conflict_lib.jvcc6K1csg.js\",\"mfe1/./Component\":\"./mfe1/Component-RJXV7SVT.js\"},\"scopes\":{\"./mfe1/\":{\"@nf-lab/conflict-lib\":\"./mfe1/_nf_lab_conflict_lib.JF7uEdSVsN.js\"}}}",
+            "parsed": true,
+            "map": {
+              "imports": {
+                "@nf-lab/conflict-lib": "./_nf_lab_conflict_lib.jvcc6K1csg.js",
+                "mfe1/./Component": "./mfe1/Component-RJXV7SVT.js"
+              },
+              "scopes": {
+                "./mfe1/": {
+                  "@nf-lab/conflict-lib": "./mfe1/_nf_lab_conflict_lib.JF7uEdSVsN.js"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "importShim": {
+      "availability": "available",
+      "observedAt": "2026-08-11T09:49:43.007Z",
+      "data": {
+        "present": true,
+        "valueType": "function",
+        "version": null,
+        "map": {
+          "imports": {},
+          "scopes": {},
+          "integrity": {}
+        }
+      }
+    }
+  },
+  "collectionErrors": []
+}
