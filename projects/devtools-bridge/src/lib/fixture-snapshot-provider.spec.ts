@@ -28,8 +28,8 @@ describe('fixtureIdFromQuery', () => {
   });
 
   it('resolves alongside other params', () => {
-    expect(fixtureIdFromQuery('?theme=dark&fixture=frankenstein-production')).toBe(
-      'frankenstein-production',
+    expect(fixtureIdFromQuery('?theme=dark&fixture=frankenstein-live')).toBe(
+      'frankenstein-live',
     );
   });
 

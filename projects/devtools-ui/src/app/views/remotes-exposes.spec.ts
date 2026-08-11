@@ -45,23 +45,23 @@ describe('RemotesExposes', () => {
   // T3-AC-01: each remote of the primary fixture renders with name, scope
   // URL, and its expose keys.
   it('renders name, scope URL, and expose keys per remote from the primary fixture', async () => {
-    const { fixture } = await renderView('frankenstein-production');
+    const { fixture } = await renderView('frankenstein-live');
     const cells = rowCells(fixture);
     expect(cells).toHaveLength(3);
 
     const host = cells.find((row) => row[0].startsWith('__NF-HOST__'))!;
     expect(host[0]).toContain('host');
-    expect(host[1]).toBe('http://127.0.0.1:8088/frankenstein-meeting-room/');
+    expect(host[1]).toBe('./');
     expect(host[2]).toBe('no exposes registered');
 
     const mermaid = cells.find((row) => row[0] === 'mermaid')!;
-    expect(mermaid[1]).toBe('http://127.0.0.1:8088/frankenstein-meeting-room/mermaid/');
-    expect(mermaid[2]).toBe('http://127.0.0.1:8088/frankenstein-meeting-room/Bootstrap');
+    expect(mermaid[1]).toBe('./mermaid/');
+    expect(mermaid[2]).toBe('./Bootstrap');
     expect(mermaid[3]).toBe('Bootstrap-BBNZEAEH.js');
 
     const whiteboard = cells.find((row) => row[0] === 'whiteboard')!;
-    expect(whiteboard[1]).toBe('http://127.0.0.1:8088/frankenstein-meeting-room/whiteboard/');
-    expect(whiteboard[2]).toBe('http://127.0.0.1:8088/frankenstein-meeting-room/Bootstrap');
+    expect(whiteboard[1]).toBe('./whiteboard/');
+    expect(whiteboard[2]).toBe('./Bootstrap');
     expect(whiteboard[3]).toBe('Bootstrap-7COJRA5I.js');
   });
 

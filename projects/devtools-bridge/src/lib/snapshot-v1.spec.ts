@@ -33,7 +33,7 @@ describe('SnapshotV1 (T2-AC-01)', () => {
   });
 });
 
-describe('primary fixture derives from the frankenstein production capture (T2-AC-02)', () => {
+describe('primary fixture derives from the frankenstein-live capture (T2-AC-02)', () => {
   it('contains the host plus the mermaid and whiteboard remotes', () => {
     expect(Object.keys(primary.runtime!.remotes).sort()).toEqual([
       '__NF-HOST__',
@@ -83,7 +83,7 @@ describe('primary fixture derives from the frankenstein production capture (T2-A
 });
 
 describe('synthetic fixtures (T2-AC-02)', () => {
-  const synthetic = fixtureEntries.filter(([id]) => id !== PRIMARY_FIXTURE_ID);
+  const synthetic = fixtureEntries.filter(([id]) => id.startsWith('synthetic-'));
 
   it('exist for collision, empty-page, hostile, missing-channel, multi-version, no-import-maps, and not-recognized states', () => {
     expect(synthetic.map(([id]) => id).sort()).toEqual([

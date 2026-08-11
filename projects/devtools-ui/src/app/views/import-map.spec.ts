@@ -51,7 +51,7 @@ describe('ImportMap', () => {
   // T5-AC-01: all 22 global imports render with specifier, effective target,
   // and the integrity-presence indicator (every primary-fixture entry has one).
   it('renders the 22 global imports with targets and integrity presence', async () => {
-    const { fixture } = await renderView('frankenstein-production');
+    const { fixture } = await renderView('frankenstein-live');
     const cells = rowCells(fixture, '.imports-section .nf-table');
     expect(cells).toHaveLength(22);
 
@@ -65,13 +65,13 @@ describe('ImportMap', () => {
   // T5-AC-01: the single scope renders as its own group beneath the global
   // imports, with its own entries and integrity presence.
   it('renders the single scope grouped with its imports', async () => {
-    const { fixture } = await renderView('frankenstein-production');
+    const { fixture } = await renderView('frankenstein-live');
     const el = fixture.nativeElement as HTMLElement;
 
     const groups = el.querySelectorAll('.scope-group');
     expect(groups).toHaveLength(1);
     expect(groups[0].querySelector('h2')?.textContent).toContain(
-      'http://127.0.0.1:8088/frankenstein-meeting-room/',
+      'https://lutzleonhardt.de/frankenstein-meeting-room/',
     );
 
     const cells = rowCells(fixture, '.scope-group .nf-table');
@@ -83,7 +83,7 @@ describe('ImportMap', () => {
   // Integrity is presence per entry, not a blanket flag: a target without an
   // SRI entry renders the explicit "none" marker.
   it('renders no integrity indicator for a target without an SRI entry', async () => {
-    const snapshot: SnapshotV1 = structuredClone(FIXTURES['frankenstein-production']);
+    const snapshot: SnapshotV1 = structuredClone(FIXTURES['frankenstein-live']);
     const effective = snapshot.importMaps!.effective!;
     const dropped = effective.imports.find((entry) => entry.specifier === 'react')!;
     effective.integrityFor = effective.integrityFor.filter((target) => target !== dropped.target);
@@ -97,7 +97,7 @@ describe('ImportMap', () => {
 
   // The caption guards against over-reading the layer: resolution only.
   it('renders the resolution-only caption in the ready state', async () => {
-    const { fixture } = await renderView('frankenstein-production');
+    const { fixture } = await renderView('frankenstein-live');
     const caption = (fixture.nativeElement as HTMLElement).querySelector('.layer-caption');
     expect(caption?.textContent).toContain('resolution only');
     expect(caption?.textContent).toContain('not proof of execution');

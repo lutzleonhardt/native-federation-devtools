@@ -1,15 +1,21 @@
 # Capture corpus (checked-in subset)
 
-Raw runtime captures. Three corpora live here:
+Raw runtime captures. Two corpora live here:
 
 - the **lab lossless scenario corpus** (`<scenario>/` directories +
-  `manifest.json`) — the V2 shape-validation ground truth,
+  `manifest.json`) — the V2 shape-validation ground truth, and
 - the **frankenstein-live captures** (`frankenstein-live/`) — lossless
   phase captures of the publicly deployed frankenstein meeting room
   (real released-orchestrator evidence for shape-validation rows
-  12–16), and
-- the legacy **frankenstein capture** (`frankenstein/`) that the V1
-  fixture derivation (`scripts/derive-fixture.mjs`) consumes.
+  12–16).
+
+Both feed the checked-in SnapshotV1 fixtures via
+`scripts/derive-fixtures.mjs` (see the versioning map and data flow at
+the end of this file). The legacy allowlist-projected frankenstein
+capture (`frankenstein/`, envelope `frankenstein-runtime-capture/1`)
+was retired in V2 task 5 — the lossless frankenstein-live corpus
+supersedes it as evidence, and no tool in this repository reads that
+envelope anymore.
 
 ## Lab lossless scenario corpus (V2)
 
@@ -88,26 +94,50 @@ report.
 This is our own application; the lab-data-only policy holds and SRI
 hashes may stay.
 
-## Frankenstein capture (V1 fixture source)
+## Versioning map
 
-Consumed by `scripts/derive-fixture.mjs`. Checking the capture in makes
-the derivation reproducible for everyone — the full corpus (more
-phases, more apps) lives in a private research repository.
+Every version stamp in the repository, what it versions, and when to
+bump it:
 
-## Provenance
+| Stamp | Kind | Meaning | Bump when |
+| --- | --- | --- | --- |
+| `lab-capture-dump/1` | producer version | `collector.probe` in capture envelopes: which lab probe produced the file | the probe's observable output changes (also re-pins `source.probe.sha256` in the manifest via the builder) |
+| `lab-lossless-capture/1` | envelope id (wire contract) | structure of a capture file under `captures/` (lab and live) | the envelope structure changes — the validator and `scripts/derive-fixtures.mjs` gate on it |
+| `lab-lossless-corpus/1` | envelope id (wire contract) | structure of `captures/manifest.json` | the manifest structure changes |
+| `passive-probe/2` | probe↔mapper contract | result schema of the product's passive probe; the mapper rejects other stamps | the probe/mapper schemas change — probe string and `runtime-schema.ts` are hand-synced and ship in lockstep |
+| `shim-map-probe/1` | probe↔mapper contract | result schema of the shim map probe | its result schema changes |
+| `nf-devtools-collector/2` | producer version | `COLLECTOR_VERSION`, recorded as `SnapshotV1.capture.collectorVersion` | projection semantics change (bumped with `passive-probe/*`) |
+| `SnapshotV1.schemaVersion: 1` | DTO wire contract | snapshot shape consumed by UI, export, and fixtures | only on a breaking DTO change — V2 grew it additively and kept `1` |
+| dev `8e5e0b3` / released v4 | observed third-party generations | orchestrator generations in the corpus: dev commit `8e5e0b3` (lab scenarios, participants carry an `entries` map) vs. released v4 (frankenstein-live, participants carry `file`) | never bumped by us — a newly observed generation means new captures plus shape re-validation |
 
-`frankenstein/production-04-remote-interaction.json` — capture of the
-*frankenstein meeting room*, this project's own lab application, served
-from `127.0.0.1` (run `20260724T134007Z`, phase `remote-interaction`:
-host + `mermaid` + `whiteboard` remotes, react 18.3.1 shared by
-`whiteboard`). Produced by the research collector with allowlist
-projection (`sanitization: allowlist-projection-v1`); it contains no
-cookies, headers, request/response bodies, storage values, or credentials.
+## Data flow
 
-The same application is publicly deployed at
-<https://lutzleonhardt.de/frankenstein-meeting-room/> and listed among the
-official Native Federation resources
-(<https://native-federation.com/resources/>).
+```
+nf/playground (branch lab/v2-scenarios)          lutzleonhardt.de/frankenstein-meeting-room/
+  run-scenario.mjs <scenario>                        (public deployment, fallback readiness)
+        │  served scenario page                            │
+        └────────────┬─────────────────────────────────────┘
+                     ▼
+        scripts/lab-capture-dump.js  (evaluated in the page)
+                     │  writes lab-lossless-capture/1
+                     ▼
+        captures/<scenario>/<runstamp>.json
+        captures/frankenstein-live/<runstamp>-<phase>.json  (+ provenance.json sidecar)
+                     │
+        scripts/build-lab-manifest.mjs   → captures/manifest.json  (lab-lossless-corpus/1)
+        scripts/validate-lab-corpus.mjs  → reads manifest + every capture (hashes, envelope,
+                     │                     losslessness + live-evidence predicates)
+                     ▼
+        scripts/derive-fixtures.mjs      → reads manifest + capture envelopes, runs the REAL
+                     │                     collector pipeline (passive-probe/2, shim-map-probe/1,
+                     │                     mapper → nf-devtools-collector/2)
+                     ▼
+        projects/devtools-bridge/src/lib/fixtures/<id>.fixture.ts   (SnapshotV1, schemaVersion 1)
+                     │
+        FixtureSnapshotProvider (dev panel, ?fixture=<id>) · specs · guards
+        (drift guard: projects/collector/src/lib/fixture-drift.spec.ts re-derives
+         every fixture from its capture and compares)
+```
 
 ## Policy
 

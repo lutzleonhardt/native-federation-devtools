@@ -80,7 +80,7 @@ describe('SnapshotExportService', () => {
 
     expect(download.clickedAnchors).toHaveLength(1);
     expect(download.clickedAnchors[0].download).toBe(
-      'nf-snapshot-127.0.0.1-20260724T135022Z.json',
+      'nf-snapshot-lutzleonhardt.de-20260811T115625Z.json',
     );
     expect(download.clickedAnchors[0].href).toBe('blob:mock-object-url');
     expect(download.revokedUrls).toEqual(['blob:mock-object-url']);

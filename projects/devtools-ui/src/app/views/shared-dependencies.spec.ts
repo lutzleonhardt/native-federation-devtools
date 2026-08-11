@@ -45,7 +45,7 @@ describe('SharedDependencies', () => {
   // T4-AC-01: the react outcome from the primary fixture renders with scope,
   // selected version, action, provider, and the declared requirement.
   it('renders the react resolver outcome from the primary fixture', async () => {
-    const { fixture } = await renderView('frankenstein-production');
+    const { fixture } = await renderView('frankenstein-live');
     const cells = rowCells(fixture);
     expect(cells).toHaveLength(20);
 
@@ -60,7 +60,7 @@ describe('SharedDependencies', () => {
   // Host-provided package: the host flag names the provider; the host's own
   // requirement stays visible as a participant entry.
   it('renders a host-provided package with the host as provider', async () => {
-    const { fixture } = await renderView('frankenstein-production');
+    const { fixture } = await renderView('frankenstein-live');
     const cells = rowCells(fixture);
 
     const rxjs = cells.find((row) => row[0] === 'rxjs')!;
@@ -91,7 +91,7 @@ describe('SharedDependencies', () => {
   // T4-AC-03 (→ XC-04): the claims aspect renders as missing with a reason;
   // nothing implies claims were observed.
   it('renders the claims aspect as missing with the Phase-2 reason', async () => {
-    const { fixture } = await renderView('frankenstein-production');
+    const { fixture } = await renderView('frankenstein-live');
     const el = fixture.nativeElement as HTMLElement;
 
     const claims = el.querySelector('.claims-aspect')!;

@@ -10,7 +10,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import type { SnapshotV1 } from '../../../devtools-bridge/src/lib/snapshot-v1';
-import { frankensteinProductionFixture } from '../../../devtools-bridge/src/lib/fixtures/frankenstein-production.fixture';
+import { frankensteinLiveFixture } from '../../../devtools-bridge/src/lib/fixtures/frankenstein-live.fixture';
 import { scanForPrivacyViolations } from '../../../../guards/privacy-scan';
 import { COLLECTOR_VERSION } from './constants';
 import { PASSIVE_PROBE_SOURCE } from './passive-probe';
@@ -36,10 +36,10 @@ describe('frankenstein pipeline (T7-AC-06)', () => {
     const page = buildFrankensteinPage();
     const snapshot = capturePage(page.sandbox);
 
-    expect(snapshot.channels).toEqual(frankensteinProductionFixture.channels);
-    expect(snapshot.runtime).toEqual(frankensteinProductionFixture.runtime);
-    expect(snapshot.importMaps).toEqual(frankensteinProductionFixture.importMaps);
-    expect(snapshot.capture.pageUrl).toBe(frankensteinProductionFixture.capture.pageUrl);
+    expect(snapshot.channels).toEqual(frankensteinLiveFixture.channels);
+    expect(snapshot.runtime).toEqual(frankensteinLiveFixture.runtime);
+    expect(snapshot.importMaps).toEqual(frankensteinLiveFixture.importMaps);
+    expect(snapshot.capture.pageUrl).toBe(frankensteinLiveFixture.capture.pageUrl);
     expect(snapshot.capture.capturedAt).toBe(CAPTURED_AT);
     expect(snapshot.capture.mode).toBe('passive');
     expect(snapshot.capture.collectorVersion).toBe(COLLECTOR_VERSION);
