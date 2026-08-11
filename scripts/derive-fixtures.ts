@@ -103,7 +103,7 @@ export function deriveFixtures(): void {
     const banner = [
       GENERATED_NOTE,
       `// Source: ${path} (corpus run ${manifest.runId}),`,
-      `// envelope ${ENVELOPE_SCHEMA}, orchestrator dev commit ${manifest.source.orchestratorCommit}, observed`,
+      `// envelope ${ENVELOPE_SCHEMA}, orchestrator v4.6.0 (${manifest.source.orchestratorCommit}), observed`,
       `// generation: ${snapshot.runtime?.generation ?? 'n/a'} — see captures/README.md for provenance.`,
       PIPELINE_NOTE,
     ].join('\n');

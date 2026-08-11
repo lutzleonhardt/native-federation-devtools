@@ -30,6 +30,10 @@ relative to `$.channels.nativeFederationGlobals.data.namespace` unless
 prefixed `$.` (envelope root). Live cites use
 `frankenstein-live/<runstamp>-<phase>.json`.
 
+> Historical naming (Task 6.5): what this document calls the "dev"
+> generation was relabeled `'v4.5'` — `8e5e0b3` is the released v4.6.0,
+> the `entries` spelling shipped in v4.5.0 (`a424249`).
+
 **Generation caveat for rows 12–16:** the deployed app runs the released
 v4 orchestrator line, not the lab's dev commit `8e5e0b3`. One shape is
 generation-discriminating (participants: `file` string in v4 vs

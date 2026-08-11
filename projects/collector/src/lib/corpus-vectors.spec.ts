@@ -25,7 +25,7 @@ function captureScenario(
   return { snapshot: mapProbeResult(probeResult, null, { capturedAt: CAPTURED_AT }), raw };
 }
 
-describe('dev-generation registries (T4-AC-01)', () => {
+describe('v4.5-generation registries (T4-AC-01)', () => {
   it('clean-skip: participants keep bundle + entries, the package wrapper stays intact', () => {
     const { snapshot, raw } = captureScenario('clean-skip');
 
@@ -51,13 +51,13 @@ describe('dev-generation registries (T4-AC-01)', () => {
         expect(participant.bundle).toBe(rawParticipant.bundle);
         expect(participant.entries).toEqual(rawParticipant.entries);
         expect(participant.file).toBeNull();
-        expect(participant.generation).toBe('dev');
+        expect(participant.generation).toBe('v4.5');
         expect(participant.servedFiles).toEqual(
           Object.entries(rawParticipant.entries).map(([entry, file]) => ({ entry, file })),
         );
       });
     });
-    expect(snapshot.runtime!.generation).toBe('dev');
+    expect(snapshot.runtime!.generation).toBe('v4.5');
   });
 
   it('dynamic-init-shim: per-remote integrity maps keep their SRI values, empty maps included (T4-AC-05)', () => {
@@ -162,6 +162,6 @@ describe('scoped-externals own schema and repository laziness (T4-AC-04)', () =>
     expect(snapshot.runtime!.sharedExternals['__GLOBAL__']).toEqual({});
     const versions = snapshot.runtime!.sharedExternals['strict']['@nf-lab/conflict-lib'].versions;
     expect(versions.map((version) => version.tag)).toEqual(['2.0.0', '1.0.0']);
-    expect(snapshot.runtime!.generation).toBe('dev');
+    expect(snapshot.runtime!.generation).toBe('v4.5');
   });
 });

@@ -108,7 +108,7 @@ bump it:
 | `shim-map-probe/1` | probe↔mapper contract | result schema of the shim map probe | its result schema changes |
 | `nf-devtools-collector/2` | producer version | `COLLECTOR_VERSION`, recorded as `SnapshotV1.capture.collectorVersion` | projection semantics change (bumped with `passive-probe/*`) |
 | `SnapshotV1.schemaVersion: 1` | DTO wire contract | snapshot shape consumed by UI, export, and fixtures | only on a breaking DTO change — V2 grew it additively and kept `1` |
-| dev `8e5e0b3` / released v4 | observed third-party generations | orchestrator generations in the corpus: dev commit `8e5e0b3` (lab scenarios, participants carry an `entries` map) vs. released v4 (frankenstein-live, participants carry `file`) | never bumped by us — a newly observed generation means new captures plus shape re-validation |
+| v4.5 / v4 | observed registry-format generations | registry-format generations in the corpus, named by the release that introduced the format: v4.5 (`entries` map since v4.5.0, commit `a424249`; the lab scenarios run the released v4.6.0, commit `8e5e0b3`) vs. v4 (`file` string; frankenstein-live) | never bumped by us — a newly observed generation means new captures plus shape re-validation |
 
 ## Data flow
 

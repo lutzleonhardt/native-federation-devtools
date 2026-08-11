@@ -1,9 +1,9 @@
 /**
  * Repository schema allowlist and host-side re-projection. The repository
  * schemas are the corpus-validated V2 shapes (ground truth: captures/ +
- * docs/work/v2/shape-validation.md), covering both orchestrator
- * generations: participants carry `entries` (dev) or `file` (released
- * v4), scoped-externals has its own single-object schema, and remotes
+ * docs/work/v2/shape-validation.md), covering both registry-format
+ * generations: participants carry `entries` (v4.5+) or `file` (v4),
+ * scoped-externals has its own single-object schema, and remotes
  * carry per-remote `integrity` maps whose SRI hash values are collected
  * by policy. Hand-sync discipline: the in-page probe
  * (passive-probe.ts) inlines the same schemas — changes here need

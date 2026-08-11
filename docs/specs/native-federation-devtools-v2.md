@@ -187,9 +187,10 @@ into `__NATIVE_FEDERATION__`:
   `{ name, file, requiredVersion, strictVersion, cached, bundle? }` —
   `file` a single string
   (`frankenstein-live/20260811T115536Z-01-initial.json`,
-  shape-validation row 14); the pinned dev commit spells them with an
-  `entries` map instead (commit `a424249`, "Support for integrated
-  secondary entrypoints", replaced `file`). The spelling is the
+  shape-validation row 14); the v4.5 format spells them with an
+  `entries` map instead (since v4.5.0, commit `a424249`, "Support for
+  integrated secondary entrypoints", replaced `file`; the pinned lab
+  orchestrator `8e5e0b3` is the released v4.6.0). The spelling is the
   **generation discriminator**: `entries` XOR `file`, never both,
   never neither — observed across every participant in both corpora.
   Multi-key `entries` maps were observed **nowhere** (v4 has none,
@@ -268,8 +269,8 @@ Core relation (the "edge list"): one row per
 *(scope, package, version tag, action, participant)* with
 `requiredVersion`, `strictVersion`, `bundle?`, `cached`, and the
 participant's **served files** — normalized from the
-generation-discriminating spelling (`entries` map, dev; `file`
-string, released v4; see 2.4) at the collector mapper, so nothing
+generation-discriminating spelling (`entries` map, v4.5; `file`
+string, v4; see 2.4) at the collector mapper, so nothing
 past the snapshot branches on the generation — plus the joined
 effective resolution (import-map target URL and integrity presence). The effective map is the store's own
 document-order merge of the mode's tags (pinned rule, shape-validation
@@ -294,7 +295,7 @@ Normalization rules applied on ingest:
    would silently attribute foreign files to the host.
 2. **Chunk reclassification from the union of both sources.** Chunk
    groups are built from (a) scoped externals whose package name
-   starts with `@nf-internal/` (dev-generation non-dense remotes) AND
+   starts with `@nf-internal/` (v4.5-generation non-dense remotes) AND
    (b) `shared-chunks` bundle lists (`remote → bundleName →
    fileName[]`; the released v4 generation keeps chunks **only**
    there — `scoped-externals` is empty in the live deployment,
@@ -320,7 +321,7 @@ Normalization rules applied on ingest:
    `integrity` present → SRI; participants carrying `bundle` → dense
    externals (re-based: multi-key `entries` — the earlier marker — was
    observed nowhere, shape-validation row 14). Plus one snapshot-level
-   badge: the orchestrator **generation** (released v4 / dev / mixed),
+   badge: the registry-format **generation** (v4 / v4.5 / mixed),
    derived from the participant spelling (2.4). Rendered as badges so
    views can degrade loudly instead of silently.
 5. **Provenance marking.** Every field the store computes rather than
@@ -341,9 +342,9 @@ instead of an invented test matrix.
 
 | Dimension | Observed variants | Absorbed by |
 |---|---|---|
-| Participant spelling | `entries` map (dev) XOR `file` string (released v4) | collector mapper: normalized served files + generation provenance; both-or-neither → collection error |
+| Participant spelling | `entries` map (v4.5) XOR `file` string (v4) | collector mapper: normalized served files + generation provenance; both-or-neither → collection error |
 | Zero entries | repository key absent (lab) vs `{}` (live) | one ingest accessor — both mean "no entries" |
-| Chunk placement | `scoped-externals` pseudo-externals (dev non-dense) vs `shared-chunks` bundle lists (v4/dense) | union reclassification (rule 2), `@nf-internal/` marker |
+| Chunk placement | `scoped-externals` pseudo-externals (v4.5 non-dense) vs `shared-chunks` bundle lists (v4/dense) | union reclassification (rule 2), `@nf-internal/` marker |
 | `bundle` / `integrity` | present or absent, in both generations | optional fields + capability badges (rule 4) |
 | Map mode | native `importmap` vs `importmap-shim` tags; shim map empty in native mode | one `mergeDocumentMaps`; observed tag type is the discriminator, shim map cross-check only |
 | Share scopes | `__GLOBAL__`, `strict`, `strict`-only | schema assumes no scope; strict rules are derivations |
@@ -365,7 +366,7 @@ capability-dependent derivation with three honest levels.
    owning remote has a `shared-chunks` bundle list: package → bundle
    name → chunk files (dense-built; live: the host only).
 2. **Remote level only** — the chunk group exists as `@nf-internal/`
-   pseudo-externals (dev non-dense): chunks provably belong to the
+   pseudo-externals (v4.5 non-dense): chunks provably belong to the
    remote, package attribution is honestly "not derivable" (no bundle
    grouping exists).
 3. **No chunk evidence** — v4 remotes without bundle grouping
@@ -400,7 +401,7 @@ precedes the views**, not an afterthought:
 - `bundle` (optional — the released-generation norm, not a non-dense
   edge case: live host participants carry it, whiteboard/mermaid
   don't) and the served-files spelling on shared participants:
-  `entries` map (dev) XOR `file` string (released v4), both accepted
+  `entries` map (v4.5) XOR `file` string (v4), both accepted
   and normalized into one served-files representation with the
   generation surfaced (2.4) — plus the `{ dirty, versions }`
   package wrapper,
@@ -783,8 +784,8 @@ lossless frankenstein-live re-capture (shape-validation rows 12–16):
   neither generation. Multi-key `entries` maps remain unobserved:
   allow, never require.
 - **New finding, promoted to requirement: generation awareness**
-  (2.4, §3 catalog). Released v4 spells participants with `file`,
-  dev with `entries`; schema and fixtures must carry both, normalized
+  (2.4, §3 catalog). The v4 format spells participants with `file`,
+  v4.5 with `entries`; schema and fixtures must carry both, normalized
   per participant, surfaced as provenance.
 
 ### Fixture strategy

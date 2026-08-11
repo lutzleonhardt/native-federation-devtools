@@ -137,9 +137,9 @@ describe('unrecognized shapes (T7-AC-04)', () => {
     expect(snapshot.errors).toEqual([]);
   });
 
-  it('projects dev-generation external remotes with bundle and entries kept (T4-AC-01)', () => {
-    // Dev-generation shared external (orchestrator 8e5e0b3): participants
-    // carry `bundle` + `entries` instead of a single `file`.
+  it('projects v4.5-generation external remotes with bundle and entries kept (T4-AC-01)', () => {
+    // V4.5-generation shared external (orchestrator v4.6.0, `8e5e0b3`):
+    // participants carry `bundle` + `entries` instead of a single `file`.
     const sandbox = makeBarePage({
       __NATIVE_FEDERATION__: {
         remotes: {},
@@ -186,10 +186,10 @@ describe('unrecognized shapes (T7-AC-04)', () => {
         cached: true,
         bundle: 'browser-angular_core',
         servedFiles: [{ entry: '@angular/core', file: '_angular_core.EWio10v_5e.js' }],
-        generation: 'dev',
+        generation: 'v4.5',
       },
     ]);
-    expect(snapshot.runtime!.generation).toBe('dev');
+    expect(snapshot.runtime!.generation).toBe('v4.5');
     expect(snapshot.errors).toEqual([]);
   });
 
@@ -393,7 +393,7 @@ describe('URL sanitization (T7-AC-05)', () => {
                       cached: true,
                     },
                     {
-                      name: 'dev-remote',
+                      name: 'v45-remote',
                       requiredVersion: '^1.0.0',
                       strictVersion: false,
                       entries: { pkg: './pkg.js?token=entries-leaked#frag' },

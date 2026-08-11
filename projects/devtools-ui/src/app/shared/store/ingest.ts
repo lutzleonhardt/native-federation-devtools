@@ -4,8 +4,8 @@
  *
  * Ingest rules (corpus-derived, see the V2 plan/spec):
  * - Chunk reclassification reads the UNION of both sources: scoped
- *   externals named `@nf-internal/...` (dev non-dense) and the
- *   `shared-chunks` bundle lists (released v4). Reclassified entries
+ *   externals named `@nf-internal/...` (v4.5 non-dense) and the
+ *   `shared-chunks` bundle lists (v4/dense). Reclassified entries
  *   become chunk groups of their owning remote and never count as
  *   packages; true scoped packages stay scoped externals.
  * - Version rows sort (semver tag desc, action) in the store — the
