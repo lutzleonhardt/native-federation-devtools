@@ -1,7 +1,7 @@
 {
   "schemaVersion": "lab-lossless-corpus/1",
   "runId": "20260811T095850Z",
-  "createdAt": "2026-08-11T10:02:59.767Z",
+  "createdAt": "2026-08-11T12:12:51.354Z",
   "source": {
     "playground": {
       "repository": "nf/playground",
@@ -13,7 +13,7 @@
     "probe": {
       "file": "scripts/lab-capture-dump.js",
       "schemaVersion": "lab-lossless-capture/1",
-      "sha256": "38c180aeab832fc1dfe10efc6871ae31f4185113ab30908dc66081a573fb20d9"
+      "sha256": "c9060b95128f24b86bf723bda4e342629429126f4d739c6b409841486291bb00"
     }
   },
   "collector": {
@@ -100,5 +100,52 @@
       "runstamp": "20260811T095850Z",
       "sha256": "7536378ad45ec27b7662e5758d7f2caa8ab902f344b591691f8e1a9d06739def"
     }
-  ]
+  ],
+  "liveCaptures": {
+    "scenarioId": "frankenstein-live",
+    "collector": {
+      "kind": "chrome-devtools-mcp",
+      "interface": "generic-devtools",
+      "webMcpUsed": false,
+      "sanitization": "lossless"
+    },
+    "provenance": {
+      "schemaVersion": "lab-live-provenance/1",
+      "scenarioId": "frankenstein-live",
+      "captureUrl": "https://lutzleonhardt.de/frankenstein-meeting-room/",
+      "captureDate": "2026-08-11",
+      "deploymentDependent": true,
+      "regenerableFromCheckouts": false,
+      "deployment": {
+        "app": "Frankenstein Meeting Room (own app, lutzleonhardt.de)",
+        "sourceRepository": "https://github.com/lutzleonhardt/FrankensteinMeetingRoom",
+        "orchestrator": {
+          "bestKnown": "@softarc/native-federation-orchestrator ^4.0.0 via @angular-architects/native-federation-v4 ^21.2.1",
+          "determinedFrom": [
+            "source repository packages/shell/package.json on main at capture date (deployment itself is not pinned by any checkout)",
+            "registry generation markers: participants carry file (string), no entries map; scoped-externals empty; shared-chunks populated with browser-* bundles",
+            "es-module-shims version 2.8.0 captured in channels.importShim matches the source dependency ^2.8.0",
+            "remoteEntry.json shape {name, shared, exposes, chunks, integrity} and federation.manifest.json with per-remote integrity"
+          ],
+          "generationNote": "NOT the lab corpus generation: lab scenarios pin orchestrator dev commit 8e5e0b3 whose participants carry an entries map instead of file. Both shapes are real; the shape-validation report rows 12-16 record the differences."
+        }
+      }
+    },
+    "files": [
+      {
+        "phase": "01-initial",
+        "path": "frankenstein-live/20260811T115536Z-01-initial.json",
+        "runstamp": "20260811T115536Z",
+        "capturedAt": "2026-08-11T11:56:25.504Z",
+        "sha256": "35554e23ba6230478e3576c16cd3346a315db8bf39bc0bba33c037259e12e963"
+      },
+      {
+        "phase": "02-post-interaction",
+        "path": "frankenstein-live/20260811T115536Z-02-post-interaction.json",
+        "runstamp": "20260811T115536Z",
+        "capturedAt": "2026-08-11T11:58:50.500Z",
+        "sha256": "d8808ac5593cb83fe0df5095459aeca03b4b541218e3a767ffb78148ed856642"
+      }
+    ]
+  }
 }

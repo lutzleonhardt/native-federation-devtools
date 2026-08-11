@@ -101,6 +101,74 @@ if (orchestratorCommits.size !== 1) {
   );
 }
 
+// --- live captures (frankenstein-live) -----------------------------------
+// Unlike lab scenarios there is no newest-runstamp rule: every capture file
+// in the directory is a corpus member (one per observed phase). Superseded
+// runs must be deleted before rebuilding (same cleanup forcing function).
+// Non-derivable provenance (deployment, best-known orchestrator version)
+// lives in the checked-in sidecar `provenance.json` and is embedded here so
+// the manifest stays the single file consumers need to read.
+const LIVE_SCENARIO = "frankenstein-live";
+const LIVE_DIR = join(CAPTURES_DIR, LIVE_SCENARIO);
+let liveCaptures = null;
+let liveFiles = [];
+try {
+  liveFiles = readdirSync(LIVE_DIR).filter((f) => f.endsWith(".json")).sort();
+} catch {
+  // No live capture directory — manifest stays lab-only.
+}
+if (liveFiles.length > 0) {
+  let provenance = null;
+  if (!liveFiles.includes("provenance.json")) {
+    failures.push(`captures/${LIVE_SCENARIO}/provenance.json missing (deployment provenance sidecar)`);
+  } else {
+    try {
+      provenance = JSON.parse(readFileSync(join(LIVE_DIR, "provenance.json"), "utf8"));
+    } catch (error) {
+      failures.push(`captures/${LIVE_SCENARIO}/provenance.json: unparseable JSON (${error.message})`);
+    }
+  }
+  const files = [];
+  for (const file of liveFiles.filter((f) => f !== "provenance.json")) {
+    const match = /^(\d{8}T\d{6}Z)-(.+)\.json$/.exec(file);
+    if (!match) {
+      failures.push(`captures/${LIVE_SCENARIO}/${file}: not <runstamp>-<phase>.json`);
+      continue;
+    }
+    const buffer = readFileSync(join(LIVE_DIR, file));
+    let envelope;
+    try {
+      envelope = JSON.parse(buffer.toString("utf8"));
+    } catch (error) {
+      failures.push(`captures/${LIVE_SCENARIO}/${file}: unparseable JSON (${error.message})`);
+      continue;
+    }
+    if (envelope?.scenario?.scenarioId !== LIVE_SCENARIO)
+      failures.push(`captures/${LIVE_SCENARIO}/${file}: scenario.scenarioId is ${JSON.stringify(envelope?.scenario?.scenarioId)}`);
+    if (envelope?.scenario?.phase !== match[2])
+      failures.push(`captures/${LIVE_SCENARIO}/${file}: scenario.phase ${JSON.stringify(envelope?.scenario?.phase)} does not match filename phase "${match[2]}"`);
+    files.push({
+      phase: match[2],
+      path: `${LIVE_SCENARIO}/${file}`,
+      runstamp: match[1],
+      capturedAt: envelope?.capturedAt ?? null,
+      sha256: sha256(buffer)
+    });
+  }
+  if (files.length === 0) failures.push(`captures/${LIVE_SCENARIO}/: no phase captures found`);
+  liveCaptures = {
+    scenarioId: LIVE_SCENARIO,
+    collector: {
+      kind: "chrome-devtools-mcp",
+      interface: "generic-devtools",
+      webMcpUsed: false,
+      sanitization: "lossless"
+    },
+    provenance,
+    files
+  };
+}
+
 if (failures.length > 0) {
   for (const failure of failures) console.error(`manifest: ${failure}`);
   process.exit(1);
@@ -140,6 +208,11 @@ const manifest = {
   expectedScenarios: EXPECTED_SCENARIOS,
   captures
 };
+if (liveCaptures) manifest.liveCaptures = liveCaptures;
 
 writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2) + "\n");
-console.log(`wrote captures/manifest.json (runId ${runId}, ${captures.length} captures)`);
+console.log(
+  `wrote captures/manifest.json (runId ${runId}, ${captures.length} captures` +
+    (liveCaptures ? `, ${liveCaptures.files.length} live phases` : "") +
+    `)`
+);
