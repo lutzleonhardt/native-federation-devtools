@@ -616,8 +616,40 @@ task log instead of silently keeping both.
 Projection follows the Task-4 SnapshotV1 (schemaVersion, served-files
 normalization, generation discriminator); URL sanitization rules
 unchanged (origin + path only); SRI hash handling follows the Task-4
-decision. The script rejects unknown envelope schemaVersions loudly,
-and re-running it is deterministic (byte-identical output).
+decision (per-remote `integrity` keeps validated hash values; the
+privacy scan allows SRI values only inside `integrity`-keyed maps).
+The script rejects unknown envelope schemaVersions loudly, and
+re-running it is deterministic (byte-identical output).
+
+Derivation mechanism: prefer running the REAL collector pipeline
+(probe eval + `mapProbeResult` over a page seeded from the capture
+namespace — the pattern of `corpus-vectors.spec.ts` with
+`testing/lab-corpus.ts`) over hand-mirroring the projection a third
+time in the script. Task 4 left two parallel implementations (mapper +
+`derive-fixture.mjs`); a corpus-driven deriver that goes through the
+mapper makes fixture == pipeline output true by construction. If the
+hand-written projection is kept instead, justify it in the task log.
+
+Corpus housekeeping (maintainer legibility, folds the review of
+2026-08-11 into this task):
+
+- Retire the old `frankenstein-runtime-capture/1` evidence path end to
+  end: the capture `captures/frankenstein/production-04-remote-interaction.json`,
+  the old-envelope branch of `derive-fixture.mjs`, and the seed of
+  `testing/fixture-pages.ts` (`buildFrankensteinPage` reads the old
+  capture) either migrate to the lossless corpus or get an explicit
+  legacy marker naming their remaining consumers. No silently
+  coexisting envelope generations.
+- Write a short maintainer map into `captures/README.md` (or a
+  dedicated doc it links): (a) a versioning table — every stamp in the
+  repo (`passive-probe/2`, `shim-map-probe/1`, `nf-devtools-collector/2`,
+  `SnapshotV1.schemaVersion: 1`, `lab-lossless-capture/1`,
+  `lab-lossless-corpus/1`, orchestrator generations dev `8e5e0b3` /
+  released v4) with its meaning (wire contract vs producer version vs
+  envelope id vs observed third-party generation) and when to bump;
+  (b) a data-flow overview: playground → lab probe → `captures/` →
+  manifest builder → corpus validator → fixture deriver → fixtures →
+  fixture provider/app, naming which script reads which envelope.
 
 ### Acceptance
 
@@ -634,6 +666,12 @@ and re-running it is deterministic (byte-identical output).
   `schemaVersion`.
 - **T5-AC-05** — Generated fixtures contain no query/fragment/userinfo
   in any URL (spec or guard evidence).
+- **T5-AC-06** — The maintainer map exists: versioning table covering
+  every stamp listed in the instructions, plus the script/envelope
+  data-flow overview.
+- **T5-AC-07** — The old `frankenstein-runtime-capture/1` path is
+  retired or every remaining consumer is explicitly legacy-marked and
+  named in the doc; no tool reads it undocumented.
 - Contributes to **XC-02**.
 
 ### Key Locations
@@ -643,6 +681,11 @@ and re-running it is deterministic (byte-identical output).
   `projects/devtools-bridge/src/lib/fixture-snapshot-provider.ts`.
 - Sources: `captures/<scenario>/`, `captures/frankenstein-live/`,
   `captures/manifest.json`.
+- Reuse/housekeeping surfaces:
+  `projects/collector/src/testing/lab-corpus.ts` (corpus loader),
+  `projects/collector/src/testing/fixture-pages.ts` (old-capture
+  seed), `captures/README.md`,
+  `captures/frankenstein/production-04-remote-interaction.json`.
 
 ### Key Discoveries
 
@@ -654,7 +697,23 @@ and re-running it is deterministic (byte-identical output).
   mode).
 - The privacy guard auto-covers new files under `captures/`
   recursively; generated fixtures live outside that tree and need
-  their own evidence (AC-05).
+  their own evidence (AC-05). Its SRI rule is structural since Task 4:
+  hash values pass only inside `integrity`-keyed maps.
+- The lossless envelope stores the registry under
+  `channels.nativeFederationGlobals.data.namespace` — NOT under the
+  old envelope's `data.repositories[key].value` shape; the port is a
+  path change plus the `scenario` block.
+- Task 4 shipped the corpus loader
+  (`testing/lab-corpus.ts`: newest-runstamp rule, explicit phase file
+  for live) and proved the capture→page→probe→mapper path in
+  `corpus-vectors.spec.ts` — the natural deriver skeleton.
+- `strict-scope`'s registry carries an empty `__GLOBAL__` next to
+  `strict`; derived fixtures must keep it (honest observation, do not
+  clean up).
+- The probe's 512-entry global cap truncates chunk-heavy registries
+  loudly; all corpus captures project error-free under it — a derived
+  fixture with collection errors indicates a deriver bug, not corpus
+  drift.
 
 ## Task 6: Normalized store — entities and ingest
 
