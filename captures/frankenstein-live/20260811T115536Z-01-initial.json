@@ -1,0 +1,676 @@
+{
+  "schemaVersion": "lab-lossless-capture/1",
+  "capturedAt": "2026-08-11T11:56:25.504Z",
+  "scenario": {
+    "scenarioId": "frankenstein-live",
+    "orchestratorCommit": null,
+    "ready": true,
+    "readyError": null,
+    "readySource": "page-settled",
+    "phase": "01-initial"
+  },
+  "page": {
+    "url": "https://lutzleonhardt.de/frankenstein-meeting-room/",
+    "origin": "https://lutzleonhardt.de",
+    "path": "/frankenstein-meeting-room/",
+    "title": "Shell",
+    "readyState": "complete"
+  },
+  "collector": {
+    "probe": "lab-capture-dump/1",
+    "sanitization": "lossless"
+  },
+  "channels": {
+    "nativeFederationGlobals": {
+      "availability": "available",
+      "observedAt": "2026-08-11T11:56:25.503Z",
+      "data": {
+        "present": true,
+        "valueType": "object",
+        "namespaceKeys": [
+          "remotes",
+          "scoped-externals",
+          "shared-externals",
+          "shared-chunks"
+        ],
+        "namespace": {
+          "remotes": {
+            "whiteboard": {
+              "scopeUrl": "./whiteboard/",
+              "exposes": [
+                {
+                  "moduleName": "./Bootstrap",
+                  "file": "Bootstrap-7COJRA5I.js"
+                }
+              ],
+              "integrity": {
+                "_excalidraw_excalidraw.0MlOv2WvQj.js": "sha384-gQrm6C7mOLCTYcdQFNBrh7GZ3o5hy2K2NmxwOfiJtDzs7NTkKc5hTxSBfksuKbaU",
+                "react.QYXZqQxJ1j.js": "sha384-57khIiCnWo5tC9kEt0ibpdoHhHGtPXp1KmeWeJyyX0+UPwenA+Wj+0qvj7ajI3As",
+                "react_jsx_runtime.RDhwXXoxCg.js": "sha384-mWHwomGyGtSC45UesaeI3hV4diuzv10CMDSAWJ1rMRQ8F+lA71uneBirgsCW/JxO",
+                "react_jsx_dev_runtime.UsMOGvdsKw.js": "sha384-Pz3qELNqQbfKZe26gJ2n/S9ZKDnDcKoBB4HKdEphutzsxBeMedPySvP+iKitw5h/",
+                "react_dom.6SKyvL_ZIW.js": "sha384-P5wEc9b7LWwq+gIw6WZydAmGaqqKM9f1+8HOET0FxnhMqtpfCs6opvzQAXMtoyZA",
+                "react_dom_client.lVKcx-4-HL.js": "sha384-qhRGasTGrIXFNZJfwVfTnDA2+KKAGE/O6D+GEErqa6n/c3xiyVcKH1x4FmMqeUAN",
+                "react_dom_profiling.wPFH8wjIJf.js": "sha384-ljYfxwXdL20/jno4xQm1XDO5sL/8huAbZHNBeJ4Ov+nY5UDdOHl3ZwurHwevUCdI",
+                "Bootstrap-7COJRA5I.js": "sha384-7/Brmjo9gqN65lCvoMCfm1Ub5tyUw3ivabWA1NeC/UJOUrWzlfhIj0XYoFKiFEk7"
+              }
+            },
+            "mermaid": {
+              "scopeUrl": "./mermaid/",
+              "exposes": [
+                {
+                  "moduleName": "./Bootstrap",
+                  "file": "Bootstrap-BBNZEAEH.js"
+                }
+              ],
+              "integrity": {
+                "mermaid.fMI3T940QA.js": "sha384-kstnQo1tIfL+tMgIsAHgtN6HODg7IUJOB7YxDsvWEfQKwtm2T8pJXYurn7ZK8lW/",
+                "Bootstrap-BBNZEAEH.js": "sha384-DPpBRZv47CVBpYfzVQiKWL76+Zh+GNRvDSY7G99RMPT+j5U8Pq7eDciHllDgRaFO"
+              }
+            },
+            "__NF-HOST__": {
+              "scopeUrl": "./",
+              "exposes": [],
+              "integrity": {
+                "_angular_common.Ucn2BmyRM1.js": "sha384-ifIpCfW3pytDYCF1JasK/q29l9JcykVZmVSQPMbvfrIGyBjplklPOyLqxyHVtqL7",
+                "_angular_common_http.XnycUwbhpt.js": "sha384-IK8Nx+6NWCVROXYGp+8jufFYVZlMcU0/sA2pO54JMRAhwQCS6iZuRCEnwvAGIG0O",
+                "chunk-WW26EZ22.js": "sha384-sDhcZ7eQ+i0rEfRIZ4dhGpwqqr4OLIKhrNr1CpqUuynnbsK2qpp/I/cq8JVcKfl0",
+                "_angular_platform_browser.lAyP2N3Pw8.js": "sha384-Uqk4Pa50G3bzBAWwoZ0rCBacNLN2dyJ8QkJWL5QD6IqFLISZIk84SZzH8RmcXGlk",
+                "rxjs.IJzVNeB5rY.js": "sha384-CND2UMO83rk1q4PmwPBkMzMidBFPpleOKv8RwUTYv7MVKgLY5QZ4rSMNPkizOXfU",
+                "rxjs_operators.gdYSvUruih.js": "sha384-laChUqH6WQnng9RMXX09mNVUEHCCL/2hiynx8XKFxv8EpZDOXvUI6j2KJAvkz7/m",
+                "chunk-PAMKM67I.js": "sha384-hTdulOFDbDpZPDXTPSqo9asD5kf/Rb2nqqOwqK/IzWWXyf8kf0+N94FSvSjPLKtF",
+                "tslib.s6WVYyl__v.js": "sha384-us48hLnAuTVi42myNvtbK0UsmSvbAjKfiZP4HjtL9tB6FogW0rizxqZPIRAbidzm",
+                "_angular_core.RHjtWEkOzP.js": "sha384-K67ZQ5cbnDPIVn8WANbSD0mtv1yJTMx8mlSOumXJTrAgTrsuRNsDWfVtimzbGc8o",
+                "_angular_core_event_dispatch_contract_min_js.JotK85OfcE.js": "sha384-5wVWeVYtx1cBT1jKmN8rQ7UM9OvfVXX8EiLwaa0Ske0MZEGspZWPPZzpPCmI7TvV",
+                "_angular_core_primitives_di.QUc60-Xs6C.js": "sha384-6rOmacKn8k2Rcgtrc+9Jiv4npsCyzrhos2r3DUvquC7Sy2zH1Qe8r7CLOIaKbfoP",
+                "_angular_core_primitives_event_dispatch.1A9qBws3LP.js": "sha384-MD1dEWUryHtZl1bJtQZQD2JHywLtf2noRB7QrVRtzO/zWxi/9bmM02zYvzWXySQM",
+                "chunk-RCIWTGS7.js": "sha384-GVoyZ7htW1QcYMK3i6Pio7FhoQCY+94M+cYKVVTZyrTUO6RQKqRpVu5T2ng478ha",
+                "_angular_core_primitives_signals.ePwPWbaXlE.js": "sha384-LPA4je4R4YerkZL5Dsogc8kPstf4JOzHn1RFaf8Pv5R+mNyYS3zwhgqy7LAAZePH",
+                "_angular_core_rxjs_interop.YqevhcoUQy.js": "sha384-ZmQah/VqzvO07m4LLHnI5ixj/1rxctq98QHEfgknKEma3JSgXejbnkph+m/WfWmc",
+                "chunk-K6ZMRNMW.js": "sha384-aZwtRvM310GrKNMB9tX07AS1Chpy7tOFkHUfDaJP+pAlU7dOs4PIXTpIFLeObnGV",
+                "chunk-APTZXQMF.js": "sha384-zWhh2apMCPktoaZjn6P/SeGHLy7ujJxm4zqpRZ0BLIciAD+DEHbQgnzCu06YN4vy",
+                "chunk-V2SUVJ7R.js": "sha384-BfAKYP5/8tfHP2fbRCyG4x5an/HWTuOKp4XtnZoJwWpXoctwT6gkvA4/b7qHWizn",
+                "chunk-2VMXMS7J.js": "sha384-IiJwn+tZf8TQkKyCcaAtb9JW90aZbS2eLcLYxvXmc4DKIkLJGSPoVR4c+hMZ/hi2"
+              }
+            }
+          },
+          "scoped-externals": {},
+          "shared-externals": {
+            "__GLOBAL__": {
+              "@excalidraw/excalidraw": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "0.18.1",
+                    "action": "share",
+                    "host": false,
+                    "remotes": [
+                      {
+                        "file": "_excalidraw_excalidraw.0MlOv2WvQj.js",
+                        "name": "whiteboard",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "~0.18.1"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "react": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "18.3.1",
+                    "action": "share",
+                    "host": false,
+                    "remotes": [
+                      {
+                        "file": "react.QYXZqQxJ1j.js",
+                        "name": "whiteboard",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "^18.3.1"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "react/jsx-runtime": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "18.3.1",
+                    "action": "share",
+                    "host": false,
+                    "remotes": [
+                      {
+                        "file": "react_jsx_runtime.RDhwXXoxCg.js",
+                        "name": "whiteboard",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "^18.3.1"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "react/jsx-dev-runtime": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "18.3.1",
+                    "action": "share",
+                    "host": false,
+                    "remotes": [
+                      {
+                        "file": "react_jsx_dev_runtime.UsMOGvdsKw.js",
+                        "name": "whiteboard",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "^18.3.1"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "react-dom": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "18.3.1",
+                    "action": "share",
+                    "host": false,
+                    "remotes": [
+                      {
+                        "file": "react_dom.6SKyvL_ZIW.js",
+                        "name": "whiteboard",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "^18.3.1"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "react-dom/client": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "18.3.1",
+                    "action": "share",
+                    "host": false,
+                    "remotes": [
+                      {
+                        "file": "react_dom_client.lVKcx-4-HL.js",
+                        "name": "whiteboard",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "^18.3.1"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "react-dom/profiling": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "18.3.1",
+                    "action": "share",
+                    "host": false,
+                    "remotes": [
+                      {
+                        "file": "react_dom_profiling.wPFH8wjIJf.js",
+                        "name": "whiteboard",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "^18.3.1"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "mermaid": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "11.14.0",
+                    "action": "share",
+                    "host": false,
+                    "remotes": [
+                      {
+                        "file": "mermaid.fMI3T940QA.js",
+                        "name": "mermaid",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "^11.4.1"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "@angular/common": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "21.2.12",
+                    "action": "share",
+                    "host": true,
+                    "remotes": [
+                      {
+                        "file": "_angular_common.Ucn2BmyRM1.js",
+                        "name": "__NF-HOST__",
+                        "bundle": "browser-angular_common",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "^21.2.0"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "@angular/common/http": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "21.2.12",
+                    "action": "share",
+                    "host": true,
+                    "remotes": [
+                      {
+                        "file": "_angular_common_http.XnycUwbhpt.js",
+                        "name": "__NF-HOST__",
+                        "bundle": "browser-angular_common",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "^21.2.0"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "@angular/platform-browser": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "21.2.12",
+                    "action": "share",
+                    "host": true,
+                    "remotes": [
+                      {
+                        "file": "_angular_platform_browser.lAyP2N3Pw8.js",
+                        "name": "__NF-HOST__",
+                        "bundle": "browser-angular_platform_browser",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "^21.2.0"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "rxjs": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "7.8.2",
+                    "action": "share",
+                    "host": true,
+                    "remotes": [
+                      {
+                        "file": "rxjs.IJzVNeB5rY.js",
+                        "name": "__NF-HOST__",
+                        "bundle": "browser-rxjs",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "~7.8.0"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "rxjs/operators": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "7.8.2",
+                    "action": "share",
+                    "host": true,
+                    "remotes": [
+                      {
+                        "file": "rxjs_operators.gdYSvUruih.js",
+                        "name": "__NF-HOST__",
+                        "bundle": "browser-rxjs",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "~7.8.0"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "tslib": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "2.8.1",
+                    "action": "share",
+                    "host": true,
+                    "remotes": [
+                      {
+                        "file": "tslib.s6WVYyl__v.js",
+                        "name": "__NF-HOST__",
+                        "bundle": "browser-tslib",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "^2.3.0"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "@angular/core": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "21.2.12",
+                    "action": "share",
+                    "host": true,
+                    "remotes": [
+                      {
+                        "file": "_angular_core.RHjtWEkOzP.js",
+                        "name": "__NF-HOST__",
+                        "bundle": "browser-angular_core",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "^21.2.0"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "@angular/core/event-dispatch-contract.min.js": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "21.2.12",
+                    "action": "share",
+                    "host": true,
+                    "remotes": [
+                      {
+                        "file": "_angular_core_event_dispatch_contract_min_js.JotK85OfcE.js",
+                        "name": "__NF-HOST__",
+                        "bundle": "browser-angular_core",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "^21.2.0"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "@angular/core/primitives/di": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "21.2.12",
+                    "action": "share",
+                    "host": true,
+                    "remotes": [
+                      {
+                        "file": "_angular_core_primitives_di.QUc60-Xs6C.js",
+                        "name": "__NF-HOST__",
+                        "bundle": "browser-angular_core",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "^21.2.0"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "@angular/core/primitives/event-dispatch": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "21.2.12",
+                    "action": "share",
+                    "host": true,
+                    "remotes": [
+                      {
+                        "file": "_angular_core_primitives_event_dispatch.1A9qBws3LP.js",
+                        "name": "__NF-HOST__",
+                        "bundle": "browser-angular_core",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "^21.2.0"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "@angular/core/primitives/signals": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "21.2.12",
+                    "action": "share",
+                    "host": true,
+                    "remotes": [
+                      {
+                        "file": "_angular_core_primitives_signals.ePwPWbaXlE.js",
+                        "name": "__NF-HOST__",
+                        "bundle": "browser-angular_core",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "^21.2.0"
+                      }
+                    ]
+                  }
+                ]
+              },
+              "@angular/core/rxjs-interop": {
+                "dirty": false,
+                "versions": [
+                  {
+                    "tag": "21.2.12",
+                    "action": "share",
+                    "host": true,
+                    "remotes": [
+                      {
+                        "file": "_angular_core_rxjs_interop.YqevhcoUQy.js",
+                        "name": "__NF-HOST__",
+                        "bundle": "browser-angular_core",
+                        "strictVersion": true,
+                        "cached": true,
+                        "requiredVersion": "^21.2.0"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "shared-chunks": {
+            "__NF-HOST__": {
+              "browser-angular_common": [
+                "chunk-WW26EZ22.js"
+              ],
+              "browser-rxjs": [
+                "chunk-PAMKM67I.js"
+              ],
+              "browser-angular_core": [
+                "chunk-RCIWTGS7.js",
+                "chunk-K6ZMRNMW.js",
+                "chunk-APTZXQMF.js",
+                "chunk-V2SUVJ7R.js",
+                "chunk-2VMXMS7J.js"
+              ],
+              "mapping-or-exposed": []
+            }
+          }
+        }
+      }
+    },
+    "domImportMaps": {
+      "availability": "available",
+      "observedAt": "2026-08-11T11:56:25.503Z",
+      "data": {
+        "count": 1,
+        "maps": [
+          {
+            "index": 0,
+            "type": "importmap-shim",
+            "text": "{\"imports\":{\"@excalidraw/excalidraw\":\"./whiteboard/_excalidraw_excalidraw.0MlOv2WvQj.js\",\"react\":\"./whiteboard/react.QYXZqQxJ1j.js\",\"react/jsx-runtime\":\"./whiteboard/react_jsx_runtime.RDhwXXoxCg.js\",\"react/jsx-dev-runtime\":\"./whiteboard/react_jsx_dev_runtime.UsMOGvdsKw.js\",\"react-dom\":\"./whiteboard/react_dom.6SKyvL_ZIW.js\",\"react-dom/client\":\"./whiteboard/react_dom_client.lVKcx-4-HL.js\",\"react-dom/profiling\":\"./whiteboard/react_dom_profiling.wPFH8wjIJf.js\",\"mermaid\":\"./mermaid/mermaid.fMI3T940QA.js\",\"@angular/common\":\"./_angular_common.Ucn2BmyRM1.js\",\"@angular/common/http\":\"./_angular_common_http.XnycUwbhpt.js\",\"@angular/platform-browser\":\"./_angular_platform_browser.lAyP2N3Pw8.js\",\"rxjs\":\"./rxjs.IJzVNeB5rY.js\",\"rxjs/operators\":\"./rxjs_operators.gdYSvUruih.js\",\"tslib\":\"./tslib.s6WVYyl__v.js\",\"@angular/core\":\"./_angular_core.RHjtWEkOzP.js\",\"@angular/core/event-dispatch-contract.min.js\":\"./_angular_core_event_dispatch_contract_min_js.JotK85OfcE.js\",\"@angular/core/primitives/di\":\"./_angular_core_primitives_di.QUc60-Xs6C.js\",\"@angular/core/primitives/event-dispatch\":\"./_angular_core_primitives_event_dispatch.1A9qBws3LP.js\",\"@angular/core/primitives/signals\":\"./_angular_core_primitives_signals.ePwPWbaXlE.js\",\"@angular/core/rxjs-interop\":\"./_angular_core_rxjs_interop.YqevhcoUQy.js\",\"whiteboard/./Bootstrap\":\"./whiteboard/Bootstrap-7COJRA5I.js\",\"mermaid/./Bootstrap\":\"./mermaid/Bootstrap-BBNZEAEH.js\"},\"integrity\":{\"./whiteboard/_excalidraw_excalidraw.0MlOv2WvQj.js\":\"sha384-gQrm6C7mOLCTYcdQFNBrh7GZ3o5hy2K2NmxwOfiJtDzs7NTkKc5hTxSBfksuKbaU\",\"./whiteboard/react.QYXZqQxJ1j.js\":\"sha384-57khIiCnWo5tC9kEt0ibpdoHhHGtPXp1KmeWeJyyX0+UPwenA+Wj+0qvj7ajI3As\",\"./whiteboard/react_jsx_runtime.RDhwXXoxCg.js\":\"sha384-mWHwomGyGtSC45UesaeI3hV4diuzv10CMDSAWJ1rMRQ8F+lA71uneBirgsCW/JxO\",\"./whiteboard/react_jsx_dev_runtime.UsMOGvdsKw.js\":\"sha384-Pz3qELNqQbfKZe26gJ2n/S9ZKDnDcKoBB4HKdEphutzsxBeMedPySvP+iKitw5h/\",\"./whiteboard/react_dom.6SKyvL_ZIW.js\":\"sha384-P5wEc9b7LWwq+gIw6WZydAmGaqqKM9f1+8HOET0FxnhMqtpfCs6opvzQAXMtoyZA\",\"./whiteboard/react_dom_client.lVKcx-4-HL.js\":\"sha384-qhRGasTGrIXFNZJfwVfTnDA2+KKAGE/O6D+GEErqa6n/c3xiyVcKH1x4FmMqeUAN\",\"./whiteboard/react_dom_profiling.wPFH8wjIJf.js\":\"sha384-ljYfxwXdL20/jno4xQm1XDO5sL/8huAbZHNBeJ4Ov+nY5UDdOHl3ZwurHwevUCdI\",\"./mermaid/mermaid.fMI3T940QA.js\":\"sha384-kstnQo1tIfL+tMgIsAHgtN6HODg7IUJOB7YxDsvWEfQKwtm2T8pJXYurn7ZK8lW/\",\"./_angular_common.Ucn2BmyRM1.js\":\"sha384-ifIpCfW3pytDYCF1JasK/q29l9JcykVZmVSQPMbvfrIGyBjplklPOyLqxyHVtqL7\",\"./_angular_common_http.XnycUwbhpt.js\":\"sha384-IK8Nx+6NWCVROXYGp+8jufFYVZlMcU0/sA2pO54JMRAhwQCS6iZuRCEnwvAGIG0O\",\"./_angular_platform_browser.lAyP2N3Pw8.js\":\"sha384-Uqk4Pa50G3bzBAWwoZ0rCBacNLN2dyJ8QkJWL5QD6IqFLISZIk84SZzH8RmcXGlk\",\"./rxjs.IJzVNeB5rY.js\":\"sha384-CND2UMO83rk1q4PmwPBkMzMidBFPpleOKv8RwUTYv7MVKgLY5QZ4rSMNPkizOXfU\",\"./rxjs_operators.gdYSvUruih.js\":\"sha384-laChUqH6WQnng9RMXX09mNVUEHCCL/2hiynx8XKFxv8EpZDOXvUI6j2KJAvkz7/m\",\"./tslib.s6WVYyl__v.js\":\"sha384-us48hLnAuTVi42myNvtbK0UsmSvbAjKfiZP4HjtL9tB6FogW0rizxqZPIRAbidzm\",\"./_angular_core.RHjtWEkOzP.js\":\"sha384-K67ZQ5cbnDPIVn8WANbSD0mtv1yJTMx8mlSOumXJTrAgTrsuRNsDWfVtimzbGc8o\",\"./_angular_core_event_dispatch_contract_min_js.JotK85OfcE.js\":\"sha384-5wVWeVYtx1cBT1jKmN8rQ7UM9OvfVXX8EiLwaa0Ske0MZEGspZWPPZzpPCmI7TvV\",\"./_angular_core_primitives_di.QUc60-Xs6C.js\":\"sha384-6rOmacKn8k2Rcgtrc+9Jiv4npsCyzrhos2r3DUvquC7Sy2zH1Qe8r7CLOIaKbfoP\",\"./_angular_core_primitives_event_dispatch.1A9qBws3LP.js\":\"sha384-MD1dEWUryHtZl1bJtQZQD2JHywLtf2noRB7QrVRtzO/zWxi/9bmM02zYvzWXySQM\",\"./_angular_core_primitives_signals.ePwPWbaXlE.js\":\"sha384-LPA4je4R4YerkZL5Dsogc8kPstf4JOzHn1RFaf8Pv5R+mNyYS3zwhgqy7LAAZePH\",\"./_angular_core_rxjs_interop.YqevhcoUQy.js\":\"sha384-ZmQah/VqzvO07m4LLHnI5ixj/1rxctq98QHEfgknKEma3JSgXejbnkph+m/WfWmc\",\"./whiteboard/Bootstrap-7COJRA5I.js\":\"sha384-7/Brmjo9gqN65lCvoMCfm1Ub5tyUw3ivabWA1NeC/UJOUrWzlfhIj0XYoFKiFEk7\",\"./mermaid/Bootstrap-BBNZEAEH.js\":\"sha384-DPpBRZv47CVBpYfzVQiKWL76+Zh+GNRvDSY7G99RMPT+j5U8Pq7eDciHllDgRaFO\",\"./chunk-WW26EZ22.js\":\"sha384-sDhcZ7eQ+i0rEfRIZ4dhGpwqqr4OLIKhrNr1CpqUuynnbsK2qpp/I/cq8JVcKfl0\",\"./chunk-PAMKM67I.js\":\"sha384-hTdulOFDbDpZPDXTPSqo9asD5kf/Rb2nqqOwqK/IzWWXyf8kf0+N94FSvSjPLKtF\",\"./chunk-RCIWTGS7.js\":\"sha384-GVoyZ7htW1QcYMK3i6Pio7FhoQCY+94M+cYKVVTZyrTUO6RQKqRpVu5T2ng478ha\",\"./chunk-K6ZMRNMW.js\":\"sha384-aZwtRvM310GrKNMB9tX07AS1Chpy7tOFkHUfDaJP+pAlU7dOs4PIXTpIFLeObnGV\",\"./chunk-APTZXQMF.js\":\"sha384-zWhh2apMCPktoaZjn6P/SeGHLy7ujJxm4zqpRZ0BLIciAD+DEHbQgnzCu06YN4vy\",\"./chunk-V2SUVJ7R.js\":\"sha384-BfAKYP5/8tfHP2fbRCyG4x5an/HWTuOKp4XtnZoJwWpXoctwT6gkvA4/b7qHWizn\",\"./chunk-2VMXMS7J.js\":\"sha384-IiJwn+tZf8TQkKyCcaAtb9JW90aZbS2eLcLYxvXmc4DKIkLJGSPoVR4c+hMZ/hi2\"},\"scopes\":{\"./\":{\"@nf-internal/chunk-WW26EZ22\":\"./chunk-WW26EZ22.js\",\"@nf-internal/chunk-PAMKM67I\":\"./chunk-PAMKM67I.js\",\"@nf-internal/chunk-RCIWTGS7\":\"./chunk-RCIWTGS7.js\",\"@nf-internal/chunk-K6ZMRNMW\":\"./chunk-K6ZMRNMW.js\",\"@nf-internal/chunk-APTZXQMF\":\"./chunk-APTZXQMF.js\",\"@nf-internal/chunk-V2SUVJ7R\":\"./chunk-V2SUVJ7R.js\",\"@nf-internal/chunk-2VMXMS7J\":\"./chunk-2VMXMS7J.js\"}}}",
+            "parsed": true,
+            "map": {
+              "imports": {
+                "@excalidraw/excalidraw": "./whiteboard/_excalidraw_excalidraw.0MlOv2WvQj.js",
+                "react": "./whiteboard/react.QYXZqQxJ1j.js",
+                "react/jsx-runtime": "./whiteboard/react_jsx_runtime.RDhwXXoxCg.js",
+                "react/jsx-dev-runtime": "./whiteboard/react_jsx_dev_runtime.UsMOGvdsKw.js",
+                "react-dom": "./whiteboard/react_dom.6SKyvL_ZIW.js",
+                "react-dom/client": "./whiteboard/react_dom_client.lVKcx-4-HL.js",
+                "react-dom/profiling": "./whiteboard/react_dom_profiling.wPFH8wjIJf.js",
+                "mermaid": "./mermaid/mermaid.fMI3T940QA.js",
+                "@angular/common": "./_angular_common.Ucn2BmyRM1.js",
+                "@angular/common/http": "./_angular_common_http.XnycUwbhpt.js",
+                "@angular/platform-browser": "./_angular_platform_browser.lAyP2N3Pw8.js",
+                "rxjs": "./rxjs.IJzVNeB5rY.js",
+                "rxjs/operators": "./rxjs_operators.gdYSvUruih.js",
+                "tslib": "./tslib.s6WVYyl__v.js",
+                "@angular/core": "./_angular_core.RHjtWEkOzP.js",
+                "@angular/core/event-dispatch-contract.min.js": "./_angular_core_event_dispatch_contract_min_js.JotK85OfcE.js",
+                "@angular/core/primitives/di": "./_angular_core_primitives_di.QUc60-Xs6C.js",
+                "@angular/core/primitives/event-dispatch": "./_angular_core_primitives_event_dispatch.1A9qBws3LP.js",
+                "@angular/core/primitives/signals": "./_angular_core_primitives_signals.ePwPWbaXlE.js",
+                "@angular/core/rxjs-interop": "./_angular_core_rxjs_interop.YqevhcoUQy.js",
+                "whiteboard/./Bootstrap": "./whiteboard/Bootstrap-7COJRA5I.js",
+                "mermaid/./Bootstrap": "./mermaid/Bootstrap-BBNZEAEH.js"
+              },
+              "integrity": {
+                "./whiteboard/_excalidraw_excalidraw.0MlOv2WvQj.js": "sha384-gQrm6C7mOLCTYcdQFNBrh7GZ3o5hy2K2NmxwOfiJtDzs7NTkKc5hTxSBfksuKbaU",
+                "./whiteboard/react.QYXZqQxJ1j.js": "sha384-57khIiCnWo5tC9kEt0ibpdoHhHGtPXp1KmeWeJyyX0+UPwenA+Wj+0qvj7ajI3As",
+                "./whiteboard/react_jsx_runtime.RDhwXXoxCg.js": "sha384-mWHwomGyGtSC45UesaeI3hV4diuzv10CMDSAWJ1rMRQ8F+lA71uneBirgsCW/JxO",
+                "./whiteboard/react_jsx_dev_runtime.UsMOGvdsKw.js": "sha384-Pz3qELNqQbfKZe26gJ2n/S9ZKDnDcKoBB4HKdEphutzsxBeMedPySvP+iKitw5h/",
+                "./whiteboard/react_dom.6SKyvL_ZIW.js": "sha384-P5wEc9b7LWwq+gIw6WZydAmGaqqKM9f1+8HOET0FxnhMqtpfCs6opvzQAXMtoyZA",
+                "./whiteboard/react_dom_client.lVKcx-4-HL.js": "sha384-qhRGasTGrIXFNZJfwVfTnDA2+KKAGE/O6D+GEErqa6n/c3xiyVcKH1x4FmMqeUAN",
+                "./whiteboard/react_dom_profiling.wPFH8wjIJf.js": "sha384-ljYfxwXdL20/jno4xQm1XDO5sL/8huAbZHNBeJ4Ov+nY5UDdOHl3ZwurHwevUCdI",
+                "./mermaid/mermaid.fMI3T940QA.js": "sha384-kstnQo1tIfL+tMgIsAHgtN6HODg7IUJOB7YxDsvWEfQKwtm2T8pJXYurn7ZK8lW/",
+                "./_angular_common.Ucn2BmyRM1.js": "sha384-ifIpCfW3pytDYCF1JasK/q29l9JcykVZmVSQPMbvfrIGyBjplklPOyLqxyHVtqL7",
+                "./_angular_common_http.XnycUwbhpt.js": "sha384-IK8Nx+6NWCVROXYGp+8jufFYVZlMcU0/sA2pO54JMRAhwQCS6iZuRCEnwvAGIG0O",
+                "./_angular_platform_browser.lAyP2N3Pw8.js": "sha384-Uqk4Pa50G3bzBAWwoZ0rCBacNLN2dyJ8QkJWL5QD6IqFLISZIk84SZzH8RmcXGlk",
+                "./rxjs.IJzVNeB5rY.js": "sha384-CND2UMO83rk1q4PmwPBkMzMidBFPpleOKv8RwUTYv7MVKgLY5QZ4rSMNPkizOXfU",
+                "./rxjs_operators.gdYSvUruih.js": "sha384-laChUqH6WQnng9RMXX09mNVUEHCCL/2hiynx8XKFxv8EpZDOXvUI6j2KJAvkz7/m",
+                "./tslib.s6WVYyl__v.js": "sha384-us48hLnAuTVi42myNvtbK0UsmSvbAjKfiZP4HjtL9tB6FogW0rizxqZPIRAbidzm",
+                "./_angular_core.RHjtWEkOzP.js": "sha384-K67ZQ5cbnDPIVn8WANbSD0mtv1yJTMx8mlSOumXJTrAgTrsuRNsDWfVtimzbGc8o",
+                "./_angular_core_event_dispatch_contract_min_js.JotK85OfcE.js": "sha384-5wVWeVYtx1cBT1jKmN8rQ7UM9OvfVXX8EiLwaa0Ske0MZEGspZWPPZzpPCmI7TvV",
+                "./_angular_core_primitives_di.QUc60-Xs6C.js": "sha384-6rOmacKn8k2Rcgtrc+9Jiv4npsCyzrhos2r3DUvquC7Sy2zH1Qe8r7CLOIaKbfoP",
+                "./_angular_core_primitives_event_dispatch.1A9qBws3LP.js": "sha384-MD1dEWUryHtZl1bJtQZQD2JHywLtf2noRB7QrVRtzO/zWxi/9bmM02zYvzWXySQM",
+                "./_angular_core_primitives_signals.ePwPWbaXlE.js": "sha384-LPA4je4R4YerkZL5Dsogc8kPstf4JOzHn1RFaf8Pv5R+mNyYS3zwhgqy7LAAZePH",
+                "./_angular_core_rxjs_interop.YqevhcoUQy.js": "sha384-ZmQah/VqzvO07m4LLHnI5ixj/1rxctq98QHEfgknKEma3JSgXejbnkph+m/WfWmc",
+                "./whiteboard/Bootstrap-7COJRA5I.js": "sha384-7/Brmjo9gqN65lCvoMCfm1Ub5tyUw3ivabWA1NeC/UJOUrWzlfhIj0XYoFKiFEk7",
+                "./mermaid/Bootstrap-BBNZEAEH.js": "sha384-DPpBRZv47CVBpYfzVQiKWL76+Zh+GNRvDSY7G99RMPT+j5U8Pq7eDciHllDgRaFO",
+                "./chunk-WW26EZ22.js": "sha384-sDhcZ7eQ+i0rEfRIZ4dhGpwqqr4OLIKhrNr1CpqUuynnbsK2qpp/I/cq8JVcKfl0",
+                "./chunk-PAMKM67I.js": "sha384-hTdulOFDbDpZPDXTPSqo9asD5kf/Rb2nqqOwqK/IzWWXyf8kf0+N94FSvSjPLKtF",
+                "./chunk-RCIWTGS7.js": "sha384-GVoyZ7htW1QcYMK3i6Pio7FhoQCY+94M+cYKVVTZyrTUO6RQKqRpVu5T2ng478ha",
+                "./chunk-K6ZMRNMW.js": "sha384-aZwtRvM310GrKNMB9tX07AS1Chpy7tOFkHUfDaJP+pAlU7dOs4PIXTpIFLeObnGV",
+                "./chunk-APTZXQMF.js": "sha384-zWhh2apMCPktoaZjn6P/SeGHLy7ujJxm4zqpRZ0BLIciAD+DEHbQgnzCu06YN4vy",
+                "./chunk-V2SUVJ7R.js": "sha384-BfAKYP5/8tfHP2fbRCyG4x5an/HWTuOKp4XtnZoJwWpXoctwT6gkvA4/b7qHWizn",
+                "./chunk-2VMXMS7J.js": "sha384-IiJwn+tZf8TQkKyCcaAtb9JW90aZbS2eLcLYxvXmc4DKIkLJGSPoVR4c+hMZ/hi2"
+              },
+              "scopes": {
+                "./": {
+                  "@nf-internal/chunk-WW26EZ22": "./chunk-WW26EZ22.js",
+                  "@nf-internal/chunk-PAMKM67I": "./chunk-PAMKM67I.js",
+                  "@nf-internal/chunk-RCIWTGS7": "./chunk-RCIWTGS7.js",
+                  "@nf-internal/chunk-K6ZMRNMW": "./chunk-K6ZMRNMW.js",
+                  "@nf-internal/chunk-APTZXQMF": "./chunk-APTZXQMF.js",
+                  "@nf-internal/chunk-V2SUVJ7R": "./chunk-V2SUVJ7R.js",
+                  "@nf-internal/chunk-2VMXMS7J": "./chunk-2VMXMS7J.js"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "importShim": {
+      "availability": "available",
+      "observedAt": "2026-08-11T11:56:25.503Z",
+      "data": {
+        "present": true,
+        "valueType": "function",
+        "version": "2.8.0",
+        "map": {
+          "imports": {
+            "@excalidraw/excalidraw": "https://lutzleonhardt.de/frankenstein-meeting-room/whiteboard/_excalidraw_excalidraw.0MlOv2WvQj.js",
+            "react": "https://lutzleonhardt.de/frankenstein-meeting-room/whiteboard/react.QYXZqQxJ1j.js",
+            "react/jsx-runtime": "https://lutzleonhardt.de/frankenstein-meeting-room/whiteboard/react_jsx_runtime.RDhwXXoxCg.js",
+            "react/jsx-dev-runtime": "https://lutzleonhardt.de/frankenstein-meeting-room/whiteboard/react_jsx_dev_runtime.UsMOGvdsKw.js",
+            "react-dom": "https://lutzleonhardt.de/frankenstein-meeting-room/whiteboard/react_dom.6SKyvL_ZIW.js",
+            "react-dom/client": "https://lutzleonhardt.de/frankenstein-meeting-room/whiteboard/react_dom_client.lVKcx-4-HL.js",
+            "react-dom/profiling": "https://lutzleonhardt.de/frankenstein-meeting-room/whiteboard/react_dom_profiling.wPFH8wjIJf.js",
+            "mermaid": "https://lutzleonhardt.de/frankenstein-meeting-room/mermaid/mermaid.fMI3T940QA.js",
+            "@angular/common": "https://lutzleonhardt.de/frankenstein-meeting-room/_angular_common.Ucn2BmyRM1.js",
+            "@angular/common/http": "https://lutzleonhardt.de/frankenstein-meeting-room/_angular_common_http.XnycUwbhpt.js",
+            "@angular/platform-browser": "https://lutzleonhardt.de/frankenstein-meeting-room/_angular_platform_browser.lAyP2N3Pw8.js",
+            "rxjs": "https://lutzleonhardt.de/frankenstein-meeting-room/rxjs.IJzVNeB5rY.js",
+            "rxjs/operators": "https://lutzleonhardt.de/frankenstein-meeting-room/rxjs_operators.gdYSvUruih.js",
+            "tslib": "https://lutzleonhardt.de/frankenstein-meeting-room/tslib.s6WVYyl__v.js",
+            "@angular/core": "https://lutzleonhardt.de/frankenstein-meeting-room/_angular_core.RHjtWEkOzP.js",
+            "@angular/core/event-dispatch-contract.min.js": "https://lutzleonhardt.de/frankenstein-meeting-room/_angular_core_event_dispatch_contract_min_js.JotK85OfcE.js",
+            "@angular/core/primitives/di": "https://lutzleonhardt.de/frankenstein-meeting-room/_angular_core_primitives_di.QUc60-Xs6C.js",
+            "@angular/core/primitives/event-dispatch": "https://lutzleonhardt.de/frankenstein-meeting-room/_angular_core_primitives_event_dispatch.1A9qBws3LP.js",
+            "@angular/core/primitives/signals": "https://lutzleonhardt.de/frankenstein-meeting-room/_angular_core_primitives_signals.ePwPWbaXlE.js",
+            "@angular/core/rxjs-interop": "https://lutzleonhardt.de/frankenstein-meeting-room/_angular_core_rxjs_interop.YqevhcoUQy.js",
+            "whiteboard/./Bootstrap": "https://lutzleonhardt.de/frankenstein-meeting-room/whiteboard/Bootstrap-7COJRA5I.js",
+            "mermaid/./Bootstrap": "https://lutzleonhardt.de/frankenstein-meeting-room/mermaid/Bootstrap-BBNZEAEH.js"
+          },
+          "scopes": {
+            "https://lutzleonhardt.de/frankenstein-meeting-room/": {
+              "@nf-internal/chunk-WW26EZ22": "https://lutzleonhardt.de/frankenstein-meeting-room/chunk-WW26EZ22.js",
+              "@nf-internal/chunk-PAMKM67I": "https://lutzleonhardt.de/frankenstein-meeting-room/chunk-PAMKM67I.js",
+              "@nf-internal/chunk-RCIWTGS7": "https://lutzleonhardt.de/frankenstein-meeting-room/chunk-RCIWTGS7.js",
+              "@nf-internal/chunk-K6ZMRNMW": "https://lutzleonhardt.de/frankenstein-meeting-room/chunk-K6ZMRNMW.js",
+              "@nf-internal/chunk-APTZXQMF": "https://lutzleonhardt.de/frankenstein-meeting-room/chunk-APTZXQMF.js",
+              "@nf-internal/chunk-V2SUVJ7R": "https://lutzleonhardt.de/frankenstein-meeting-room/chunk-V2SUVJ7R.js",
+              "@nf-internal/chunk-2VMXMS7J": "https://lutzleonhardt.de/frankenstein-meeting-room/chunk-2VMXMS7J.js"
+            }
+          },
+          "integrity": {
+            "https://lutzleonhardt.de/frankenstein-meeting-room/whiteboard/_excalidraw_excalidraw.0MlOv2WvQj.js": "sha384-gQrm6C7mOLCTYcdQFNBrh7GZ3o5hy2K2NmxwOfiJtDzs7NTkKc5hTxSBfksuKbaU",
+            "https://lutzleonhardt.de/frankenstein-meeting-room/whiteboard/react.QYXZqQxJ1j.js": "sha384-57khIiCnWo5tC9kEt0ibpdoHhHGtPXp1KmeWeJyyX0+UPwenA+Wj+0qvj7ajI3As",
+            "https://lutzleonhardt.de/frankenstein-meeting-room/whiteboard/react_jsx_runtime.RDhwXXoxCg.js": "sha384-mWHwomGyGtSC45UesaeI3hV4diuzv10CMDSAWJ1rMRQ8F+lA71uneBirgsCW/JxO",
+            "https://lutzleonhardt.de/frankenstein-meeting-room/whiteboard/react_jsx_dev_runtime.UsMOGvdsKw.js": "sha384-Pz3qELNqQbfKZe26gJ2n/S9ZKDnDcKoBB4HKdEphutzsxBeMedPySvP+iKitw5h/",
+            "https://lutzleonhardt.de/frankenstein-meeting-room/whiteboard/react_dom.6SKyvL_ZIW.js": "sha384-P5wEc9b7LWwq+gIw6WZydAmGaqqKM9f1+8HOET0FxnhMqtpfCs6opvzQAXMtoyZA",
+            "https://lutzleonhardt.de/frankenstein-meeting-room/whiteboard/react_dom_client.lVKcx-4-HL.js": "sha384-qhRGasTGrIXFNZJfwVfTnDA2+KKAGE/O6D+GEErqa6n/c3xiyVcKH1x4FmMqeUAN",
+            "https://lutzleonhardt.de/frankenstein-meeting-room/whiteboard/react_dom_profiling.wPFH8wjIJf.js": "sha384-ljYfxwXdL20/jno4xQm1XDO5sL/8huAbZHNBeJ4Ov+nY5UDdOHl3ZwurHwevUCdI",
+            "https://lutzleonhardt.de/frankenstein-meeting-room/mermaid/mermaid.fMI3T940QA.js": "sha384-kstnQo1tIfL+tMgIsAHgtN6HODg7IUJOB7YxDsvWEfQKwtm2T8pJXYurn7ZK8lW/",
+            "https://lutzleonhardt.de/frankenstein-meeting-room/_angular_common.Ucn2BmyRM1.js": "sha384-ifIpCfW3pytDYCF1JasK/q29l9JcykVZmVSQPMbvfrIGyBjplklPOyLqxyHVtqL7",
+            "https://lutzleonhardt.de/frankenstein-meeting-room/_angular_common_http.XnycUwbhpt.js": "sha384-IK8Nx+6NWCVROXYGp+8jufFYVZlMcU0/sA2pO54JMRAhwQCS6iZuRCEnwvAGIG0O",
+            "https://lutzleonhardt.de/frankenstein-meeting-room/_angular_platform_browser.lAyP2N3Pw8.js": "sha384-Uqk4Pa50G3bzBAWwoZ0rCBacNLN2dyJ8QkJWL5QD6IqFLISZIk84SZzH8RmcXGlk",
+            "https://lutzleonhardt.de/frankenstein-meeting-room/rxjs.IJzVNeB5rY.js": "sha384-CND2UMO83rk1q4PmwPBkMzMidBFPpleOKv8RwUTYv7MVKgLY5QZ4rSMNPkizOXfU",
+            "https://lutzleonhardt.de/frankenstein-meeting-room/rxjs_operators.gdYSvUruih.js": "sha384-laChUqH6WQnng9RMXX09mNVUEHCCL/2hiynx8XKFxv8EpZDOXvUI6j2KJAvkz7/m",
+            "https://lutzleonhardt.de/frankenstein-meeting-room/tslib.s6WVYyl__v.js": "sha384-us48hLnAuTVi42myNvtbK0UsmSvbAjKfiZP4HjtL9tB6FogW0rizxqZPIRAbidzm",
+            "https://lutzleonhardt.de/frankenstein-meeting-room/_angular_core.RHjtWEkOzP.js": "sha384-K67ZQ5cbnDPIVn8WANbSD0mtv1yJTMx8mlSOumXJTrAgTrsuRNsDWfVtimzbGc8o",
+            "https://lutzleonhardt.de/frankenstein-meeting-room/_angular_core_event_dispatch_contract_min_js.JotK85OfcE.js": "sha384-5wVWeVYtx1cBT1jKmN8rQ7UM9OvfVXX8EiLwaa0Ske0MZEGspZWPPZzpPCmI7TvV",
+            "https://lutzleonhardt.de/frankenstein-meeting-room/_angular_core_primitives_di.QUc60-Xs6C.js": "sha384-6rOmacKn8k2Rcgtrc+9Jiv4npsCyzrhos2r3DUvquC7Sy2zH1Qe8r7CLOIaKbfoP",
+            "https://lutzleonhardt.de/frankenstein-meeting-room/_angular_core_primitives_event_dispatch.1A9qBws3LP.js": "sha384-MD1dEWUryHtZl1bJtQZQD2JHywLtf2noRB7QrVRtzO/zWxi/9bmM02zYvzWXySQM",
+            "https://lutzleonhardt.de/frankenstein-meeting-room/_angular_core_primitives_signals.ePwPWbaXlE.js": "sha384-LPA4je4R4YerkZL5Dsogc8kPstf4JOzHn1RFaf8Pv5R+mNyYS3zwhgqy7LAAZePH",
+            "https://lutzleonhardt.de/frankenstein-meeting-room/_angular_core_rxjs_interop.YqevhcoUQy.js": "sha384-ZmQah/VqzvO07m4LLHnI5ixj/1rxctq98QHEfgknKEma3JSgXejbnkph+m/WfWmc",
+            "https://lutzleonhardt.de/frankenstein-meeting-room/whiteboard/Bootstrap-7COJRA5I.js": "sha384-7/Brmjo9gqN65lCvoMCfm1Ub5tyUw3ivabWA1NeC/UJOUrWzlfhIj0XYoFKiFEk7",
+            "https://lutzleonhardt.de/frankenstein-meeting-room/mermaid/Bootstrap-BBNZEAEH.js": "sha384-DPpBRZv47CVBpYfzVQiKWL76+Zh+GNRvDSY7G99RMPT+j5U8Pq7eDciHllDgRaFO",
+            "https://lutzleonhardt.de/frankenstein-meeting-room/chunk-WW26EZ22.js": "sha384-sDhcZ7eQ+i0rEfRIZ4dhGpwqqr4OLIKhrNr1CpqUuynnbsK2qpp/I/cq8JVcKfl0",
+            "https://lutzleonhardt.de/frankenstein-meeting-room/chunk-PAMKM67I.js": "sha384-hTdulOFDbDpZPDXTPSqo9asD5kf/Rb2nqqOwqK/IzWWXyf8kf0+N94FSvSjPLKtF",
+            "https://lutzleonhardt.de/frankenstein-meeting-room/chunk-RCIWTGS7.js": "sha384-GVoyZ7htW1QcYMK3i6Pio7FhoQCY+94M+cYKVVTZyrTUO6RQKqRpVu5T2ng478ha",
+            "https://lutzleonhardt.de/frankenstein-meeting-room/chunk-K6ZMRNMW.js": "sha384-aZwtRvM310GrKNMB9tX07AS1Chpy7tOFkHUfDaJP+pAlU7dOs4PIXTpIFLeObnGV",
+            "https://lutzleonhardt.de/frankenstein-meeting-room/chunk-APTZXQMF.js": "sha384-zWhh2apMCPktoaZjn6P/SeGHLy7ujJxm4zqpRZ0BLIciAD+DEHbQgnzCu06YN4vy",
+            "https://lutzleonhardt.de/frankenstein-meeting-room/chunk-V2SUVJ7R.js": "sha384-BfAKYP5/8tfHP2fbRCyG4x5an/HWTuOKp4XtnZoJwWpXoctwT6gkvA4/b7qHWizn",
+            "https://lutzleonhardt.de/frankenstein-meeting-room/chunk-2VMXMS7J.js": "sha384-IiJwn+tZf8TQkKyCcaAtb9JW90aZbS2eLcLYxvXmc4DKIkLJGSPoVR4c+hMZ/hi2"
+          }
+        }
+      }
+    }
+  },
+  "collectionErrors": []
+}

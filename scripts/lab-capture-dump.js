@@ -58,6 +58,15 @@
   const now = () => new Date().toISOString();
 
   // --- scenario readiness -------------------------------------------------
+  // Two modes, decided by the presence of the runner's ready promise. Lab
+  // scenarios define `__NF_SCENARIO_READY__` (runner contract) and are
+  // awaited exactly as before — their envelope shape is unchanged. Live
+  // pages (frankenstein-live) do not; instead of recording an error, fall
+  // back to a settled-page condition and say so via `readySource`/`phase`
+  // — keys that exist ONLY in fallback mode. `orchestratorCommit` is the
+  // pinned lab commit in runner mode and null in fallback mode: a live
+  // deployment's version is provenance, recorded in the run manifest as
+  // far as observable, never stamped by the probe.
   const scenario = {
     scenarioId: null,
     orchestratorCommit: ORCHESTRATOR_COMMIT,
@@ -69,8 +78,23 @@
       typeof globalThis.__NF_SCENARIO_ID__ === "string" ? globalThis.__NF_SCENARIO_ID__ : null;
     const readyPromise = globalThis.__NF_SCENARIO_READY__;
     if (readyPromise === undefined) {
-      scenario.readyError = "__NF_SCENARIO_READY__ missing";
-      addError("scenario-ready-missing", "scenario");
+      scenario.orchestratorCommit = null;
+      scenario.readySource = "page-settled";
+      scenario.phase =
+        typeof globalThis.__NF_SCENARIO_PHASE__ === "string" ? globalThis.__NF_SCENARIO_PHASE__ : null;
+      await new Promise((resolveSettled, rejectSettled) => {
+        const timer = setTimeout(
+          () => rejectSettled(new Error("settle-timeout after " + READY_TIMEOUT_MS + "ms")),
+          READY_TIMEOUT_MS
+        );
+        const settle = () => {
+          clearTimeout(timer);
+          resolveSettled();
+        };
+        if (globalThis.document.readyState === "complete") settle();
+        else globalThis.addEventListener("load", settle, { once: true });
+      });
+      scenario.ready = true;
     } else {
       await Promise.race([
         Promise.resolve(readyPromise),

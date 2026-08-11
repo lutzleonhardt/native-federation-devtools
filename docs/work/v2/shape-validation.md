@@ -1,13 +1,25 @@
 # V2 Shape Validation — lab lossless corpus vs. source-derived assumptions
 
 Validates the registry/import-map shapes the V2 spec (§2/§3) derived from
-orchestrator source `8e5e0b3` against reality: the **lab lossless capture
-corpus** (`captures/<scenario>/`, run `20260811T095850Z`, envelope
-`lab-lossless-capture/1`, 10 scenarios, orchestrator 4.6.0 @ `8e5e0b3`,
-playground commits pinned in `captures/manifest.json`). Every capture is
-the unmodified result of evaluating `scripts/lab-capture-dump.js` in the
-served scenario page; `scripts/validate-lab-corpus.mjs` re-checks hashes,
-envelope structure, and the losslessness evidence cited below.
+orchestrator source `8e5e0b3` against reality. Two evidence sources:
+
+- Rows 1–11: the **lab lossless capture corpus**
+  (`captures/<scenario>/`, run `20260811T095850Z`, envelope
+  `lab-lossless-capture/1`, 10 scenarios, orchestrator 4.6.0 @
+  `8e5e0b3`, playground commits pinned in `captures/manifest.json`).
+- Rows 12–16 (Task 3): the **frankenstein-live captures**
+  (`captures/frankenstein-live/`, two phases, same envelope) — the
+  publicly deployed frankenstein meeting room
+  (<https://lutzleonhardt.de/frankenstein-meeting-room/>), running the
+  **released** orchestrator generation (best-known:
+  `@softarc/native-federation-orchestrator ^4.0.0`, see
+  `captures/frankenstein-live/provenance.json`). Real Angular/React/
+  Svelte sharing at scale; deployment-dependent, sha256-pinned.
+
+Every capture is the unmodified result of evaluating
+`scripts/lab-capture-dump.js` in the page;
+`scripts/validate-lab-corpus.mjs` re-checks hashes, envelope structure,
+and the losslessness evidence cited below (lab and live predicates).
 
 Verdicts: **confirmed** (observed exactly as assumed) / **deviates**
 (observed shape differs — with capture cite) / **not exercised** (the
@@ -15,7 +27,14 @@ corpus produces no evidence either way).
 
 Citation form: `<scenario>/<runstamp>.json` + JSON path, all paths
 relative to `$.channels.nativeFederationGlobals.data.namespace` unless
-prefixed `$.` (envelope root).
+prefixed `$.` (envelope root). Live cites use
+`frankenstein-live/<runstamp>-<phase>.json`.
+
+**Generation caveat for rows 12–16:** the deployed app runs the released
+v4 orchestrator line, not the lab's dev commit `8e5e0b3`. One shape is
+generation-discriminating (participants: `file` string in v4 vs
+`entries` map in dev — row 14); where a row's verdict depends on the
+generation, it says so.
 
 ## Row 1 — `SharedVersion` row model — **deviates (participant fields)**
 
@@ -203,7 +222,137 @@ the DOM map's `./mfe3/_angular_core.X3ivyfrWNn.js`). The assumption
 4.6.0: file-level attribution is intact; only the bundle grouping is
 lost.
 
-## Additional durable observations (beyond the 11 rows)
+## Row 12 — populated `shared-chunks` value shape; winner-only bundle mapping — **shape confirmed; winner-only not exercised**
+
+First populated lossless evidence, closing row 5's residual unknown:
+
+- **Value shape confirmed** — `remote → bundleName → fileName[]`:
+  `frankenstein-live/20260811T115536Z-01-initial.json`,
+  `shared-chunks.__NF-HOST__` =
+  `{"browser-angular_common": ["chunk-WW26EZ22.js"], "browser-rxjs":
+  ["chunk-PAMKM67I.js"], "browser-angular_core": [5 chunk files],
+  "mapping-or-exposed": []}`. Bundle names are the Angular builder's
+  `browser-<mangled-package>` groups; file lists are plain hashed
+  filenames (no paths). The research-schema reading holds at lossless
+  fidelity.
+- **Mapping side confirmed for winners**: all 7 listed chunk files
+  appear in the effective map under scope `./` as
+  `@nf-internal/chunk-<name>` specifiers (without `.js` — same naming
+  pattern as the lab's chunk pseudo-externals)
+  (`$.channels.domImportMaps.data.maps[0].map.scopes["./"]`); verified
+  mechanically 7/7, encoded as a validator predicate.
+- **`mapping-or-exposed` is empty here too** — consistently empty across
+  all lab scenarios AND the real deployment. Its contents vs. exposes
+  and lazy chunks: not exercised anywhere; nothing may depend on it.
+- **Winner-only aspect not exercised**: the deployment has no losing
+  copies at all (every shared package is single-version with exactly one
+  participant), so "losers' chunks present in the registry but absent
+  from the effective map" cannot be observed — explicitly: no losing
+  copies exist whose chunks could appear unmapped. This remains
+  research-schema reading only, now accepted as a bounded residual (a
+  conflicting real deployment with bundle-bearing copies would be
+  needed, and none is available).
+- Only the **host** has a `shared-chunks` entry — `whiteboard` and
+  `mermaid` (esbuild-built, no bundle grouping) are missing entirely,
+  mirroring row 5's non-dense finding in the released generation.
+
+## Row 13 — `servedBy`/`pool` under real sharing — **confirmed absent**
+
+`frankenstein-live/…-01-initial.json`, `shared-externals.__GLOBAL__`:
+20 real packages (Angular 21.2.12 host singletons, React 18.3.1 and
+Excalidraw via `whiteboard`, mermaid 11.14.0 via `mermaid`), 20
+participants — `servedBy` and `pool` appear **nowhere** (deep key scan;
+validator predicate). Combined with row 1 (absent in all 10 lab
+captures of the dev generation): the fields exist in neither observed
+generation under any observed sharing. The drop decision is final.
+
+## Row 14 — multi-key `entries` maps / real secondary entry points — **deviates (generation-discriminating shape)**
+
+The single most consequential Task-3 finding:
+
+- **Released v4 participants carry `file` (single string), no `entries`
+  map at all** (`shared-externals.__GLOBAL__["@angular/common"]
+  .versions[0].remotes[0].file = "_angular_common.Ucn2BmyRM1.js"`).
+  Observed participant key sets:
+  `{name, file, requiredVersion, strictVersion, cached, bundle?}` —
+  exactly the lab's key sets with `entries` replaced by `file`. The
+  participant shape **discriminates the orchestrator generation**: dev
+  `8e5e0b3` = `entries` map (rows 1/11), released v4 = `file` string.
+- **Secondary entry points are their own top-level package keys**, at
+  scale: `@angular/common/http`, `rxjs/operators`, `react/jsx-runtime`,
+  `react-dom/client`, `@angular/core/primitives/di|event-dispatch|
+  signals`, `@angular/core/rxjs-interop`, even the file-shaped
+  `@angular/core/event-dispatch-contract.min.js` — each with its own
+  share row and its own import-map entry. This is the lab row-10
+  "secondary as own external" pattern confirmed with real packages;
+  `selfFillUncovered` was observed in **neither** generation.
+- **Multi-key `entries` maps: not exercised anywhere** — v4 has no
+  `entries` field, and every dev-generation `entries` map in the lab
+  corpus is single-key. The multi-key case remains hypothetical; the
+  collector schema must allow it (it is a map) but nothing may require
+  it.
+
+## Row 15 — per-remote `integrity` at scale; effective-map integrity keys — **confirmed**
+
+- Per-remote `integrity` populated for **all three** remotes:
+  `remotes.whiteboard.integrity` (8 files), `remotes.mermaid.integrity`
+  (2), `remotes.__NF-HOST__.integrity` (19) — all values sha384 SRI
+  (`frankenstein-live/…-01-initial.json`).
+- **Effective-map integrity confirmed as resolved-absolute-URL keys**:
+  the DOM tag's 29 relative integrity keys (`./whiteboard/react.….js`)
+  resolve against the page base to exactly the shim map's 29 absolute
+  keys — verified mechanically for `imports`, `scopes` AND `integrity`
+  (row 8's URL-normalization rule holds live; first corpus evidence
+  covering **scopes** resolution, which the lab left unexercised).
+- The effective map's integrity block equals the union of the
+  per-remote `integrity` maps (29 = 8 + 2 + 19, every entry accounted
+  for) — the registry and the map carry the same hashes, keyed by
+  filename vs. resolved URL.
+
+## Row 16 — provider derivation uniqueness with the real remote set — **confirmed within the same bounds as row 9**
+
+Real scope set `./whiteboard/`, `./mermaid/`, host `./`
+(`frankenstein-live/…-01-initial.json`, `remotes`): for every shared
+package the providing participant is unique (20/20 single-participant),
+and the effective map target equals `scopeUrl + participant.file` for
+all 20 — longest-prefix provider derivation reproduces the deployment
+exactly (validator predicate: single-provider). Hashed filenames are
+additionally globally unique across the map. Bounds unchanged from row
+9: same-origin path-prefix scopes, no nested prefixes, and — new bound —
+a conflict-free single-version deployment; multi-participant provider
+choice is exercised only in the lab corpus (dev generation).
+
+## Additional durable observations — frankenstein-live (Task 3)
+
+- **The deployed app performs no dynamic post-init `initRemoteEntry`**:
+  exactly one `importmap-shim` tag in both phases; all three
+  `remoteEntry.json` fetches happen during startup
+  (`federation.manifest.json`-driven init). The planned "phase 2 after
+  dynamic init" is therefore a post-interaction phase instead — and it
+  proves **registry stability under remote module loading**: selecting a
+  meeting loads the whiteboard (React/Excalidraw) and mermaid (Svelte)
+  bundles, yet namespace, DOM tags, and shim map stay byte-identical
+  across phases (`…-01-initial.json` vs `…-02-post-interaction.json`;
+  validator-enforced identity).
+- **`scoped-externals` is present but empty (`{}`)** in the v4
+  deployment — lab "lazy" (absent key) and live "empty object" are two
+  spellings of zero entries; consumers must treat both alike. Chunk
+  data lives exclusively in `shared-chunks` + the map's `./` scope here.
+- Exposes map to `<remoteName>/<moduleName>` specifiers by naive join:
+  `whiteboard/./Bootstrap → ./whiteboard/Bootstrap-7COJRA5I.js`
+  (`$.channels.domImportMaps.data.maps[0].map.imports`) — views must
+  expect the literal `/./` infix.
+- `importShim.version = "2.8.0"` (real es-module-shims dependency;
+  the lab's bundled polyfill exposed `null`) — presence of a version
+  string is deployment-dependent, never required.
+- `remoteEntry.json` (out-of-band session observation, not part of the
+  captured channels): shape `{name, shared[], exposes[], chunks,
+  integrity}` with `singleton`/`strictVersion` flags per shared entry —
+  `singleton` exists **only** there, the runtime registry never records
+  it; `federation.manifest.json` carries SRI integrity for the
+  `remoteEntry.json` files themselves.
+
+## Additional durable observations — lab corpus (rows 1–11)
 
 - Host participates as remote `__NF-HOST__` (`scopeUrl: "./"`), its rows
   carry `host: true` (`strict-split/…json`, `…versions[0]`).
@@ -265,3 +414,68 @@ lost.
 12. Self-fill rendering: base on "secondary as own external"
     (sole-declarer share row + top-level map entry), not on a
     `selfFillUncovered` participant annotation (row 10).
+
+## Consequences — Task 3 re-check against the live corpus
+
+Each planned collector-schema decision from the round-2 plan, restated
+as **holds** or amended (T3-AC-05); numbers reference the list above.
+
+- **Drop `servedBy`/`pool` (item 1): holds.** Absent in both observed
+  generations under real sharing (row 13); validator predicates assert
+  absence durably in lab and live captures.
+- **`bundle` optional (item 1): holds, now at scale.** Host participants
+  carry `bundle` (`browser-*` groups), whiteboard/mermaid participants
+  don't (row 14 cites); optionality is the released-generation norm, not
+  a non-dense edge case.
+- **Participant field set (item 1): amended.** Generation-dependent:
+  `{name, requiredVersion, strictVersion, cached, bundle?}` plus
+  **either** `entries` (map; dev `8e5e0b3`) **or** `file` (string;
+  released v4) — never both, never neither (row 14). The collector
+  schema must accept both spellings and may use them as the generation
+  discriminator; `SnapshotV1`'s participant model needs a normalized
+  "served files" representation that both feed.
+- **Wrapper/rows/scopes (item 2): holds.** Live rows are the same
+  `{dirty, versions[{tag, host, action, remotes}]}` shape; only
+  `__GLOBAL__` occurs live (single-version deployment) — `strict`-only
+  scopes stay a lab-proven case, nothing live contradicts it.
+- **`scoped-externals` own schema (item 3): holds, plus empty form.**
+  Live shows the key **present but `{}`** — "lazy" now explicitly means
+  absent OR empty (row 12/observations). The `remote → pkg →
+  {tag, bundle?, entries}` shape gains no live evidence (v4 keeps the
+  repository empty) and stays dev-generation-validated.
+- **`remotes` entry shape (item 4): holds at scale.** `{scopeUrl,
+  exposes[], integrity}` with populated integrity on all three remotes
+  (row 15); integrity hash values must be kept (lossless corpus and
+  effective map agree on them).
+- **All repository keys lazy (item 5): holds, refined.** Absent key
+  (lab) and present-empty (live) are equivalent zero-entry
+  observations.
+- **`mergeDocumentMaps` as map ground truth (item 6): holds,
+  strengthened.** The live single-tag case verifies the URL-resolution
+  rule for `imports`, `integrity` AND — first evidence — `scopes`
+  (row 15).
+- **Provider derivation via longest scope prefix (item 7): holds** with
+  the real remote set, conflict-free bounds stated in row 16.
+- **Chunk reclassification sourced from `scoped-externals` (item 8):
+  amended — generation-dependent sources.** Dev generation: chunk
+  pseudo-externals in `scoped-externals` (non-dense remotes, row 5).
+  Released v4: chunks **only** in `shared-chunks` bundle lists + the
+  map's `./` scope, `scoped-externals` empty (row 12). The store must
+  reclassify from the **union** of both sources; the `@nf-internal/`
+  specifier prefix is the stable marker in both.
+- **Winner-only `shared-chunks` mapping (item 9): resolved as far as
+  observable.** Value shape confirmed lossless (row 12); the
+  winner-only filter itself stays not-exercised because no available
+  deployment produces losing bundle-bearing copies — accept the
+  research-schema reading as a bounded residual; no further capture
+  task can close it.
+- **Store-side `(tag desc, action)` sort (item 10), `dirty` transient
+  (item 11), self-fill as own external (item 12): hold.** Live adds
+  single-row/`dirty: false` data points and, for item 12, real-package
+  confirmation of the own-external pattern (row 14).
+- **New (Task 3): generation awareness is a schema requirement, not an
+  edge case.** Fixture derivation must ingest both generations;
+  `frankenstein-live` becomes the released-generation fixture besides
+  the dev-generation lab fixtures. The capture-status/provenance layer
+  should surface which generation a snapshot came from (derivable from
+  the participant spelling).

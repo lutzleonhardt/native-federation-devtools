@@ -140,6 +140,98 @@ const EVIDENCE = {
   }
 };
 
+// --- live-capture evidence (frankenstein-live, report rows 12–16) --------
+// Same doctrine as EVIDENCE: these encode the OBSERVED shapes of the
+// deployed released-v4 orchestrator generation (participants carry `file`,
+// not the lab generation's `entries` map). A redeploy that changes any of
+// them fails loudly and points at the shape report.
+const forEachParticipant = (ns, fn) => {
+  for (const [scope, pkgs] of Object.entries(ns["shared-externals"] ?? {}))
+    for (const [pkg, entry] of Object.entries(pkgs))
+      for (const version of entry.versions ?? [])
+        for (const participant of version.remotes ?? []) fn(participant, pkg, scope);
+};
+const liveEvidence = (ns, env, loc) => {
+  // Row 12: populated shared-chunks bundle lists; mapping-or-exposed empty.
+  const chunkRepo = ns["shared-chunks"] ?? {};
+  const bundleLists = Object.values(chunkRepo).flatMap((bundles) =>
+    Object.entries(bundles).filter(([key]) => key !== "mapping-or-exposed")
+  );
+  if (bundleLists.length === 0) issue(loc, "expected populated shared-chunks bundle lists");
+  for (const [bundle, files] of bundleLists)
+    if (!Array.isArray(files) || files.length === 0)
+      issue(loc, `shared-chunks bundle ${bundle} has an empty file list`);
+  for (const [remote, bundles] of Object.entries(chunkRepo))
+    if (!Array.isArray(bundles["mapping-or-exposed"]) || bundles["mapping-or-exposed"].length !== 0)
+      issue(loc, `mapping-or-exposed no longer empty for ${remote} — update the shape report`);
+  // Row 12 mapping side: every listed chunk appears in the effective map scopes.
+  const domMaps = env.channels.domImportMaps.data?.maps ?? [];
+  const scopeTargets = domMaps.flatMap((m) =>
+    Object.values(m.map?.scopes ?? {}).flatMap((entries) => Object.values(entries))
+  );
+  const chunkFiles = bundleLists.flatMap(([, files]) => files);
+  for (const file of chunkFiles)
+    if (!scopeTargets.some((target) => target.endsWith("/" + file)))
+      issue(loc, `shared-chunks file ${file} not mapped in any import-map scope`);
+  // Rows 13/14: v4 participant shape — `file` string, no `entries` map, and
+  // no servedBy/pool under real Angular sharing.
+  forEachParticipant(ns, (participant, pkg) => {
+    if (typeof participant.file !== "string")
+      issue(loc, `participant ${participant.name} of ${pkg} misses the v4 'file' field`);
+    for (const absent of ["entries", "servedBy", "pool"])
+      if (absent in participant)
+        issue(loc, `participant ${participant.name} of ${pkg} unexpectedly carries '${absent}' — update the shape report`);
+  });
+  // Row 14: real secondary entry points as own top-level package keys;
+  // scoped-externals observed EMPTY in this generation.
+  const globalScope = ns["shared-externals"]?.["__GLOBAL__"] ?? {};
+  for (const pkg of ["@angular/common/http", "rxjs/operators"])
+    if (!(pkg in globalScope))
+      issue(loc, `expected secondary entry point ${pkg} as its own package key`);
+  if (Object.keys(ns["scoped-externals"] ?? {}).length !== 0)
+    issue(loc, "scoped-externals no longer empty in the v4 deployment — update the shape report");
+  // Row 15: per-remote integrity at scale, SRI values, and an effective shim
+  // map whose integrity keys are resolved absolute URLs.
+  const remotesWithIntegrity = Object.entries(ns.remotes ?? {}).filter(
+    ([, remote]) => Object.keys(remote.integrity ?? {}).length > 0
+  );
+  if (remotesWithIntegrity.length < 2)
+    issue(loc, `expected per-remote integrity on 2+ remotes, saw ${remotesWithIntegrity.length}`);
+  for (const [name, remote] of remotesWithIntegrity)
+    for (const [file, hash] of Object.entries(remote.integrity))
+      if (!SRI.test(hash)) issue(loc, `remotes.${name}.integrity[${file}] is not an SRI hash`);
+  const shimMap = env.channels.importShim.data?.map;
+  const shimIntegrity = Object.entries(shimMap?.integrity ?? {});
+  if (shimIntegrity.length === 0) issue(loc, "expected populated shim map integrity block");
+  for (const [url, hash] of shimIntegrity) {
+    if (!/^https?:\/\//.test(url)) issue(loc, `shim integrity key not an absolute URL: ${url}`);
+    if (!SRI.test(hash)) issue(loc, `shim integrity value not an SRI hash for ${url}`);
+  }
+  // Row 16: provider derivation — every shared package has exactly one
+  // providing participant in this deployment.
+  for (const [pkg, entry] of Object.entries(globalScope)) {
+    const participants = (entry.versions ?? []).flatMap((v) => v.remotes ?? []);
+    if (participants.length !== 1)
+      issue(loc, `package ${pkg} has ${participants.length} participants — single-provider assumption broken, update the shape report`);
+  }
+};
+// Registry stability under remote module loading: phases must be identical
+// except for capture timestamps.
+const livePhaseIdentity = (phases, loc) => {
+  const first = phases.get("01-initial");
+  const second = phases.get("02-post-interaction");
+  if (!first || !second) return;
+  const nsOf = (env) => env.channels?.nativeFederationGlobals?.data?.namespace;
+  if (JSON.stringify(nsOf(first)) !== JSON.stringify(nsOf(second)))
+    issue(loc, "namespace differs between phases — module loading mutated the registry, update the shape report");
+  const tagsOf = (env) => (env.channels?.domImportMaps?.data?.maps ?? []).map((m) => m.text);
+  if (JSON.stringify(tagsOf(first)) !== JSON.stringify(tagsOf(second)))
+    issue(loc, "DOM import-map tags differ between phases");
+  const shimOf = (env) => env.channels?.importShim?.data?.map;
+  if (JSON.stringify(shimOf(first)) !== JSON.stringify(shimOf(second)))
+    issue(loc, "effective shim map differs between phases");
+};
+
 // --- manifest ------------------------------------------------------------
 let manifest;
 try {
@@ -212,6 +304,11 @@ for (const entry of manifest.captures ?? []) {
     issue(loc, `scenarioId ${env.scenario?.scenarioId} !== ${entry.scenario}`);
   if (env.scenario?.ready !== true)
     issue(loc, `capture taken without resolved readiness (readyError: ${env.scenario?.readyError})`);
+  // Fallback-mode keys are live-capture-only: a lab capture carrying them
+  // means the runner readiness contract was silently bypassed.
+  for (const liveOnly of ["readySource", "phase"])
+    if (liveOnly in (env.scenario ?? {}))
+      issue(loc, `lab capture carries fallback-mode scenario key '${liveOnly}' — probe ran without __NF_SCENARIO_READY__`);
   if (env.scenario?.orchestratorCommit !== manifest.source?.orchestratorCommit)
     issue(loc, "orchestratorCommit differs from manifest");
   if (env.page?.origin !== manifest.serving?.origin)
@@ -239,6 +336,100 @@ for (const entry of manifest.captures ?? []) {
   }
 }
 
+// --- live captures (frankenstein-live) -----------------------------------
+const LIVE_SCENARIO = "frankenstein-live";
+const live = manifest.liveCaptures;
+if (live) {
+  const lloc = "manifest.liveCaptures";
+  if (live.scenarioId !== LIVE_SCENARIO)
+    issue(`${lloc}.scenarioId`, `expected ${LIVE_SCENARIO}, saw ${live.scenarioId}`);
+  if (live.collector?.kind !== "chrome-devtools-mcp")
+    issue(`${lloc}.collector.kind`, `expected chrome-devtools-mcp, saw ${live.collector?.kind}`);
+  if (live.collector?.sanitization !== "lossless")
+    issue(`${lloc}.collector.sanitization`, "expected lossless");
+
+  // Provenance: sidecar is the source of truth, the manifest embeds it.
+  let sidecar = null;
+  try {
+    sidecar = JSON.parse(readFileSync(join(CAPTURES_DIR, LIVE_SCENARIO, "provenance.json"), "utf8"));
+  } catch (error) {
+    issue(`captures/${LIVE_SCENARIO}/provenance.json`, `unreadable (${error.message})`);
+  }
+  if (sidecar && JSON.stringify(sidecar) !== JSON.stringify(live.provenance))
+    issue(`${lloc}.provenance`, "differs from the provenance.json sidecar — rebuild the manifest");
+  const prov = live.provenance;
+  if (
+    !prov?.captureUrl ||
+    !prov?.captureDate ||
+    prov?.deploymentDependent !== true ||
+    prov?.regenerableFromCheckouts !== false ||
+    !prov?.deployment?.orchestrator?.bestKnown
+  )
+    issue(
+      `${lloc}.provenance`,
+      "missing required fields (captureUrl, captureDate, deploymentDependent: true, regenerableFromCheckouts: false, deployment.orchestrator.bestKnown)"
+    );
+  manifestPaths.add(`${LIVE_SCENARIO}/provenance.json`);
+
+  const phases = new Map();
+  for (const entry of live.files ?? []) {
+    const loc = `${lloc}[${entry.phase}]`;
+    manifestPaths.add(entry.path);
+    let buffer;
+    try {
+      buffer = readFileSync(join(CAPTURES_DIR, entry.path));
+    } catch {
+      issue(loc, `capture file missing: ${entry.path}`);
+      continue;
+    }
+    if (sha256(buffer) !== entry.sha256) {
+      issue(loc, `sha256 mismatch for ${entry.path}`);
+      continue;
+    }
+    let env;
+    try {
+      env = JSON.parse(buffer.toString("utf8"));
+    } catch (error) {
+      issue(loc, `unparseable JSON (${error.message})`);
+      continue;
+    }
+    if (env.schemaVersion !== CAPTURE_SCHEMA)
+      issue(loc, `schemaVersion ${env.schemaVersion} !== ${CAPTURE_SCHEMA}`);
+    if (env.scenario?.scenarioId !== LIVE_SCENARIO)
+      issue(loc, `scenarioId ${env.scenario?.scenarioId} !== ${LIVE_SCENARIO}`);
+    if (env.scenario?.ready !== true)
+      issue(loc, `capture taken without settled page (readyError: ${env.scenario?.readyError})`);
+    if (env.scenario?.readySource !== "page-settled")
+      issue(loc, `expected readySource page-settled, saw ${env.scenario?.readySource}`);
+    if (env.scenario?.orchestratorCommit !== null)
+      issue(loc, "live capture must not stamp a lab orchestratorCommit");
+    if (env.scenario?.phase !== entry.phase)
+      issue(loc, `scenario.phase ${env.scenario?.phase} !== manifest phase ${entry.phase}`);
+    if (env.page?.url !== prov?.captureUrl)
+      issue(loc, `page.url ${env.page?.url} !== provenance.captureUrl ${prov?.captureUrl}`);
+    if (env.collector?.sanitization !== "lossless") issue(loc, "collector.sanitization !== lossless");
+    if (!Array.isArray(env.collectionErrors) || env.collectionErrors.length > 0)
+      issue(loc, `collectionErrors not empty: ${JSON.stringify(env.collectionErrors)}`);
+    for (const name of CHANNELS) {
+      const channel = env.channels?.[name];
+      if (!channel) {
+        issue(loc, `channel ${name} missing`);
+        continue;
+      }
+      if (channel.availability !== "available") issue(loc, `channel ${name} not available`);
+      if (Number.isNaN(Date.parse(channel.observedAt ?? "")))
+        issue(loc, `channel ${name} observedAt not a timestamp`);
+    }
+    phases.set(entry.phase, env);
+
+    const ns = env.channels?.nativeFederationGlobals?.data?.namespace;
+    if (!ns) issue(loc, "namespace clone missing");
+    else liveEvidence(ns, env, loc);
+  }
+  if (!phases.has("01-initial")) issue(lloc, "phase 01-initial missing");
+  livePhaseIdentity(phases, lloc);
+}
+
 // --- stray files: everything under captures/ must be accounted for ------
 const onDisk = readdirSync(CAPTURES_DIR, { recursive: true, encoding: "utf8" })
   .filter((f) => f.endsWith(".json"))
@@ -255,5 +446,7 @@ if (issues.length > 0) {
   process.exit(1);
 }
 console.log(
-  `corpus valid: ${manifest.captures.length} captures, runId ${manifest.runId}, probe ${manifest.source.probe.sha256.slice(0, 12)}…`
+  `corpus valid: ${manifest.captures.length} captures` +
+    (live ? ` + ${live.files.length} live phases` : "") +
+    `, runId ${manifest.runId}, probe ${manifest.source.probe.sha256.slice(0, 12)}…`
 );
