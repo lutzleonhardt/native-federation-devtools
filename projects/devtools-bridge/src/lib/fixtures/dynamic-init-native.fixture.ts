@@ -7,7 +7,7 @@
 
 import { SnapshotV1 } from '../snapshot-v1';
 
-export const dynamicInitNativeFixture = {
+export const dynamicInitNativeFixture: SnapshotV1 = {
   "schemaVersion": 1,
   "capture": {
     "pageUrl": "http://localhost:4300/",
@@ -133,13 +133,33 @@ export const dynamicInitNativeFixture = {
         "kind": "importmap",
         "parsed": true,
         "importCount": 2,
-        "scopeCount": 0
+        "scopeCount": 0,
+        "imports": [
+          {
+            "specifier": "@nf-lab/conflict-lib",
+            "target": "./mfe1/_nf_lab_conflict_lib.JF7uEdSVsN.js"
+          },
+          {
+            "specifier": "mfe1/./Component",
+            "target": "./mfe1/Component-RJXV7SVT.js"
+          }
+        ],
+        "scopes": [],
+        "integrity": {}
       },
       {
         "kind": "importmap",
         "parsed": true,
         "importCount": 1,
-        "scopeCount": 0
+        "scopeCount": 0,
+        "imports": [
+          {
+            "specifier": "mfe2/./Component",
+            "target": "./mfe2/Component-52VOYNCY.js"
+          }
+        ],
+        "scopes": [],
+        "integrity": {}
       }
     ],
     "effective": {
@@ -149,4 +169,4 @@ export const dynamicInitNativeFixture = {
     }
   },
   "errors": []
-} satisfies SnapshotV1;
+};

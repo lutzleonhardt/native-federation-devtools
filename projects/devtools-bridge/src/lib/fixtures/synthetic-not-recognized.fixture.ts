@@ -23,7 +23,17 @@ export const syntheticNotRecognizedFixture = {
   },
   runtime: null,
   importMaps: {
-    documentMaps: [{ kind: 'importmap-shim', parsed: true, importCount: 1, scopeCount: 0 }],
+    documentMaps: [
+      {
+        kind: 'importmap-shim',
+        parsed: true,
+        importCount: 1,
+        scopeCount: 0,
+        imports: [{ specifier: 'lodash', target: '/vendor/lodash.js' }],
+        scopes: [],
+        integrity: {},
+      },
+    ],
     effective: {
       imports: [
         {

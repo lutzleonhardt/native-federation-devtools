@@ -7,7 +7,7 @@
 
 import { SnapshotV1 } from '../snapshot-v1';
 
-export const dynamicOverrideFixture = {
+export const dynamicOverrideFixture: SnapshotV1 = {
   "schemaVersion": 1,
   "capture": {
     "pageUrl": "http://localhost:4300/",
@@ -120,7 +120,19 @@ export const dynamicOverrideFixture = {
         "kind": "importmap",
         "parsed": true,
         "importCount": 2,
-        "scopeCount": 0
+        "scopeCount": 0,
+        "imports": [
+          {
+            "specifier": "@nf-lab/conflict-lib",
+            "target": "./_nf_lab_conflict_lib.jvcc6K1csg.js"
+          },
+          {
+            "specifier": "mfe1/./Component",
+            "target": "./mfe1/Component-RJXV7SVT.js"
+          }
+        ],
+        "scopes": [],
+        "integrity": {}
       }
     ],
     "effective": {
@@ -130,4 +142,4 @@ export const dynamicOverrideFixture = {
     }
   },
   "errors": []
-} satisfies SnapshotV1;
+};

@@ -63,7 +63,7 @@ function writeFixture(id: string, banner: string, snapshot: SnapshotV1): void {
 
 import { SnapshotV1 } from '../snapshot-v1';
 
-export const ${exportName(id)} = ${JSON.stringify(snapshot, null, 2)} satisfies SnapshotV1;
+export const ${exportName(id)}: SnapshotV1 = ${JSON.stringify(snapshot, null, 2)};
 `;
   writeFileSync(outFile, module);
   const runtime = snapshot.runtime;

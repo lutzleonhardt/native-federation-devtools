@@ -121,11 +121,12 @@ export const REPOSITORY_SCHEMAS = Object.freeze({
 });
 
 /**
- * Shape of `importShim.getImportMap()` as returned by the shim map probe:
- * plain records for imports, per-scope imports, and integrity. The
- * `integrity` node keeps sanitized keys and validated SRI values; for the
- * shim map the mapper then drops the hash values (presence only), while
- * per-remote integrity keeps them by policy.
+ * Shape of an import map — `importShim.getImportMap()` as returned by the
+ * shim map probe, and equally each JSON-parsed document map tag: plain
+ * records for imports, per-scope imports, and integrity. The `integrity`
+ * node keeps sanitized keys and validated SRI values; for the shim map the
+ * mapper then drops the hash values (presence only), while per-tag and
+ * per-remote integrity keep them by policy.
  */
 export const EFFECTIVE_IMPORT_MAP_SCHEMA: SchemaNode = {
   type: 'record',

@@ -23,7 +23,20 @@ export const syntheticMissingChannelFixture = {
   },
   runtime: null,
   importMaps: {
-    documentMaps: [{ kind: 'importmap', parsed: true, importCount: 2, scopeCount: 0 }],
+    documentMaps: [
+      {
+        kind: 'importmap',
+        parsed: true,
+        importCount: 2,
+        scopeCount: 0,
+        imports: [
+          { specifier: 'app', target: './main.js' },
+          { specifier: 'vendor', target: './vendor.js' },
+        ],
+        scopes: [],
+        integrity: {},
+      },
+    ],
     effective: null,
   },
   errors: [],

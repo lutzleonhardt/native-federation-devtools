@@ -7,7 +7,7 @@
 
 import { SnapshotV1 } from '../snapshot-v1';
 
-export const dynamicInitShimFixture = {
+export const dynamicInitShimFixture: SnapshotV1 = {
   "schemaVersion": 1,
   "capture": {
     "pageUrl": "http://localhost:4300/",
@@ -139,13 +139,38 @@ export const dynamicInitShimFixture = {
         "kind": "importmap-shim",
         "parsed": true,
         "importCount": 2,
-        "scopeCount": 0
+        "scopeCount": 0,
+        "imports": [
+          {
+            "specifier": "@nf-lab/conflict-lib",
+            "target": "./mfe1/_nf_lab_conflict_lib.JF7uEdSVsN.js"
+          },
+          {
+            "specifier": "mfe1/./Component",
+            "target": "./mfe1/Component-RJXV7SVT.js"
+          }
+        ],
+        "scopes": [],
+        "integrity": {
+          "./mfe1/_nf_lab_conflict_lib.JF7uEdSVsN.js": "sha384-YzSmpZn3CZ6us9IawjsujujyYXGN6i5Tkev0sl+S99x81IEVGuamUeQD1qfRLT2L",
+          "./mfe1/Component-RJXV7SVT.js": "sha384-aDdQ8FmNPkw5O84YvEXmIuU6/v3MMTaOeBI4FdVifv02iDXaJxWLXSq333+oWInw"
+        }
       },
       {
         "kind": "importmap-shim",
         "parsed": true,
         "importCount": 1,
-        "scopeCount": 0
+        "scopeCount": 0,
+        "imports": [
+          {
+            "specifier": "mfe2/./Component",
+            "target": "./mfe2/Component-52VOYNCY.js"
+          }
+        ],
+        "scopes": [],
+        "integrity": {
+          "./mfe2/Component-52VOYNCY.js": "sha384-n93aw505e2EWoWC2/K8bbUa+TLfAGSP7JMMCwPZyKzj41f+0TTNvVy99N//aGIU+"
+        }
       }
     ],
     "effective": {
@@ -172,4 +197,4 @@ export const dynamicInitShimFixture = {
     }
   },
   "errors": []
-} satisfies SnapshotV1;
+};

@@ -8,7 +8,10 @@
 
 import { SnapshotV1 } from '../snapshot-v1';
 
-export const syntheticHostileFixture = {
+// Typed via annotation (not `satisfies`): documentMaps entries with
+// different integrity key sets otherwise union-infer phantom optional keys
+// that break the Record<string, string> index signature.
+export const syntheticHostileFixture: SnapshotV1 = {
   schemaVersion: 1,
   capture: {
     pageUrl: 'https://synthetic-fixture.example/hostile/deep/path%20segment/',
@@ -67,8 +70,39 @@ export const syntheticHostileFixture = {
   },
   importMaps: {
     documentMaps: [
-      { kind: 'importmap-shim', parsed: true, importCount: 2, scopeCount: 1 },
-      { kind: 'importmap-shim', parsed: false, importCount: 0, scopeCount: 0 },
+      {
+        kind: 'importmap-shim',
+        parsed: true,
+        importCount: 2,
+        scopeCount: 1,
+        // As-authored root-relative spellings that resolve (against pageUrl)
+        // to the recorded effective map.
+        imports: [
+          { specifier: 'sneaky-lib', target: '/hostile/sneaky-lib.js' },
+          { specifier: './admin', target: '/hostile/admin-console/component-admin.js' },
+        ],
+        scopes: [
+          {
+            scope: '/hostile/admin-console/',
+            imports: [
+              { specifier: 'sneaky-lib', target: '/hostile/admin-console/sneaky-lib.js' },
+            ],
+          },
+        ],
+        integrity: {
+          '/hostile/sneaky-lib.js':
+            'sha384-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+        },
+      },
+      {
+        kind: 'importmap-shim',
+        parsed: false,
+        importCount: 0,
+        scopeCount: 0,
+        imports: [],
+        scopes: [],
+        integrity: {},
+      },
     ],
     effective: {
       imports: [

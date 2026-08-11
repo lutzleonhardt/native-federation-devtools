@@ -7,7 +7,7 @@
 
 import { SnapshotV1 } from '../snapshot-v1';
 
-export const cleanSkipFixture = {
+export const cleanSkipFixture: SnapshotV1 = {
   "schemaVersion": 1,
   "capture": {
     "pageUrl": "http://localhost:4300/",
@@ -133,7 +133,23 @@ export const cleanSkipFixture = {
         "kind": "importmap",
         "parsed": true,
         "importCount": 3,
-        "scopeCount": 0
+        "scopeCount": 0,
+        "imports": [
+          {
+            "specifier": "@nf-lab/conflict-lib",
+            "target": "./mfe2/_nf_lab_conflict_lib.jvcc6K1csg.js"
+          },
+          {
+            "specifier": "mfe1/./Component",
+            "target": "./mfe1/Component-RJXV7SVT.js"
+          },
+          {
+            "specifier": "mfe2/./Component",
+            "target": "./mfe2/Component-52VOYNCY.js"
+          }
+        ],
+        "scopes": [],
+        "integrity": {}
       }
     ],
     "effective": {
@@ -143,4 +159,4 @@ export const cleanSkipFixture = {
     }
   },
   "errors": []
-} satisfies SnapshotV1;
+};
