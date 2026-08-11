@@ -844,6 +844,55 @@ The strict share scope pins `requiredVersion` to the exact tag at
 store time (config ranges lost) — keep the scope name on rows so
 Task 7 can flag it.
 
+## Task 6.5: Generation relabel — 'dev' → 'v4.5'
+
+Depends on: Task 6. Run BEFORE Task 7 (avoids generation-literal churn
+in Task 7's new specs).
+
+### Instructions
+
+Source-verified basis (local orchestrator repo; memory
+`generation-labels-stale`): the "dev" commit `8e5e0b3` is the released
+**v4.6.0**; the `entries` spelling shipped in **v4.5.0** (`a424249`,
+"Support for integrated secondary entrypoints"); the live frankenstein
+app runs ≤ v4.4.x. The labels `'v4' | 'dev'` therefore misstate release
+status — rename `'dev'` → `'v4.5'` and re-document both values as
+*registry-format generations named by the release that introduced the
+format* (`'v4'` = format since v4.0, `file` spelling; `'v4.5'` = format
+since v4.5.0, `entries` spelling). `'mixed'` and `'unknown'` stay.
+
+- `GenerationV1` in `snapshot-v1.ts`: value + doc comment (cite the
+  source facts so nobody re-derives them).
+- Mapper `deriveGeneration` and any "dev"-generation mentions in
+  probe/runtime-schema comments.
+- Deriver: banner text ("orchestrator dev commit 8e5e0b3" →
+  "orchestrator v4.6.0 (8e5e0b3)"); regenerate the 11 fixtures;
+  hand-update synthetic fixtures and all spec literals (collector,
+  bridge, ui, store).
+- Docs: spec §3 variation-catalog wording; `captures/README.md`
+  provenance wording. `docs/work/v2/shape-validation.md` stays
+  historical (optional one-line addendum).
+- No probe-string change expected (generation is derived host-side) —
+  if one turns out to be needed, stop and flag (manifest probe-pin
+  cascade).
+
+### Acceptance
+
+- **T6.5-AC-01** — `rg -w 'dev'` over DTO, mapper, fixtures, and specs
+  shows no generation-label remnant (grep-proof; docs history and
+  provenance-commit mentions excluded).
+- **T6.5-AC-02** — full chain green; deriver double-run byte-identical;
+  corpus validator untouched.
+- **T6.5-AC-03** — the `GenerationV1` doc names the version facts
+  (v4.5.0 / `a424249` / `8e5e0b3` == v4.6.0).
+
+### Key Locations
+
+- `projects/devtools-bridge/src/lib/snapshot-v1.ts`,
+  `projects/collector/src/lib/snapshot-mapper.ts`,
+  `scripts/derive-fixtures.ts`, fixtures + specs across all projects,
+  `docs/specs/native-federation-devtools-v2.md` §3.
+
 ## Task 7: Store derivations — provider, resolution arrows, chunk attribution, badges, provenance
 
 Depends on: Task 6.
