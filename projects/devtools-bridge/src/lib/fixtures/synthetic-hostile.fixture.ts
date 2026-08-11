@@ -26,10 +26,12 @@ export const syntheticHostileFixture = {
       '__NF-HOST__': {
         scopeUrl: 'https://synthetic-fixture.example/hostile/',
         exposes: [],
+        integrity: {},
       },
       'admin-console': {
         scopeUrl: 'https://synthetic-fixture.example/hostile/admin-console/',
         exposes: [{ moduleName: './admin', file: 'component-admin.js' }],
+        integrity: {},
       },
     },
     scopedExternals: {},
@@ -48,7 +50,11 @@ export const syntheticHostileFixture = {
                   requiredVersion: '^0.0.0',
                   strictVersion: false,
                   file: 'sneaky-lib.js',
+                  entries: null,
                   cached: false,
+                  bundle: null,
+                  servedFiles: [{ entry: null, file: 'sneaky-lib.js' }],
+                  generation: 'v4',
                 },
               ],
             },
@@ -57,6 +63,7 @@ export const syntheticHostileFixture = {
       },
     },
     sharedChunks: {},
+    generation: 'v4',
   },
   importMaps: {
     documentMaps: [

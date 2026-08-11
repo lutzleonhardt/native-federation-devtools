@@ -17,8 +17,9 @@
  * Projection rules (allowlist — everything not listed is dropped):
  *  - page URL and every URL-ish string are sanitized to origin + path
  *    (no userinfo, query, or fragment)
- *  - integrity hashes are never copied; the effective import map keeps
- *    only the list of targets that carry an integrity entry
+ *  - per-remote `integrity` maps keep their SRI hash values (collected by
+ *    policy — V2 corpus decision); the effective import map keeps only
+ *    the list of targets that carry an integrity entry
  *  - runtime repositories keep the collector's projected field names
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -60,9 +61,6 @@ function channelState(channel, presentPath, missingReason) {
 // --- runtime repositories -------------------------------------------------
 
 const REPOSITORY_KEYS = ['remotes', 'scoped-externals', 'shared-externals', 'shared-chunks'];
-// Created lazily by the runtime — explicitly absent means "zero entries"
-// and projects to {}; mirrors the collector mapper's rule.
-const OPTIONAL_REPOSITORY_KEYS = new Set(['scoped-externals', 'shared-chunks']);
 
 function projectRemotes(value) {
   const out = {};
@@ -73,9 +71,37 @@ function projectRemotes(value) {
         moduleName: sanitizeUrl(e.moduleName),
         file: e.file,
       })),
+      // Per-remote SRI map — hash values are collected by policy (V2
+      // corpus decision); {} when the source capture records none.
+      integrity: { ...(remote.integrity ?? {}) },
     };
   }
   return out;
+}
+
+// Mirrors the collector mapper: the served-files spelling discriminates
+// the orchestrator generation (`file` = released v4, `entries` = dev);
+// both or neither would be a collection error, never silent output.
+function projectParticipant(r) {
+  const file = typeof r.file === 'string' ? r.file : null;
+  const entries = r.entries && typeof r.entries === 'object' ? { ...r.entries } : null;
+  if ((file !== null) === (entries !== null)) {
+    throw new Error(`participant '${r.name}' carries ${file !== null ? 'both spellings' : 'neither spelling'}`);
+  }
+  return {
+    name: r.name,
+    requiredVersion: r.requiredVersion,
+    strictVersion: r.strictVersion === true,
+    file,
+    entries,
+    cached: r.cached === true,
+    bundle: typeof r.bundle === 'string' ? r.bundle : null,
+    servedFiles:
+      entries !== null
+        ? Object.entries(entries).map(([entry, entryFile]) => ({ entry, file: entryFile }))
+        : [{ entry: null, file }],
+    generation: entries !== null ? 'dev' : 'v4',
+  };
 }
 
 function projectExternalScopes(value) {
@@ -89,21 +115,47 @@ function projectExternalScopes(value) {
           tag: v.tag,
           action: v.action,
           host: v.host === true,
-          remotes: (v.remotes ?? []).map((r) => ({
-            name: r.name,
-            requiredVersion: r.requiredVersion,
-            strictVersion: r.strictVersion === true,
-            // Mirrors the collector mapper: newer runtimes have no single
-            // bundle file per external remote.
-            file: typeof r.file === 'string' ? r.file : null,
-            cached: r.cached === true,
-          })),
+          remotes: (v.remotes ?? []).map(projectParticipant),
         })),
       };
     }
     out[scope] = scopeOut;
   }
   return out;
+}
+
+// scoped-externals has its own single-object schema (no versions array,
+// no dirty, no negotiation fields).
+function projectScopedExternals(value) {
+  const out = {};
+  for (const [scope, packages] of Object.entries(value)) {
+    const scopeOut = {};
+    for (const [pkg, scoped] of Object.entries(packages)) {
+      scopeOut[pkg] = {
+        tag: scoped.tag,
+        bundle: typeof scoped.bundle === 'string' ? scoped.bundle : null,
+        entries: { ...(scoped.entries ?? {}) },
+      };
+    }
+    out[scope] = scopeOut;
+  }
+  return out;
+}
+
+function deriveGeneration(sharedExternals) {
+  const seen = new Set();
+  for (const packages of Object.values(sharedExternals)) {
+    for (const external of Object.values(packages)) {
+      for (const version of external.versions) {
+        for (const remote of version.remotes) {
+          seen.add(remote.generation);
+        }
+      }
+    }
+  }
+  if (seen.size === 0) return 'unknown';
+  if (seen.size > 1) return 'mixed';
+  return seen.has('dev') ? 'dev' : 'v4';
 }
 
 function projectSharedChunks(value) {
@@ -121,28 +173,25 @@ let nfChannel = channelState(globals, true, 'window.__NATIVE_FEDERATION__ is not
 let runtime = null;
 if (nfChannel.state === 'available') {
   const repositories = globals.data.repositories ?? {};
-  const missing = REPOSITORY_KEYS.filter(
-    (key) =>
-      repositories[key]?.present !== true &&
-      !(OPTIONAL_REPOSITORY_KEYS.has(key) && repositories[key]?.present === false),
-  );
-  if (missing.length > 0) {
+  // Mirrors the collector mapper: every repository key is lazy — absent
+  // means "zero entries" — but a global carrying none of the four keys is
+  // not recognized as Native Federation at all.
+  const present = REPOSITORY_KEYS.filter((key) => repositories[key]?.present === true);
+  if (present.length === 0) {
     nfChannel = {
       state: 'not-recognized',
-      reason: `global present but repositories missing: ${missing.join(', ')}`,
+      reason: 'global present but carries none of the four repository keys',
     };
   } else {
+    const repositoryValue = (key) =>
+      repositories[key]?.present === true ? repositories[key].value : {};
+    const sharedExternals = projectExternalScopes(repositoryValue('shared-externals'));
     runtime = {
-      remotes: projectRemotes(repositories['remotes'].value),
-      scopedExternals:
-        repositories['scoped-externals']?.present === true
-          ? projectExternalScopes(repositories['scoped-externals'].value)
-          : {},
-      sharedExternals: projectExternalScopes(repositories['shared-externals'].value),
-      sharedChunks:
-        repositories['shared-chunks']?.present === true
-          ? projectSharedChunks(repositories['shared-chunks'].value)
-          : {},
+      remotes: projectRemotes(repositoryValue('remotes')),
+      scopedExternals: projectScopedExternals(repositoryValue('scoped-externals')),
+      sharedExternals,
+      sharedChunks: projectSharedChunks(repositoryValue('shared-chunks')),
+      generation: deriveGeneration(sharedExternals),
     };
   }
 }
@@ -210,8 +259,9 @@ const snapshot = {
 
 const banner = `// GENERATED by scripts/derive-fixture.mjs — do not edit by hand; re-run the script.
 // Source: ${capture.captureId} (run ${capture.runId}), checked in under captures/
-// (see captures/README.md for provenance). Projection: allowlist only, integrity
-// hashes dropped, URLs sanitized to origin + path, only fields the Phase-1 views need.
+// (see captures/README.md for provenance). Projection: corpus-validated allowlist,
+// per-remote SRI values kept by policy, shim-map integrity as presence list only,
+// URLs sanitized to origin + path.
 
 import { SnapshotV1 } from '../snapshot-v1';
 

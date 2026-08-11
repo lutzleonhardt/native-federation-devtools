@@ -16,8 +16,7 @@ export const syntheticNotRecognizedFixture = {
   channels: {
     nativeFederationGlobals: {
       state: 'not-recognized',
-      reason:
-        'global present but repositories missing: remotes, scoped-externals, shared-externals, shared-chunks',
+      reason: 'global present but carries none of the four repository keys',
     },
     domImportMaps: { state: 'available' },
     importShim: { state: 'available' },

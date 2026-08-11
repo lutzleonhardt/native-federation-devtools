@@ -5,7 +5,7 @@ import { ChromeSnapshotProvider } from './chrome-snapshot-provider';
 // Raw probe results as they come back over the DevTools eval boundary —
 // minimal but schema-valid shapes (see the collector's passive probe).
 const rawProbe = (importShim: Record<string, unknown>) => ({
-  schemaVersion: 'passive-probe/1',
+  schemaVersion: 'passive-probe/2',
   page: { origin: 'https://lab.example', path: '/app', readyState: 'complete' },
   globals: {
     nativeFederation: { present: false },

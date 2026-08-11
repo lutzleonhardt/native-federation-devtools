@@ -45,19 +45,56 @@ export interface ExposeV1 {
 export interface RemoteV1 {
   scopeUrl: string;
   exposes: ExposeV1[];
+  /**
+   * Per-remote SRI map: file name → SRI hash. Hash values are collected by
+   * policy (corpus decision, see docs/work/v2/shape-validation.md); {} when
+   * the runtime records none.
+   */
+  integrity: Record<string, string>;
 }
 
-/** One remote's participation in a resolved external version. */
+/**
+ * Orchestrator generation, discriminated by the served-files spelling a
+ * participant carries: the released v4 runtime records a single `file`
+ * string, the dev generation (commit 8e5e0b3) records an `entries` map.
+ */
+export type GenerationV1 = 'v4' | 'dev';
+
+/**
+ * Generation aggregated over every participant in a snapshot. 'mixed'
+ * keeps mixed-generation pages representable; 'unknown' means no
+ * participant was observed, so the spelling evidence is absent.
+ */
+export type SnapshotGenerationV1 = GenerationV1 | 'mixed' | 'unknown';
+
+/** One served file of a participant, normalized from either spelling. */
+export interface ServedFileV1 {
+  /** Entry name from the dev `entries` map; null for the v4 single-file spelling. */
+  entry: string | null;
+  file: string;
+}
+
+/**
+ * One remote's participation in a resolved external version. Exactly one
+ * of `file` and `entries` is non-null — a participant carrying both or
+ * neither is recorded as a collection error and dropped, never silently
+ * normalized.
+ */
 export interface ExternalRemoteV1 {
   name: string;
   requiredVersion: string;
   strictVersion: boolean;
-  /**
-   * Bundle file recorded by older runtimes; null on runtimes that record
-   * per-entry file maps instead (not collected in Phase 1).
-   */
+  /** v4 spelling: one relative file name. */
   file: string | null;
+  /** dev spelling: entry name → file name. */
+  entries: Record<string, string> | null;
   cached: boolean;
+  /** Bundle name (join key into shared-chunks); optional in both generations. */
+  bundle: string | null;
+  /** Normalized served files, fed by whichever spelling is present. */
+  servedFiles: ServedFileV1[];
+  /** Generation this participant's spelling discriminates. */
+  generation: GenerationV1;
 }
 
 /** One resolved version of an external. */
@@ -76,27 +113,50 @@ export interface ExternalV1 {
   versions: ExternalVersionV1[];
 }
 
-/** scope ('__GLOBAL__' or a scope URL) → package name → external. */
+/**
+ * scope ('__GLOBAL__' or a scope URL) → package name → external. No scope
+ * key is guaranteed — `strict` scopes can be the only ones, so nothing may
+ * assume '__GLOBAL__' exists.
+ */
 export type ExternalScopesV1 = Record<string, Record<string, ExternalV1>>;
+
+/**
+ * One package in the scoped-externals repository: a single object per
+ * package — no `versions` array, no `dirty`, no negotiation fields
+ * (corpus-proven own schema, distinct from the shared repository).
+ */
+export interface ScopedPackageV1 {
+  tag: string;
+  /** Bundle name; optional. */
+  bundle: string | null;
+  /** entry name → file name. */
+  entries: Record<string, string>;
+}
+
+/** remote/scope key → package name → scoped package. */
+export type ScopedExternalsV1 = Record<string, Record<string, ScopedPackageV1>>;
 
 /** Reserved remote name under which the host registers itself in the repositories. */
 export const NF_HOST = '__NF-HOST__';
 
 /**
  * Projection of the four repositories on `__NATIVE_FEDERATION__`.
- * Non-null only when the channel is available: the repositories were
- * present and readable (otherwise the channel is 'not-recognized').
- * Exception: the runtime creates `scoped-externals` and `shared-chunks`
- * lazily, so an explicitly absent repository of these is the observation
- * "zero entries" and projects to an empty container.
+ * Non-null only when the channel is available: at least one repository key
+ * was present and every present one was readable (otherwise the channel is
+ * 'not-recognized'). The runtime's storage creates ALL repository keys
+ * lazily on first commit, so an explicitly absent key is the observation
+ * "zero entries" and projects to an empty container — but a global
+ * carrying none of the four keys is not recognized as Native Federation.
  */
 export interface RuntimeRepositoriesV1 {
   /** remote name → remote; '__NF-HOST__' is the host's own registration. */
   remotes: Record<string, RemoteV1>;
-  scopedExternals: ExternalScopesV1;
+  scopedExternals: ScopedExternalsV1;
   sharedExternals: ExternalScopesV1;
-  /** provider name → bundle name → chunk files. */
+  /** provider remote name → bundle name → chunk files. */
   sharedChunks: Record<string, Record<string, string[]>>;
+  /** Aggregate of the participant generation discriminators. */
+  generation: SnapshotGenerationV1;
 }
 
 export interface ImportMapEntryV1 {

@@ -26,6 +26,9 @@ import type {
   ImportMapsV1,
   RemoteV1,
   RuntimeRepositoriesV1,
+  ScopedExternalsV1,
+  ScopedPackageV1,
+  SnapshotGenerationV1,
   SnapshotV1,
 } from 'devtools-bridge';
 import { COLLECTOR_VERSION, DEFAULT_LIMITS, type CollectorLimits } from './constants';
@@ -39,6 +42,17 @@ export interface CaptureContext {
   capturedAt: string;
 }
 
+/**
+ * All four repository keys are created lazily: the orchestrator's storage
+ * writes a key on its first commit only, so pages that never register such
+ * an entry have no key at all — corpus-proven for every key except
+ * `remotes` (`scoped-externals` absent in most lab scenarios,
+ * `shared-externals` absent in the all-scoped scenario, `shared-chunks`
+ * absent on non-dense builds). An explicitly absent repository is the
+ * observation "zero entries" and maps to an empty projection; an
+ * unreadable one still means `not-recognized`, and a global carrying NONE
+ * of the four keys is not recognized as Native Federation at all.
+ */
 const REPOSITORY_KEYS = [
   'remotes',
   'scoped-externals',
@@ -47,21 +61,6 @@ const REPOSITORY_KEYS = [
 ] as const;
 
 type RepositoryKey = (typeof REPOSITORY_KEYS)[number];
-
-/**
- * Repositories the runtime creates lazily: the orchestrator's storage
- * writes a key on its first dirty commit only, so pages that never
- * register such an entry have no key at all — seen in the wild for
- * `scoped-externals` (playground), and true for `shared-chunks` on
- * non-dense builds (chunks ship as scoped pseudo-externals there). An
- * explicitly absent optional repository is the observation "zero entries"
- * and maps to an empty projection; an unreadable one still means
- * `not-recognized`.
- */
-const OPTIONAL_REPOSITORY_KEYS: ReadonlySet<RepositoryKey> = new Set([
-  'scoped-externals',
-  'shared-chunks',
-]);
 
 /**
  * `rawProbe` is the evaluated `PASSIVE_PROBE_SOURCE` result; `rawShimMap`
@@ -77,7 +76,7 @@ export function mapProbeResult(
   const limits = DEFAULT_LIMITS;
   const errors: CollectionError[] = [];
 
-  if (!isObjectLike(rawProbe) || dataValue(rawProbe, 'schemaVersion') !== 'passive-probe/1') {
+  if (!isObjectLike(rawProbe) || dataValue(rawProbe, 'schemaVersion') !== 'passive-probe/2') {
     appendError(errors, limits, 'mapper', 'probe-result-invalid');
     const reason = 'probe result unavailable';
     return {
@@ -206,14 +205,12 @@ function mapRuntime(
 
   const repositories = dataValue(summary, 'repositories');
   const projected: Partial<Record<RepositoryKey, unknown>> = {};
-  const missing: string[] = [];
+  const unreadable: string[] = [];
+  let presentKeys = 0;
   for (const key of REPOSITORY_KEYS) {
     const repository = dataValue(repositories, key);
-    if (
-      OPTIONAL_REPOSITORY_KEYS.has(key) &&
-      isObjectLike(repository) &&
-      dataValue(repository, 'present') === false
-    ) {
+    if (isObjectLike(repository) && dataValue(repository, 'present') === false) {
+      // Lazily-absent key: the observation "zero entries".
       projected[key] = {};
       continue;
     }
@@ -224,7 +221,7 @@ function mapRuntime(
         ? dataValue(repository, 'value')
         : undefined;
     if (readable === undefined) {
-      missing.push(key);
+      unreadable.push(key);
       continue;
     }
     const projection = projectSchema(
@@ -233,28 +230,40 @@ function mapRuntime(
       createContext(limits, errors, 'mapper', `repository.${key}`),
     );
     if (projection === undefined) {
-      missing.push(key);
+      unreadable.push(key);
     } else {
       projected[key] = projection;
+      presentKeys += 1;
     }
   }
-  if (missing.length > 0) {
+  if (unreadable.length > 0) {
     return {
       nfChannel: {
         state: 'not-recognized',
-        reason: `global present but repositories missing or unreadable: ${missing.join(', ')}`,
+        reason: `global present but repositories unreadable: ${unreadable.join(', ')}`,
+      },
+      runtime: null,
+    };
+  }
+  if (presentKeys === 0) {
+    return {
+      nfChannel: {
+        state: 'not-recognized',
+        reason: 'global present but carries none of the four repository keys',
       },
       runtime: null,
     };
   }
 
+  const sharedExternals = toExternalScopes(projected['shared-externals'], errors, limits);
   return {
     nfChannel: { state: 'available' },
     runtime: {
       remotes: toRemotes(projected['remotes'], errors, limits),
-      scopedExternals: toExternalScopes(projected['scoped-externals'], errors, limits, 'scoped-externals'),
-      sharedExternals: toExternalScopes(projected['shared-externals'], errors, limits, 'shared-externals'),
+      scopedExternals: toScopedExternals(projected['scoped-externals'], errors, limits),
+      sharedExternals,
       sharedChunks: toSharedChunks(projected['shared-chunks']),
+      generation: deriveGeneration(sharedExternals),
     },
   };
 }
@@ -290,7 +299,18 @@ function toRemotes(
         }
       }
     }
-    output[name] = { scopeUrl, exposes };
+    // Invalid SRI entries were already rejected (with an error) by the
+    // schema's integrity node — only validated pairs arrive here.
+    const integrity: Record<string, string> = {};
+    const integrityRaw = dataValue(remote, 'integrity');
+    if (isObjectLike(integrityRaw)) {
+      for (const [fileName, hash] of Object.entries(integrityRaw)) {
+        if (typeof hash === 'string') {
+          integrity[fileName] = hash;
+        }
+      }
+    }
+    output[name] = { scopeUrl, exposes, integrity };
   }
   return output;
 }
@@ -299,7 +319,6 @@ function toExternalScopes(
   value: unknown,
   errors: CollectionError[],
   limits: CollectorLimits,
-  repository: string,
 ): ExternalScopesV1 {
   const output: ExternalScopesV1 = {};
   if (!isObjectLike(value)) {
@@ -308,7 +327,7 @@ function toExternalScopes(
   for (const [scopeKey, packages] of Object.entries(value)) {
     const scope = sanitizeMaybeUrl(scopeKey);
     if (scope === null) {
-      appendError(errors, limits, 'mapper', 'scope-key-dropped', { path: repository });
+      appendError(errors, limits, 'mapper', 'scope-key-dropped', { path: 'shared-externals' });
       continue;
     }
     if (!isObjectLike(packages)) {
@@ -321,7 +340,49 @@ function toExternalScopes(
       }
       scopeOutput[pkg] = {
         dirty: dataValue(externalRaw, 'dirty') === true,
-        versions: toExternalVersions(dataValue(externalRaw, 'versions'), errors, limits, `${repository}.${pkg}`),
+        versions: toExternalVersions(dataValue(externalRaw, 'versions'), errors, limits, `shared-externals.${pkg}`),
+      };
+    }
+    output[scope] = scopeOutput;
+  }
+  return output;
+}
+
+function toScopedExternals(
+  value: unknown,
+  errors: CollectionError[],
+  limits: CollectorLimits,
+): ScopedExternalsV1 {
+  const output: ScopedExternalsV1 = {};
+  if (!isObjectLike(value)) {
+    return output;
+  }
+  for (const [scopeKey, packages] of Object.entries(value)) {
+    const scope = sanitizeMaybeUrl(scopeKey);
+    if (scope === null) {
+      appendError(errors, limits, 'mapper', 'scope-key-dropped', { path: 'scoped-externals' });
+      continue;
+    }
+    if (!isObjectLike(packages)) {
+      continue;
+    }
+    const scopeOutput: Record<string, ScopedPackageV1> = {};
+    for (const [pkg, packageRaw] of Object.entries(packages)) {
+      if (!isObjectLike(packageRaw)) {
+        continue;
+      }
+      const tag = dataValue(packageRaw, 'tag');
+      if (typeof tag !== 'string') {
+        appendError(errors, limits, 'mapper', 'scoped-package-incomplete', {
+          path: `scoped-externals.${pkg}`,
+        });
+        continue;
+      }
+      const bundle = dataValue(packageRaw, 'bundle');
+      scopeOutput[pkg] = {
+        tag,
+        bundle: typeof bundle === 'string' ? bundle : null,
+        entries: toFileEntries(dataValue(packageRaw, 'entries')) ?? {},
       };
     }
     output[scope] = scopeOutput;
@@ -369,22 +430,85 @@ function toExternalRemotes(
   for (const remoteRaw of value) {
     const name = dataValue(remoteRaw, 'name');
     const requiredVersion = dataValue(remoteRaw, 'requiredVersion');
-    const file = dataValue(remoteRaw, 'file');
     if (typeof name !== 'string' || typeof requiredVersion !== 'string') {
       appendError(errors, limits, 'mapper', 'external-remote-incomplete', { path });
       continue;
     }
+    // The served-files spelling discriminates the orchestrator generation:
+    // released v4 records a single `file`, the dev generation an `entries`
+    // map. A participant carrying both or neither is a collection error —
+    // recorded and dropped, never silently normalized.
+    const fileRaw = dataValue(remoteRaw, 'file');
+    const file = typeof fileRaw === 'string' ? fileRaw : null;
+    const entries = toFileEntries(dataValue(remoteRaw, 'entries'));
+    if ((file !== null) === (entries !== null)) {
+      appendError(errors, limits, 'mapper', 'participant-spelling-invalid', {
+        path,
+        participant: name,
+        spelling: file !== null ? 'both' : 'neither',
+      });
+      continue;
+    }
+    const bundle = dataValue(remoteRaw, 'bundle');
     remotes.push({
       name,
       requiredVersion,
       strictVersion: dataValue(remoteRaw, 'strictVersion') === true,
-      // Newer runtimes record per-entry files instead of one bundle file
-      // (not collected in Phase 1) — the remote is still a real participant.
-      file: typeof file === 'string' ? file : null,
+      file,
+      entries,
       cached: dataValue(remoteRaw, 'cached') === true,
+      bundle: typeof bundle === 'string' ? bundle : null,
+      servedFiles:
+        entries !== null
+          ? Object.entries(entries).map(([entry, entryFile]) => ({ entry, file: entryFile }))
+          : [{ entry: null, file: file as string }],
+      generation: entries !== null ? 'dev' : 'v4',
     });
   }
   return remotes;
+}
+
+/**
+ * Projects an `entries` map (entry name → file name) to a plain record;
+ * null when the value is not object-like — the discriminator between a
+ * present (possibly empty) map and an absent one.
+ */
+function toFileEntries(value: unknown): Record<string, string> | null {
+  if (!isObjectLike(value)) {
+    return null;
+  }
+  const output: Record<string, string> = {};
+  for (const [entry, file] of Object.entries(value)) {
+    if (typeof file === 'string') {
+      output[entry] = file;
+    }
+  }
+  return output;
+}
+
+/**
+ * Aggregates the per-participant generation discriminators: 'mixed' when
+ * both spellings occur, 'unknown' when no participant was observed (the
+ * spelling evidence is absent — e.g. an all-scoped page).
+ */
+function deriveGeneration(sharedExternals: ExternalScopesV1): SnapshotGenerationV1 {
+  const seen = new Set<'v4' | 'dev'>();
+  for (const packages of Object.values(sharedExternals)) {
+    for (const external of Object.values(packages)) {
+      for (const version of external.versions) {
+        for (const remote of version.remotes) {
+          seen.add(remote.generation);
+        }
+      }
+    }
+  }
+  if (seen.size === 0) {
+    return 'unknown';
+  }
+  if (seen.size > 1) {
+    return 'mixed';
+  }
+  return seen.has('dev') ? 'dev' : 'v4';
 }
 
 function toSharedChunks(value: unknown): Record<string, Record<string, string[]>> {

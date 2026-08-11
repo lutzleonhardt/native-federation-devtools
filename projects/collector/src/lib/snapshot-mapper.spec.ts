@@ -63,9 +63,11 @@ describe('unrecognized shapes (T7-AC-04)', () => {
     const raw = evaluateProbe(PASSIVE_PROBE_SOURCE, sandbox);
     const snapshot = mapProbeResult(raw, null, { capturedAt: CAPTURED_AT });
 
+    // All four repository keys are lazily absent here — but a global
+    // carrying none of them is not recognized as Native Federation.
     expect(snapshot.channels.nativeFederationGlobals).toEqual({
       state: 'not-recognized',
-      reason: expect.stringContaining('repositories missing or unreadable'),
+      reason: 'global present but carries none of the four repository keys',
     });
     expect(snapshot.runtime).toBeNull();
     // No raw copy anywhere — neither in the probe result nor the snapshot.
@@ -106,6 +108,7 @@ describe('unrecognized shapes (T7-AC-04)', () => {
       scopedExternals: {},
       sharedExternals: {},
       sharedChunks: {},
+      generation: 'unknown',
     });
     expect(snapshot.errors).toEqual([]);
   });
@@ -129,13 +132,14 @@ describe('unrecognized shapes (T7-AC-04)', () => {
       scopedExternals: {},
       sharedExternals: {},
       sharedChunks: {},
+      generation: 'unknown',
     });
     expect(snapshot.errors).toEqual([]);
   });
 
-  it('projects newer-runtime external remotes without a file field (entries map dropped)', () => {
-    // Playground-shaped shared external (Angular 22 runtime): remotes carry
-    // `bundle` + `entries` instead of a single `file`.
+  it('projects dev-generation external remotes with bundle and entries kept (T4-AC-01)', () => {
+    // Dev-generation shared external (orchestrator 8e5e0b3): participants
+    // carry `bundle` + `entries` instead of a single `file`.
     const sandbox = makeBarePage({
       __NATIVE_FEDERATION__: {
         remotes: {},
@@ -170,19 +174,115 @@ describe('unrecognized shapes (T7-AC-04)', () => {
     const snapshot = mapProbeResult(raw, null, { capturedAt: CAPTURED_AT });
 
     expect(snapshot.channels.nativeFederationGlobals).toEqual({ state: 'available' });
-    expect(snapshot.runtime?.sharedExternals['__GLOBAL__']['@angular/core'].versions[0].remotes).toEqual([
+    const external = snapshot.runtime!.sharedExternals['__GLOBAL__']['@angular/core'];
+    expect(external.dirty).toBe(false);
+    expect(external.versions[0].remotes).toEqual([
       {
         name: '__NF-HOST__',
         requiredVersion: '~22.0.0',
         strictVersion: true,
         file: null,
+        entries: { '@angular/core': '_angular_core.EWio10v_5e.js' },
         cached: true,
+        bundle: 'browser-angular_core',
+        servedFiles: [{ entry: '@angular/core', file: '_angular_core.EWio10v_5e.js' }],
+        generation: 'dev',
       },
     ]);
+    expect(snapshot.runtime!.generation).toBe('dev');
     expect(snapshot.errors).toEqual([]);
-    // The uncollected newer-runtime fields never cross the allowlist.
-    expect(JSON.stringify(snapshot)).not.toContain('browser-angular_core');
-    expect(JSON.stringify(snapshot)).not.toContain('_angular_core.EWio10v_5e.js');
+  });
+
+  it('records a participant carrying both or neither spelling as a collection error (T4-AC-03)', () => {
+    const participant = (extra: Record<string, unknown>) => ({
+      name: 'r',
+      requiredVersion: '^1.0.0',
+      strictVersion: true,
+      cached: true,
+      ...extra,
+    });
+    const page = (remotes: unknown[]) =>
+      makeBarePage({
+        __NATIVE_FEDERATION__: {
+          remotes: {},
+          'shared-externals': {
+            __GLOBAL__: {
+              pkg: { dirty: false, versions: [{ tag: '1.0.0', action: 'share', host: false, remotes }] },
+            },
+          },
+        },
+      });
+
+    for (const [extra, spelling] of [
+      [{ file: 'a.js', entries: { pkg: 'a.js' } }, 'both'],
+      [{}, 'neither'],
+    ] as const) {
+      const raw = evaluateProbe(PASSIVE_PROBE_SOURCE, page([participant(extra)]));
+      const snapshot = mapProbeResult(raw, null, { capturedAt: CAPTURED_AT });
+      // The participant row is dropped, never silently normalized…
+      expect(snapshot.runtime!.sharedExternals['__GLOBAL__']['pkg'].versions[0].remotes).toEqual([]);
+      // …and the drop is recorded loudly.
+      expect(snapshot.errors).toContainEqual({
+        stage: 'mapper',
+        code: 'participant-spelling-invalid',
+        detail: { path: 'shared-externals.pkg', participant: 'r', spelling },
+      });
+    }
+  });
+
+  it('records a scoped package without a tag as a collection error (T4-AC-04)', () => {
+    const sandbox = makeBarePage({
+      __NATIVE_FEDERATION__: {
+        remotes: {},
+        'scoped-externals': {
+          mfe1: {
+            ok: { tag: '1.0.0', entries: { ok: 'ok.js' } },
+            broken: { entries: { broken: 'broken.js' } },
+          },
+        },
+      },
+    });
+    const raw = evaluateProbe(PASSIVE_PROBE_SOURCE, sandbox);
+    const snapshot = mapProbeResult(raw, null, { capturedAt: CAPTURED_AT });
+
+    expect(snapshot.runtime!.scopedExternals['mfe1']).toEqual({
+      ok: { tag: '1.0.0', bundle: null, entries: { ok: 'ok.js' } },
+    });
+    expect(snapshot.errors).toContainEqual({
+      stage: 'mapper',
+      code: 'scoped-package-incomplete',
+      detail: { path: 'scoped-externals.broken' },
+    });
+  });
+
+  it('aggregates mixed participant spellings as generation mixed (T4-AC-02)', () => {
+    const sandbox = makeBarePage({
+      __NATIVE_FEDERATION__: {
+        remotes: {},
+        'shared-externals': {
+          __GLOBAL__: {
+            pkg: {
+              dirty: false,
+              versions: [
+                {
+                  tag: '1.0.0',
+                  action: 'share',
+                  host: false,
+                  remotes: [
+                    { name: 'a', requiredVersion: '^1', strictVersion: false, cached: true, file: 'a.js' },
+                    { name: 'b', requiredVersion: '^1', strictVersion: false, cached: true, entries: { pkg: 'b.js' } },
+                  ],
+                },
+              ],
+            },
+          },
+        },
+      },
+    });
+    const raw = evaluateProbe(PASSIVE_PROBE_SOURCE, sandbox);
+    const snapshot = mapProbeResult(raw, null, { capturedAt: CAPTURED_AT });
+    expect(snapshot.runtime!.generation).toBe('mixed');
+    expect(snapshot.errors).toEqual([]);
   });
 
   it('keeps not-recognized when scoped-externals exists but is unreadable', () => {
@@ -198,7 +298,7 @@ describe('unrecognized shapes (T7-AC-04)', () => {
 
     expect(snapshot.channels.nativeFederationGlobals).toEqual({
       state: 'not-recognized',
-      reason: 'global present but repositories missing or unreadable: scoped-externals',
+      reason: 'global present but repositories unreadable: scoped-externals',
     });
     expect(snapshot.runtime).toBeNull();
   });
@@ -247,6 +347,7 @@ describe('URL sanitization (T7-AC-05)', () => {
       getAttribute: (name: string) => (name === 'type' ? 'importmap' : null),
       textContent: '{"imports":{"a":"/a.js?token-like=1"}}',
     };
+    const validSri = `sha384-${'A'.repeat(64)}`;
     const sandbox = makeBarePage({
       __NATIVE_FEDERATION__: {
         remotes: {
@@ -258,9 +359,22 @@ describe('URL sanitization (T7-AC-05)', () => {
                 moduleName: 'https://remote.example/entry.js?m=1',
               },
             ],
+            // Integrity keys are file names (relative URLs); valid SRI
+            // values are kept by policy, invalid ones rejected loudly.
+            integrity: {
+              'entry.js?v=sig-leaked': validSri,
+              'bad.js': 'not-an-sri-hash',
+            },
           },
         },
-        'scoped-externals': {},
+        'scoped-externals': {
+          mfe1: {
+            'scoped-pkg': {
+              tag: '1.0.0',
+              entries: { 'scoped-pkg': './scoped.js?q=scoped-entry-leaked#frag' },
+            },
+          },
+        },
         'shared-externals': {
           __GLOBAL__: {
             pkg: {
@@ -276,6 +390,13 @@ describe('URL sanitization (T7-AC-05)', () => {
                       requiredVersion: '^1.0.0',
                       strictVersion: false,
                       file: 'chunk.js?sig=file-leaked',
+                      cached: true,
+                    },
+                    {
+                      name: 'dev-remote',
+                      requiredVersion: '^1.0.0',
+                      strictVersion: false,
+                      entries: { pkg: './pkg.js?token=entries-leaked#frag' },
                       cached: true,
                     },
                   ],
@@ -297,10 +418,22 @@ describe('URL sanitization (T7-AC-05)', () => {
       moduleName: 'https://remote.example/entry.js',
       file: './entry.js',
     });
+    // Valid SRI kept under a sanitized key; the invalid one is rejected.
+    expect(snapshot.runtime!.remotes['r'].integrity).toEqual({ 'entry.js': validSri });
+    expect(snapshot.errors.some((error) => error.code === 'invalid-integrity')).toBe(true);
     // `file` fields are URLs too — sanitized even without a path prefix.
-    expect(
-      snapshot.runtime!.sharedExternals['__GLOBAL__']['pkg'].versions[0].remotes[0].file,
-    ).toBe('chunk.js');
+    const participants = snapshot.runtime!.sharedExternals['__GLOBAL__']['pkg'].versions[0].remotes;
+    expect(participants[0].file).toBe('chunk.js');
+    expect(participants[0].servedFiles).toEqual([{ entry: null, file: 'chunk.js' }]);
+    // `entries` values are file names too — sanitized like every URL, and
+    // the normalized served files carry the sanitized value.
+    expect(participants[1].entries).toEqual({ pkg: './pkg.js' });
+    expect(participants[1].servedFiles).toEqual([{ entry: 'pkg', file: './pkg.js' }]);
+    expect(snapshot.runtime!.scopedExternals['mfe1']['scoped-pkg']).toEqual({
+      tag: '1.0.0',
+      bundle: null,
+      entries: { 'scoped-pkg': './scoped.js' },
+    });
     const effective = snapshot.importMaps!.effective!;
     expect(effective.imports).toEqual([
       { specifier: 'bare', target: 'https://cdn.example/lib.js' },
@@ -320,7 +453,17 @@ describe('URL sanitization (T7-AC-05)', () => {
       },
     ]);
     expect(effective.integrityFor).toEqual(['https://cdn.example/lib.js']);
-    for (const leak of ['hidden-secret', 'scope-leaked', 'also-leaked', 'session-token-123', 'file-leaked']) {
+    for (const leak of [
+      'hidden-secret',
+      'scope-leaked',
+      'also-leaked',
+      'session-token-123',
+      'file-leaked',
+      'entries-leaked',
+      'scoped-entry-leaked',
+      'sig-leaked',
+      'not-an-sri-hash',
+    ]) {
       expect(JSON.stringify(snapshot)).not.toContain(leak);
     }
 
@@ -352,6 +495,38 @@ describe('URL sanitization (T7-AC-05)', () => {
     // The hostile document map's query URL exists only as counts.
     expect(JSON.stringify(snapshot)).not.toContain('hidden');
     expect(scanForPrivacyViolations(snapshot)).toEqual([]);
+  });
+});
+
+describe('entry-cap truncation is loud (T4-AC-06)', () => {
+  it('surfaces probe-side truncation of a chunk-heavy page in the snapshot errors', () => {
+    // 30 bundles × 40 files = 1200 entries — far over the probe's global
+    // entry cap (maxTotalEntries: 512). Truncation must never be silent:
+    // the probe records it and the mapper carries it into the snapshot.
+    const bundles: Record<string, string[]> = {};
+    for (let index = 0; index < 30; index += 1) {
+      bundles[`bundle-${index}`] = Array.from(
+        { length: 40 },
+        (_, file) => `chunk-${index}-${file}.js`,
+      );
+    }
+    const sandbox = makeBarePage({
+      __NATIVE_FEDERATION__: {
+        remotes: {},
+        'shared-externals': {},
+        'shared-chunks': { host: bundles },
+      },
+    });
+    const raw = evaluateProbe(PASSIVE_PROBE_SOURCE, sandbox);
+    const snapshot = mapProbeResult(raw, null, { capturedAt: CAPTURED_AT });
+
+    expect(snapshot.channels.nativeFederationGlobals).toEqual({ state: 'available' });
+    const retained = Object.values(snapshot.runtime!.sharedChunks['host']).reduce(
+      (count, files) => count + files.length,
+      0,
+    );
+    expect(retained).toBeLessThan(1200);
+    expect(snapshot.errors.map((error) => error.code)).toContain('array-item-limit');
   });
 });
 

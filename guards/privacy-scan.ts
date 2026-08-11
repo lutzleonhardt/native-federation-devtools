@@ -7,7 +7,10 @@
  *    tokens, business data)
  *  - URL values carrying userinfo, query, or fragment — absolute URLs and
  *    relative URL-shaped strings (`/`, `./`, `../`) alike
- *  - SRI integrity hashes copied as values (presence lists only)
+ *  - SRI integrity hashes copied as values OUTSIDE an `integrity`-keyed
+ *    map. Inside such a map the hash values are collected by policy
+ *    (V2 corpus decision — per-remote integrity in SnapshotV1); everywhere
+ *    else, e.g. `integrityFor`, presence lists remain the rule.
  */
 
 export interface PrivacyViolation {
@@ -16,7 +19,9 @@ export interface PrivacyViolation {
 }
 
 export interface PrivacyScanOptions {
-  /** Captures may keep SRI hashes; the fixture projection drops them. */
+  /** Blanket SRI exemption (captures keep hashes everywhere). Snapshots and
+   * fixtures rely on the structural rule instead: hash values are allowed
+   * only inside `integrity`-keyed maps. */
   allowSriHashes?: boolean;
   /** Exact key names exempt from the forbidden-key rule (e.g. `encodedBodySize`). */
   allowedKeys?: string[];
@@ -71,7 +76,14 @@ export function scanForPrivacyViolations(
       if (FORBIDDEN_KEY.test(key) && !options.allowedKeys?.includes(key)) {
         violations.push({ path: childPath, message: `forbidden key '${key}'` });
       }
-      violations.push(...scanForPrivacyViolations(child, childPath, options));
+      // Descending into an `integrity` map switches the SRI rule to
+      // by-policy: its values ARE hashes. The exemption covers only that
+      // subtree — an SRI hash anywhere else stays a violation.
+      const childOptions =
+        key === 'integrity' && !options.allowSriHashes
+          ? { ...options, allowSriHashes: true }
+          : options;
+      violations.push(...scanForPrivacyViolations(child, childPath, childOptions));
     }
   }
 
