@@ -42,6 +42,17 @@ describe('fixture privacy scan (T2-AC-03)', () => {
     expect(messages).toContain('relative URL carries a query string');
     expect(messages).toContain('relative URL carries a fragment');
   });
+
+  it('allows SRI hash values only inside an integrity-keyed map (V2 policy)', () => {
+    const hash = 'sha384-57khIiCnWo5tC9kEt0ibpdoHhHGtPXp1KmeWeJyyX0+UPwenA+Wj+0qvj7ajI3As';
+    // Per-remote integrity in SnapshotV1 keeps hash values by policy.
+    expect(
+      scanForPrivacyViolations({ runtime: { remotes: { r: { integrity: { 'main.js': hash } } } } }),
+    ).toEqual([]);
+    // The same value anywhere else stays a violation.
+    const stray = scanForPrivacyViolations({ integrityFor: [hash] });
+    expect(stray.map((v) => v.message).join('; ')).toContain('SRI integrity hash');
+  });
 });
 
 // Checked-in captures follow the lab-data-only policy (captures/README.md):

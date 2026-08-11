@@ -87,7 +87,7 @@ describe('RemotesExposes', () => {
     const { fixture } = await renderView('synthetic-not-recognized');
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('nf-not-detected')?.textContent).toContain(
-      'global present but repositories missing',
+      'global present but carries none of the four repository keys',
     );
     expect(el.querySelector('.nf-table')).toBeNull();
   });

@@ -22,6 +22,7 @@ describe('SnapshotV1 (T2-AC-01)', () => {
       'scopedExternals',
       'sharedExternals',
       'sharedChunks',
+      'generation',
     ]);
     expect(Object.keys(primary.importMaps!)).toEqual(['documentMaps', 'effective']);
     // The runtime layer must not absorb import-map concepts and vice versa.
@@ -57,7 +58,11 @@ describe('primary fixture derives from the frankenstein production capture (T2-A
       requiredVersion: '^18.3.1',
       strictVersion: true,
       file: 'react.QYXZqQxJ1j.js',
+      entries: null,
       cached: true,
+      bundle: null,
+      servedFiles: [{ entry: null, file: 'react.QYXZqQxJ1j.js' }],
+      generation: 'v4',
     });
   });
 

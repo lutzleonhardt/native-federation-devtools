@@ -23,6 +23,7 @@ export const syntheticCollisionFixture = {
       '__NF-HOST__': {
         scopeUrl: 'https://synthetic-fixture.example/',
         exposes: [],
+        integrity: {},
       },
       calendar: {
         scopeUrl: 'https://synthetic-fixture.example/calendar/',
@@ -32,6 +33,7 @@ export const syntheticCollisionFixture = {
             file: 'Widget-AAAA1111.js',
           },
         ],
+        integrity: {},
       },
       chat: {
         scopeUrl: 'https://synthetic-fixture.example/chat/',
@@ -41,11 +43,13 @@ export const syntheticCollisionFixture = {
             file: 'Widget-BBBB2222.js',
           },
         ],
+        integrity: {},
       },
     },
     scopedExternals: {},
     sharedExternals: {},
     sharedChunks: {},
+    generation: 'unknown',
   },
   importMaps: {
     documentMaps: [],

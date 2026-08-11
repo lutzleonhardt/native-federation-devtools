@@ -1,12 +1,16 @@
 /**
- * The fixed passive probe. Ported from the research collector
- * (passive-probe.js) and trimmed to Phase 1: page metadata, the four
- * `__NATIVE_FEDERATION__` repositories (only the fields `SnapshotV1`
- * carries — per-remote integrity maps and provider `bundle` fields are
- * not collected), DOM import-map inventory, and an `importShim` presence
- * summary. The reference probe's `__NF_REGISTRY__` summary and
- * `importShim.version` read are not part of the Phase-1 snapshot and were
- * removed.
+ * The fixed passive probe: page metadata, the four `__NATIVE_FEDERATION__`
+ * repositories, DOM import-map inventory, and an `importShim` presence
+ * summary. The repository schemas are the corpus-validated V2 shapes
+ * (ground truth: captures/ + docs/work/v2/shape-validation.md) and accept
+ * both orchestrator generations — participants carry `entries` (dev) or
+ * `file` (released v4), scoped-externals has its own single-object schema,
+ * remotes carry per-remote `integrity` maps whose SRI hash values are
+ * collected by policy.
+ *
+ * Hand-sync discipline: these inline schemas are deliberately duplicated
+ * in runtime-schema.ts (the host-side re-projection) — a change here needs
+ * mirroring there, and the corpus-shaped specs cover both layers.
  *
  * This is deliberately one fixed expression rather than a source builder —
  * the inspected page never contributes executable text to the eval call.
@@ -137,10 +141,13 @@ export const PASSIVE_PROBE_SOURCE = `(() => {
   const schemas = {};
   schemas.string = { type: "scalar", kind: "string" };
   schemas.boolean = { type: "scalar", kind: "boolean" };
+  schemas.fileEntries = { type: "map", value: schemas.string };
   schemas.remoteProvider = {
     type: "record",
     fields: {
+      bundle: schemas.string,
       cached: schemas.boolean,
+      entries: schemas.fileEntries,
       file: schemas.string,
       name: schemas.string,
       requiredVersion: schemas.string,
@@ -165,11 +172,21 @@ export const PASSIVE_PROBE_SOURCE = `(() => {
   };
   schemas.externalPackages = { type: "map", value: schemas.external };
   schemas.externalScopes = { type: "map", value: schemas.externalPackages };
+  schemas.scopedPackage = {
+    type: "record",
+    fields: {
+      bundle: schemas.string,
+      entries: schemas.fileEntries,
+      tag: schemas.string
+    }
+  };
+  schemas.scopedScopes = { type: "map", value: { type: "map", value: schemas.scopedPackage } };
   schemas.expose = { type: "record", fields: { file: schemas.string, moduleName: schemas.string } };
   schemas.remote = {
     type: "record",
     fields: {
       exposes: { type: "array", item: schemas.expose },
+      integrity: { type: "map", value: schemas.string },
       scopeUrl: schemas.string
     }
   };
@@ -240,7 +257,7 @@ export const PASSIVE_PROBE_SOURCE = `(() => {
     nativeSummary.repositories = {};
     const repositorySchemas = {
       remotes: schemas.remotes,
-      "scoped-externals": schemas.externalScopes,
+      "scoped-externals": schemas.scopedScopes,
       "shared-externals": schemas.externalScopes,
       "shared-chunks": schemas.chunks
     };
@@ -307,7 +324,7 @@ export const PASSIVE_PROBE_SOURCE = `(() => {
   }
 
   return {
-    schemaVersion: "passive-probe/1",
+    schemaVersion: "passive-probe/2",
     page,
     globals: {
       nativeFederation: nativeSummary,

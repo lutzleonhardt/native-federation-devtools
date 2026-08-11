@@ -1,9 +1,13 @@
 /**
- * Repository schema allowlist and host-side re-projection. Ported from the
- * research collector (runtime-schema.js) and trimmed to the fields
- * `SnapshotV1` actually carries: the per-remote integrity map and the
- * provider `bundle` field of the reference schema are not collected at
- * all (re-add them when a view needs them).
+ * Repository schema allowlist and host-side re-projection. The repository
+ * schemas are the corpus-validated V2 shapes (ground truth: captures/ +
+ * docs/work/v2/shape-validation.md), covering both orchestrator
+ * generations: participants carry `entries` (dev) or `file` (released
+ * v4), scoped-externals has its own single-object schema, and remotes
+ * carry per-remote `integrity` maps whose SRI hash values are collected
+ * by policy. Hand-sync discipline: the in-page probe
+ * (passive-probe.ts) inlines the same schemas — changes here need
+ * mirroring there.
  *
  * `projectSchema` copies only recognized fields out of an untrusted value.
  * The mapper runs every raw probe result through it a second time on the
@@ -39,12 +43,17 @@ const url: SchemaNode = Object.freeze({ type: 'url' });
 const boolean: SchemaNode = Object.freeze({ type: 'boolean' });
 const integrity: SchemaNode = Object.freeze({ type: 'integrity' });
 
-// `file` fields are relative URLs (resolved against the scope when
-// fetched) — the `url` node's relative branch strips query and fragment.
+// `file` fields and `entries` values are relative URLs (resolved against
+// the scope when fetched) — the `url` node's relative branch strips query
+// and fragment. `bundle` is a bundle name (join key into shared-chunks),
+// not a URL.
+const fileEntries: SchemaNode = { type: 'map', value: url };
 const remoteProvider: SchemaNode = {
   type: 'record',
   fields: {
+    bundle: string,
     cached: boolean,
+    entries: fileEntries,
     file: url,
     name: string,
     requiredVersion: string,
@@ -71,6 +80,20 @@ const externalScopes: SchemaNode = {
   type: 'map',
   value: { type: 'map', value: external },
 };
+// scoped-externals has its own schema: a single object per package — no
+// `versions` array, no `dirty`, no negotiation fields.
+const scopedPackage: SchemaNode = {
+  type: 'record',
+  fields: {
+    bundle: string,
+    entries: fileEntries,
+    tag: string,
+  },
+};
+const scopedScopes: SchemaNode = {
+  type: 'map',
+  value: { type: 'map', value: scopedPackage },
+};
 const expose: SchemaNode = {
   type: 'record',
   fields: {
@@ -82,13 +105,14 @@ const remote: SchemaNode = {
   type: 'record',
   fields: {
     exposes: { type: 'array', item: expose },
+    integrity,
     scopeUrl: url,
   },
 };
 
 export const REPOSITORY_SCHEMAS = Object.freeze({
   remotes: { type: 'map', value: remote } as SchemaNode,
-  'scoped-externals': externalScopes,
+  'scoped-externals': scopedScopes,
   'shared-externals': externalScopes,
   'shared-chunks': {
     type: 'map',
@@ -99,8 +123,9 @@ export const REPOSITORY_SCHEMAS = Object.freeze({
 /**
  * Shape of `importShim.getImportMap()` as returned by the shim map probe:
  * plain records for imports, per-scope imports, and integrity. The
- * `integrity` node keeps sanitized target URLs as keys and validated SRI
- * values — the mapper drops the hash values and keeps only the key list.
+ * `integrity` node keeps sanitized keys and validated SRI values; for the
+ * shim map the mapper then drops the hash values (presence only), while
+ * per-remote integrity keeps them by policy.
  */
 export const EFFECTIVE_IMPORT_MAP_SCHEMA: SchemaNode = {
   type: 'record',
