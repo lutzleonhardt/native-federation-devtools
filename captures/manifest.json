@@ -1,0 +1,104 @@
+{
+  "schemaVersion": "lab-lossless-corpus/1",
+  "runId": "20260811T095850Z",
+  "createdAt": "2026-08-11T10:02:59.767Z",
+  "source": {
+    "playground": {
+      "repository": "nf/playground",
+      "branch": "lab/v2-scenarios",
+      "commit": "ee90a212a6ed222d0175e3d91f80fd748befc238",
+      "runner": "run-scenario.mjs"
+    },
+    "orchestratorCommit": "8e5e0b3",
+    "probe": {
+      "file": "scripts/lab-capture-dump.js",
+      "schemaVersion": "lab-lossless-capture/1",
+      "sha256": "38c180aeab832fc1dfe10efc6871ae31f4185113ab30908dc66081a573fb20d9"
+    }
+  },
+  "collector": {
+    "kind": "chrome-devtools-mcp",
+    "interface": "generic-devtools",
+    "webMcpUsed": false,
+    "sanitization": "lossless"
+  },
+  "serving": {
+    "mode": "run-scenario-single-origin",
+    "origin": "http://localhost:4300",
+    "cacheControl": "no-store"
+  },
+  "expectedScenarios": [
+    "clean-skip",
+    "strict-split",
+    "scope-isolation",
+    "strict-scope",
+    "scoped",
+    "non-dense",
+    "dynamic-init-native",
+    "dynamic-init-shim",
+    "dynamic-override",
+    "self-fill"
+  ],
+  "captures": [
+    {
+      "scenario": "clean-skip",
+      "path": "clean-skip/20260811T090637Z.json",
+      "runstamp": "20260811T090637Z",
+      "sha256": "fe87561c60f37e4e9e8d3eeac1ef537b32c201e7c848a50e3592fe17403b4d51"
+    },
+    {
+      "scenario": "strict-split",
+      "path": "strict-split/20260811T094623Z.json",
+      "runstamp": "20260811T094623Z",
+      "sha256": "7693e1d3e8ba1b74fb1a222f5b9600f4f4af730a12c4799225ca01fb45a10dcd"
+    },
+    {
+      "scenario": "scope-isolation",
+      "path": "scope-isolation/20260811T094911Z.json",
+      "runstamp": "20260811T094911Z",
+      "sha256": "73bfadaae03725052cfb43e00904268af38a9078c0bb6873b9d2b1d5316ef8fe"
+    },
+    {
+      "scenario": "strict-scope",
+      "path": "strict-scope/20260811T095035Z.json",
+      "runstamp": "20260811T095035Z",
+      "sha256": "1e81592ed465212f3981ddc0e6feb72f54d38a1c4859e3701b1b73d28822c450"
+    },
+    {
+      "scenario": "scoped",
+      "path": "scoped/20260811T095215Z.json",
+      "runstamp": "20260811T095215Z",
+      "sha256": "05ac05f4c44e58cb9ca86668ad715b7f7c18a0e33c9fd68fc808297cd4a4f576"
+    },
+    {
+      "scenario": "non-dense",
+      "path": "non-dense/20260811T095326Z.json",
+      "runstamp": "20260811T095326Z",
+      "sha256": "6a9f981cc03b2fe56744ac6f7e51c7b5f9a7f7e534c767fbe336c1d5a760cd5b"
+    },
+    {
+      "scenario": "dynamic-init-native",
+      "path": "dynamic-init-native/20260811T095456Z.json",
+      "runstamp": "20260811T095456Z",
+      "sha256": "1f7e3c5fc9a37ee268d332e0749be46f59230b7ef9d4dfe3a020c03c286e6c70"
+    },
+    {
+      "scenario": "dynamic-init-shim",
+      "path": "dynamic-init-shim/20260811T095614Z.json",
+      "runstamp": "20260811T095614Z",
+      "sha256": "5a01f1de79335141a9954694426e58a02a63c5b7a350e7e981e44fe9ffc273d8"
+    },
+    {
+      "scenario": "dynamic-override",
+      "path": "dynamic-override/20260811T095734Z.json",
+      "runstamp": "20260811T095734Z",
+      "sha256": "be9910505030bbae68ac5bbae6ddd4b0e13863d974657439bebd3662e546ae8c"
+    },
+    {
+      "scenario": "self-fill",
+      "path": "self-fill/20260811T095850Z.json",
+      "runstamp": "20260811T095850Z",
+      "sha256": "7536378ad45ec27b7662e5758d7f2caa8ab902f344b591691f8e1a9d06739def"
+    }
+  ]
+}

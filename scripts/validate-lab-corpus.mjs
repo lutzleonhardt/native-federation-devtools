@@ -1,0 +1,259 @@
+#!/usr/bin/env node
+/**
+ * Validate the lab lossless capture corpus against its run manifest
+ * (`captures/manifest.json`).
+ *
+ * Adapted from the research repo's `validate-frankenstein-corpus.mjs`,
+ * reduced to the manifest-level checks that make sense for a lossless
+ * corpus: manifest schema/metadata, per-file sha256, expected scenario
+ * set, envelope structure, and per-scenario losslessness evidence.
+ * The research validator's deep repository-shape validation is
+ * deliberately NOT ported — an allowlist schema would reject exactly
+ * the fields losslessness exists to keep.
+ *
+ * The per-scenario evidence predicates encode T2-AC-02 durably: each
+ * asserts a field the product allowlist drops (`bundle`, `entries`,
+ * `requiredVersion`, per-remote `integrity`, populated shim map) where
+ * the scenario is known to produce it.
+ *
+ * Usage: node scripts/validate-lab-corpus.mjs
+ * Exit code 0 = corpus valid, 1 = issues (listed on stderr).
+ */
+import { createHash } from "node:crypto";
+import { readdirSync, readFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const CAPTURES_DIR = join(REPO_ROOT, "captures");
+const MANIFEST_PATH = join(CAPTURES_DIR, "manifest.json");
+const PROBE_PATH = join(REPO_ROOT, "scripts", "lab-capture-dump.js");
+
+const MANIFEST_SCHEMA = "lab-lossless-corpus/1";
+const CAPTURE_SCHEMA = "lab-lossless-capture/1";
+const EXPECTED_SCENARIOS = [
+  "clean-skip",
+  "strict-split",
+  "scope-isolation",
+  "strict-scope",
+  "scoped",
+  "non-dense",
+  "dynamic-init-native",
+  "dynamic-init-shim",
+  "dynamic-override",
+  "self-fill"
+];
+const CHANNELS = ["nativeFederationGlobals", "domImportMaps", "importShim"];
+const SRI = /^sha(256|384|512)-[A-Za-z0-9+/=]+$/;
+
+const issues = [];
+const issue = (location, message) => issues.push(`${location}: ${message}`);
+const sha256 = (buffer) => createHash("sha256").update(buffer).digest("hex");
+
+// --- per-scenario losslessness evidence (observed shapes, not hypotheses)
+const sharedVersions = (ns, scope, pkg) =>
+  ns["shared-externals"]?.[scope]?.[pkg]?.versions ?? [];
+const EVIDENCE = {
+  "clean-skip": (ns, env, loc) => {
+    const versions = sharedVersions(ns, "__GLOBAL__", "@nf-lab/conflict-lib");
+    if (versions.length !== 2) issue(loc, `expected 2 version rows, saw ${versions.length}`);
+    if (!versions.some((v) => v.action === "skip" && v.remotes?.length > 0))
+      issue(loc, "expected a skip row with intact participant list");
+    for (const v of versions)
+      for (const r of v.remotes ?? [])
+        for (const field of ["requiredVersion", "bundle", "entries"])
+          if (!(field in r)) issue(loc, `participant ${r.name} misses allowlist-dropped field '${field}'`);
+  },
+  "strict-split": (ns, env, loc) => {
+    const versions = sharedVersions(ns, "__GLOBAL__", "@nf-lab/conflict-lib");
+    const actionsOfLosingTag = versions.filter((v) => v.tag === "1.0.0").map((v) => v.action).sort();
+    if (actionsOfLosingTag.join(",") !== "scope,skip")
+      issue(loc, `expected tag 1.0.0 split into scope+skip rows, saw [${actionsOfLosingTag}]`);
+  },
+  "scope-isolation": (ns, env, loc) => {
+    const versions = sharedVersions(ns, "__GLOBAL__", "@nf-lab/conflict-lib");
+    if (!versions.some((v) => v.action === "scope"))
+      issue(loc, "expected a scope row for the losing declaration");
+  },
+  "strict-scope": (ns, env, loc) => {
+    const strictScope = ns["shared-externals"]?.["strict"];
+    if (!strictScope) return issue(loc, "expected share scope 'strict' in shared-externals");
+    const versions = strictScope["@nf-lab/conflict-lib"]?.versions ?? [];
+    if (versions.filter((v) => v.action === "share").length !== 2)
+      issue(loc, "expected TWO share rows under the strict scope");
+  },
+  scoped: (ns, env, loc) => {
+    const scoped = ns["scoped-externals"];
+    if (!scoped) return issue(loc, "expected populated scoped-externals");
+    let sawBundle = false;
+    for (const [remote, pkgs] of Object.entries(scoped))
+      for (const [pkg, entry] of Object.entries(pkgs)) {
+        if (!("tag" in entry) || !("entries" in entry))
+          issue(loc, `scoped ${remote}/${pkg} misses tag/entries`);
+        if ("bundle" in entry) sawBundle = true;
+      }
+    if (!sawBundle) issue(loc, "expected at least one ScopedVersion with a bundle field");
+  },
+  "non-dense": (ns, env, loc) => {
+    const scoped = ns["scoped-externals"] ?? {};
+    const chunkKeys = Object.values(scoped).flatMap((pkgs) =>
+      Object.keys(pkgs).filter((k) => k.startsWith("@nf-internal/chunk-"))
+    );
+    if (chunkKeys.length === 0) issue(loc, "expected @nf-internal/chunk-* pseudo-externals");
+    // bundle proven optional here: chunk entries carry only {tag, entries}
+    const withBundle = Object.values(scoped).flatMap((pkgs) =>
+      Object.entries(pkgs).filter(([k, e]) => k.startsWith("@nf-internal/chunk-") && "bundle" in e)
+    );
+    if (withBundle.length > 0)
+      issue(loc, "chunk pseudo-externals unexpectedly carry a bundle field now — update the shape report");
+  },
+  "dynamic-init-native": (ns, env, loc) => {
+    const maps = env.channels.domImportMaps.data?.maps ?? [];
+    if (maps.length !== 2 || !maps.every((m) => m.type === "importmap"))
+      issue(loc, `expected exactly 2 importmap tags, saw ${maps.map((m) => m.type).join(",")}`);
+  },
+  "dynamic-init-shim": (ns, env, loc) => {
+    const maps = env.channels.domImportMaps.data?.maps ?? [];
+    if (maps.length !== 2 || !maps.every((m) => m.type === "importmap-shim"))
+      issue(loc, `expected exactly 2 importmap-shim tags, saw ${maps.map((m) => m.type).join(",")}`);
+    const shimMap = env.channels.importShim.data?.map;
+    if (!shimMap || Object.keys(shimMap.imports ?? {}).length === 0)
+      issue(loc, "expected populated importShim.getImportMap() imports");
+    const integrity = Object.values(shimMap?.integrity ?? {});
+    if (integrity.length === 0 || !integrity.every((v) => SRI.test(v)))
+      issue(loc, "expected SRI hash values in the effective shim map integrity block");
+    const remoteIntegrity = Object.entries(ns.remotes ?? {}).filter(
+      ([name, r]) => name !== "__NF-HOST__" && Object.keys(r.integrity ?? {}).length > 0
+    );
+    if (remoteIntegrity.length === 0)
+      issue(loc, "expected per-remote integrity maps in the remotes repository");
+  },
+  "dynamic-override": (ns, env, loc) => {
+    const maps = env.channels.domImportMaps.data?.maps ?? [];
+    if (maps.length !== 1)
+      issue(loc, `override must REPLACE the map tag — expected 1 tag, saw ${maps.length}`);
+  },
+  "self-fill": (ns, env, loc) => {
+    const scope = ns["shared-externals"]?.["__GLOBAL__"] ?? {};
+    if (!("@nf-lab/conflict-lib" in scope) || !("@nf-lab/conflict-lib/extra" in scope))
+      issue(loc, "expected the secondary entry point as its own external beside the primary");
+  }
+};
+
+// --- manifest ------------------------------------------------------------
+let manifest;
+try {
+  manifest = JSON.parse(readFileSync(MANIFEST_PATH, "utf8"));
+} catch (error) {
+  console.error(`captures/manifest.json: unreadable (${error.message}) — run scripts/build-lab-manifest.mjs`);
+  process.exit(1);
+}
+
+if (manifest.schemaVersion !== MANIFEST_SCHEMA)
+  issue("manifest.schemaVersion", `expected ${MANIFEST_SCHEMA}, saw ${manifest.schemaVersion}`);
+if (!/^\d{8}T\d{6}Z$/.test(manifest.runId ?? ""))
+  issue("manifest.runId", `not a runstamp: ${manifest.runId}`);
+if (!/^[0-9a-f]{40}$/.test(manifest.source?.playground?.commit ?? ""))
+  issue("manifest.source.playground.commit", "not a full commit hash");
+if (!manifest.source?.orchestratorCommit)
+  issue("manifest.source.orchestratorCommit", "missing");
+if (manifest.collector?.sanitization !== "lossless")
+  issue("manifest.collector.sanitization", `expected lossless, saw ${manifest.collector?.sanitization}`);
+if (manifest.collector?.kind !== "chrome-devtools-mcp")
+  issue("manifest.collector.kind", `expected chrome-devtools-mcp, saw ${manifest.collector?.kind}`);
+if (JSON.stringify(manifest.expectedScenarios) !== JSON.stringify(EXPECTED_SCENARIOS))
+  issue("manifest.expectedScenarios", "does not match the catalog");
+
+// Probe drift: the manifest pins the probe that produced the corpus.
+try {
+  const probeHash = sha256(readFileSync(PROBE_PATH));
+  if (manifest.source?.probe?.sha256 !== probeHash)
+    issue(
+      "manifest.source.probe.sha256",
+      "does not match scripts/lab-capture-dump.js — probe changed since capture; re-capture or rebuild the manifest"
+    );
+} catch (error) {
+  issue("scripts/lab-capture-dump.js", `unreadable (${error.message})`);
+}
+
+// --- capture entries -----------------------------------------------------
+const manifestScenarios = (manifest.captures ?? []).map((c) => c.scenario);
+if (JSON.stringify([...manifestScenarios].sort()) !== JSON.stringify([...EXPECTED_SCENARIOS].sort()))
+  issue("manifest.captures", `scenario set mismatch: [${manifestScenarios.join(",")}]`);
+
+const manifestPaths = new Set();
+for (const entry of manifest.captures ?? []) {
+  const loc = `manifest.captures[${entry.scenario}]`;
+  manifestPaths.add(entry.path);
+  let buffer;
+  try {
+    buffer = readFileSync(join(CAPTURES_DIR, entry.path));
+  } catch {
+    issue(loc, `capture file missing: ${entry.path}`);
+    continue;
+  }
+  if (sha256(buffer) !== entry.sha256) {
+    issue(loc, `sha256 mismatch for ${entry.path}`);
+    continue;
+  }
+
+  let env;
+  try {
+    env = JSON.parse(buffer.toString("utf8"));
+  } catch (error) {
+    issue(loc, `unparseable JSON (${error.message})`);
+    continue;
+  }
+
+  // Envelope structure
+  if (env.schemaVersion !== CAPTURE_SCHEMA)
+    issue(loc, `schemaVersion ${env.schemaVersion} !== ${CAPTURE_SCHEMA}`);
+  if (env.scenario?.scenarioId !== entry.scenario)
+    issue(loc, `scenarioId ${env.scenario?.scenarioId} !== ${entry.scenario}`);
+  if (env.scenario?.ready !== true)
+    issue(loc, `capture taken without resolved readiness (readyError: ${env.scenario?.readyError})`);
+  if (env.scenario?.orchestratorCommit !== manifest.source?.orchestratorCommit)
+    issue(loc, "orchestratorCommit differs from manifest");
+  if (env.page?.origin !== manifest.serving?.origin)
+    issue(loc, `page.origin ${env.page?.origin} !== serving.origin ${manifest.serving?.origin}`);
+  if (env.collector?.sanitization !== "lossless") issue(loc, "collector.sanitization !== lossless");
+  if (!Array.isArray(env.collectionErrors) || env.collectionErrors.length > 0)
+    issue(loc, `collectionErrors not empty: ${JSON.stringify(env.collectionErrors)}`);
+  for (const name of CHANNELS) {
+    const channel = env.channels?.[name];
+    if (!channel) {
+      issue(loc, `channel ${name} missing`);
+      continue;
+    }
+    if (channel.availability !== "available") issue(loc, `channel ${name} not available`);
+    if (Number.isNaN(Date.parse(channel.observedAt ?? "")))
+      issue(loc, `channel ${name} observedAt not a timestamp`);
+  }
+
+  // Per-scenario losslessness evidence
+  const ns = env.channels?.nativeFederationGlobals?.data?.namespace;
+  if (!ns) {
+    issue(loc, "namespace clone missing");
+  } else {
+    EVIDENCE[entry.scenario]?.(ns, env, loc);
+  }
+}
+
+// --- stray files: everything under captures/ must be accounted for ------
+const onDisk = readdirSync(CAPTURES_DIR, { recursive: true, encoding: "utf8" })
+  .filter((f) => f.endsWith(".json"))
+  .map((f) => f.replaceAll("\\", "/"));
+for (const file of onDisk) {
+  if (file === "manifest.json") continue;
+  if (file.startsWith("frankenstein/")) continue; // research-corpus subset, own provenance
+  if (!manifestPaths.has(file)) issue(`captures/${file}`, "not listed in the manifest (stray capture)");
+}
+
+if (issues.length > 0) {
+  for (const line of issues) console.error(`INVALID ${line}`);
+  console.error(`\n${issues.length} issue(s).`);
+  process.exit(1);
+}
+console.log(
+  `corpus valid: ${manifest.captures.length} captures, runId ${manifest.runId}, probe ${manifest.source.probe.sha256.slice(0, 12)}…`
+);
