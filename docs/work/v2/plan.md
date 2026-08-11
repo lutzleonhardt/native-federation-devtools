@@ -4,19 +4,21 @@ Spec: docs/specs/native-federation-devtools-v2.md
 
 Branch scope: v2
 
-Scope: capture-first inversion of the V2 work. Round 1 (Tasks 1–2,
-done): serial scenario runner in the playground lab repo
-(`/home/lutz/projects/nf/playground`) plus the lossless 10-scenario
-capture corpus and the shape-validation report
-(`docs/work/v2/shape-validation.md`). Round 2 (Task 3, done):
-lossless re-capture of the public frankenstein app — rows 12–16 and
-the per-decision consequences re-check closed spec §7 I–K; the spec
-was amended in place (variation catalog, chunk-attribution ladder,
-generation discriminator). Round 3 (Tasks 4–7, this edit): the
-corpus-validated data layer in the product — collector delta, fixture
-derivation from the lossless corpus, normalized store ingest, store
-derivations. Round 4 (shell + views) stays deliberately unplanned —
-see the end-of-plan roadmap.
+Scope: capture-first inversion of the V2 work. Rounds 1–2 (Tasks 1–3,
+done): serial scenario runner in the playground lab repo, the
+lossless lab + frankenstein-live capture corpus, and the
+shape-validation report (`docs/work/v2/shape-validation.md`).
+Round 3 (Tasks 4–7, done): the corpus-validated data layer —
+collector delta, corpus-derived fixtures, normalized store ingest,
+store derivations. Round 4 (Tasks 8–14, this edit): shell + views —
+one federation store, the V2 tab set with capture status strip, the
+view kit, the four views, and global search; the V1 views are torn
+down in Task 8. Round-4 convention: every view (shell included)
+renders from a dedicated pure view-model builder; templates never
+consume store types (XC-06). Pre-PR gate after Task 14: manual smoke
+of the packaged extension against
+https://lutzleonhardt.de/frankenstein-meeting-room/ (released v4
+line) — deliberately manual, not an AC.
 
 Deliberate deviation from spec §7 ("one deployment serves a catalog"):
 lab scenarios run serially from checked-in definition folders plus a
@@ -1006,6 +1008,609 @@ render the value as a declared range.
   committed post-override state was clean in the corpus) — if seen,
   render "pending re-election", never corruption.
 
+## Task 8: Shell V2 — one federation store, V2 tab set, capture status strip
+
+### Instructions
+
+Replace the V1 shell with the V2 shell: after this task the panel
+has the V2 frame (store, tabs, channel signaling) and no V1 view
+code remains.
+
+**One store.** Evolve `shared/snapshot-store.ts` into the single V2
+store (suggested: `shared/store/federation-store.ts`, class
+`FederationStore`). Keep unchanged: the `SNAPSHOT_PROVIDER` DI
+indirection, `refresh()` with the capture-sequence guard (an older
+in-flight capture never overwrites a newer one), and the lifecycle
+state `capturing | captured | error`. Add two memoized computed
+signals: `model` (via `ingestSnapshot`) and `derived` (via
+`deriveFederation`), both `null` unless status is `captured`. The
+raw snapshot stays exposed; `SnapshotExportService` re-points to it —
+export always serializes the raw `SnapshotV1`, never the derived
+model. Deliberately no second store service: ingest/derivations stay
+pure modules; the service is wiring.
+
+**V2 tab set.** Nav becomes Packages · Remotes · Import Map ·
+Diagnostics (spec tab order); route `/packages` is the default. Each
+of the four routes renders a minimal honest placeholder ("view not
+implemented yet", plain text, no fake data) until Tasks 10–13
+replace them. Delete the V1 views and helpers:
+`views/remotes-exposes.*`, `views/shared-dependencies.*`,
+`views/import-map.*`, `shared/runtime-view-state.*`,
+`shared/import-map-view-state.*`, and the absorbed
+`shared/snapshot-store.ts`. Keep: the honest-state kit
+(`shared/honest-state/`, temporarily unconsumed), snapshot export,
+theme tokens (`styles.css` + `data-theme` bootstrap — already done).
+
+Define the cross-link selection convention the later views
+implement: each view owns an optional `select` query param
+(`/packages?select=<scope>|<pkg>`, `/remotes?select=<remote>`,
+`/import-map?select=<specifier>`), documented at the routes.
+
+**Capture status strip.** The shell — not any single view — signals
+whether each evidence channel fed the current capture. Channel→tab
+mapping (spec 4.6): Packages and Remotes reflect
+`nativeFederationGlobals`; Import Map aggregates `domImportMaps` +
+`importShim` keyed off **observed tag types**, never
+populated-channel counts: native `importmap` tags parsed → quiet
+regardless of the shim channel (an empty `importShim.getImportMap()`
+is the healthy norm in native mode); `importmap-shim` tags present
+but the shim yielded nothing → partial; no tags of either type →
+off. Diagnostics depends on both layers and shows partial when
+either side is missing. Visual vocabulary: `available` renders
+quietly (no indicator); `unavailable` is a muted "off" dot — a
+normal state on non-federated pages, not an error; `not-recognized`
+uses the warning tone; channel reasons appear verbatim as tooltips;
+while capturing and on capture error, no channel state is claimed at
+all. Implement the strip state as a pure, spec'd view-model builder
+(the XC-06 discipline applies to the shell too); inputs are
+`ChannelsV1`, `FederationModel.mapMode`, and the lifecycle status.
+
+The capture status line additionally shows the snapshot-level
+generation badge (`derived.generationBadge`: v4 / v4.5 / mixed) —
+generation is provenance surfaced by the shell, never view logic.
+
+### Acceptance
+
+- **T8-AC-01** — Given a captured snapshot, the nav shows Packages ·
+  Remotes · Import Map · Diagnostics with `/packages` as default;
+  the V1 views, view-state helpers, and `snapshot-store.ts` are
+  deleted; all four tabs render honest placeholders.
+- **T8-AC-02** — `FederationStore` preserves refresh semantics (an
+  older in-flight capture never overwrites a newer one — the
+  existing guard behavior, under test) and exposes memoized
+  `model`/`derived` computeds that are `null` while capturing and on
+  error; the export service serializes the raw snapshot from the
+  same store.
+- **T8-AC-03** — Healthy native mode (native tags parsed, shim map
+  empty — e.g. the dynamic-init-native fixture) renders the Import
+  Map channel quietly: no partial, no warning.
+- **T8-AC-04** — `importmap-shim` tags present but the shim yielded
+  nothing (seeded) → partial; no tags of either type → muted off
+  dot.
+- **T8-AC-05** — A `not-recognized` channel renders in warning tone
+  with the reason verbatim as tooltip (synthetic-not-recognized
+  fixture).
+- **T8-AC-06** — While capturing and on capture error, the strip
+  claims no channel state.
+- **T8-AC-07** — `synthetic-missing-channel` and
+  `synthetic-empty-page` (identical `nativeFederationGlobals` state,
+  differing only in import-map evidence) render distinguishable
+  strips — the motivating V1 fixture pair.
+- **T8-AC-08** — The generation badge renders v4 for the
+  frankenstein-live fixture and v4.5 for lab fixtures.
+- Contributes to **XC-05**, **XC-06**.
+
+### Key Locations
+
+- `projects/devtools-ui/src/app/app.ts|.html|.css`, `app.routes.ts`,
+  `app.spec.ts`, `app.config.ts`.
+- `shared/snapshot-store.ts` → `shared/store/federation-store.ts`;
+  `shared/snapshot-export.service.ts`.
+- Deletions: `views/` (all three V1 views),
+  `shared/runtime-view-state.*`, `shared/import-map-view-state.*`.
+- Strip fixtures: `projects/devtools-bridge/src/lib/fixtures/`
+  (synthetic-missing-channel, synthetic-empty-page,
+  synthetic-not-recognized, dynamic-init-native/-shim).
+
+### Key Discoveries
+
+- `ChannelStateV1` is `available | unavailable(reason) |
+  not-recognized(reason)` (`snapshot-v1.ts:17`); `partial` is a
+  UI-level primitive (`StateBadge`), not a channel state — the strip
+  is its first real consumer.
+- `FederationModel.mapMode` (`'native' | 'shim' | 'none'`) is
+  already derived from observed tag types at ingest — the strip keys
+  off it, never off populated-channel counts.
+- Theme/token infrastructure is complete (`styles.css` tokens,
+  `data-theme` set by `main.ts` from the panel URL) — extend tokens
+  only as the strip needs them.
+- Angular components use `templateUrl`/`styleUrl` with separate
+  files — never inline templates (repo convention).
+
+## Task 9: View kit — tree-table, master-detail split, participant row, kv-list, badges
+
+### Instructions
+
+Build the small internal component kit the V2 sketches need — and
+nothing beyond them (YAGNI is a hard constraint of this task).
+Suggested home: `projects/devtools-ui/src/app/shared/kit/`. Every
+component: separate `.html`/`.css` files, its own spec, inputs typed
+against kit-local interfaces — kit components never import store
+model types; the view models of Tasks 10–13 map into the kit
+contracts.
+
+- **Tree-table** — renders a caller-supplied FLAT row list (contract
+  e.g. `TreeTableRow`: stable id, depth, expandable, expanded, typed
+  payload rendered via a projected template). Expansion state is
+  caller-owned UI state: toggling emits an event; the component
+  holds no hierarchy. Keyboard: Up/Down move focus, Right/Left
+  request expand/collapse, Enter selects; ARIA tree semantics;
+  monospace for identifiers via tokens; selection highlight + select
+  event. Explicitly NOT built: virtual scrolling (revisit only if
+  Task 12 proves the need), sorting, column filters.
+- **Master-detail split** — the 4.1/4.2 layout: navigable list left,
+  detail pane right; a CSS-grid layout component with two projection
+  slots; DevTools-native density.
+- **Participant→resolution row** — the shared row both Packages and
+  Remotes render: participant name, declared range + strict marker,
+  the resolution arrow ("→ <version/file> <provider>" or "→ own
+  copy"), optional action chip (share/skip/scope verbatim), optional
+  link slots. A `pinned` variant renders the exact tag instead of a
+  range (strict-scope rows must never present `requiredVersion` as a
+  declared range). Wording is fixed vocabulary: "resolves to" /
+  "mapped" / "loaded on demand" — never "uses", never bare "loaded".
+- **kv-list** — key-value list for detail panes (label + value,
+  optional monospace/link rendering).
+- **Capability badge** — quiet presence chip (e.g. "chunking ✓",
+  "SRI ✓"); visually distinct from the honest-state `StateBadge`
+  (partial/ambiguous), which stays reserved for evidence limits.
+
+NOT in this task: the search overlay (Task 14 builds it with its
+only consumer) and any component the 4.1–4.3 sketches don't show.
+
+### Acceptance
+
+- **T9-AC-01** — Tree-table renders depth-indented rows from a flat
+  input; expand/collapse only emits — re-rendering with updated
+  input is the caller's job; the component holds no expansion state.
+- **T9-AC-02** — Keyboard: Up/Down move focus, Right/Left emit
+  expand/collapse requests, Enter emits selection; ARIA roles
+  present.
+- **T9-AC-03** — Participant row renders range + strict + arrow for
+  both arrow kinds ('winner' → provider file, 'own' → own copy); the
+  `pinned` variant renders the exact tag, never a range.
+- **T9-AC-04** — Grep-proof: no file under `shared/kit/` imports
+  from `shared/store/` — kit inputs are kit-local interfaces.
+- **T9-AC-05** — Capability badge and `StateBadge` render visually
+  distinct (quiet chip vs. evidence-limit badge); kv-list and split
+  layout render their slots.
+
+### Key Locations
+
+- New: `projects/devtools-ui/src/app/shared/kit/` (components +
+  specs).
+- Reference: `shared/honest-state/state-badge.*` (the evidence-limit
+  vocabulary the capability badge must not blur into),
+  `src/styles.css` (tokens).
+
+### Key Discoveries
+
+- Spec 4.8 rendering doctrine: hand-rolled HTML/CSS, no component
+  libraries (foreign aesthetics, theming fights, MV3 CSP requires
+  bundling anyway); Angular CDK behavior-only utilities are
+  acceptable, Material styling is not.
+- The tree-table pattern is deliberate: hierarchy is flattened in
+  the view-model projection (rows carry depth + expanded flags), so
+  templates stay dumb and virtual scrolling stays composable later.
+- Separate `.html`/`.css` files per component — never inline
+  templates (repo convention).
+
+## Task 10: Packages tab — view model and default view
+
+Depends on: Task 9.
+
+### Instructions
+
+The V2 default view (spec 4.1). Core question: *which version of X
+is actually shared, and what happened to every other declaration?*
+
+**View model first** (pure module beside the view, e.g.
+`views/packages/packages-view-model.ts`): inputs `FederationModel` +
+`DerivedFederation` + UI state (expanded row ids, filter, selection
+from the `select` query param); outputs the flat tree rows for the
+kit tree-table and a detail view model for the selection. Templates
+consume view-model rows only — never store types (XC-06).
+
+Left list (tree-table): one expandable package row per (share scope,
+package); the collapsed row shows the common case in one line
+(package name + winning version); a conflict indicator ("⚠ n
+versions") from `packageConflicts` where `conflict` is true —
+`strictExcluded` rows never flag (in the `strict` share scope every
+exact version is `share` by design; multiple share rows there are
+NOT a conflict). Filter: All / Conflicts. A scopes summary lists
+each share scope with its package count; nothing assumes
+`__GLOBAL__` exists (`strict` can be the only scope). Chunk groups
+never appear as packages (the store already reclassifies them).
+
+Expanded package: one row per version (● share / ○ skip / ◌ scope;
+the action verbatim, never an interpreted motive); `scope` rows are
+labeled *isolated* and name their audience (a scoped copy is mapped
+only for its own declarers). Participants render via the kit
+participant row from `sharedRowFacts` (arrow: skip → winner's file,
+share/scope → own copy). Rows with `strictPinned` use the kit
+`pinned` variant. A `pkg/subpath` external with a `parentLink`
+renders as a linked sibling row under its parent package ("/extra →
+own copy"), tagged name-derived.
+
+Detail pane for the selected package: negotiation (version rows
+with participants, the winner's provider from
+`sharedRowFacts.provider`), entries (served files), integrity
+summary, and a chunk section gated on the attribution ladder
+(`chunkAttribution` of the providing remote): level 'package' →
+bundle name + chunk files + mapped count, link into Import Map;
+level 'remote' → "chunks belong to <remote>; package attribution
+not derivable"; level 'none' → explicit absence explained by the
+capability badge. Losing rows show "n chunks declared, not mapped"
+from `declaredNotMapped` — informational, rendered with its
+source-derived tag (bounded residual). Detail views may surface
+provenance tags (`rule`) on derived values.
+
+Wording rules: "mapped / loaded on demand", never bare "loaded";
+"resolves to", never "uses". Replace the Task-8 placeholder.
+Cross-links: participant/remote names link to `/remotes?select=…`,
+file targets to `/import-map?select=…` (XC-03).
+
+### Acceptance
+
+- **T10-AC-01** — clean-skip fixture: the conflict package shows
+  "⚠ 2 versions"; the skip row's participants render intact with
+  arrows to the winner's file.
+- **T10-AC-02** — strict-split fixture: one tag renders distinct
+  `skip` and `scope` rows; the scope row is labeled isolated and
+  names its audience.
+- **T10-AC-03** — strict-scope fixture: two share rows render with
+  NO conflict indicator and with the pinned exact tag, never as a
+  declared range.
+- **T10-AC-04** — frankenstein-live fixture: 20 packages listed; a
+  host-provided package's detail shows level-'package' chunk data
+  (bundle → chunk files); a package served by whiteboard/mermaid
+  states level-'none' explicit absence.
+- **T10-AC-05** — non-dense fixture: the chunk section states the
+  level-'remote' bound ("package attribution not derivable")
+  instead of a silent gap.
+- **T10-AC-06** — self-fill fixture: the `/extra` external renders
+  as a linked sibling under its parent with an own-copy arrow,
+  tagged name-derived.
+- **T10-AC-07** — The Conflicts filter narrows to conflicted
+  packages only; the scopes summary renders a strict-only model
+  without `__GLOBAL__`.
+- **T10-AC-08** — The view-model builder is pure with its own specs;
+  the template consumes only view-model rows.
+- Contributes to **XC-03**, **XC-04**, **XC-05**, **XC-06**.
+
+### Key Locations
+
+- New: `views/packages/` (component + html/css + spec +
+  `packages-view-model.ts` + spec).
+- Inputs: `shared/store/federation-store.ts`,
+  `shared/store/derived-model.ts` (`SharedRowFacts`,
+  `PackageConflict`, `RemoteChunkAttribution`, `DeclaredNotMapped`),
+  kit components from `shared/kit/`.
+- Fixtures: `projects/devtools-bridge/src/lib/fixtures/`.
+
+### Key Discoveries
+
+- Everything this view renders is precomputed: `sharedRowFacts`
+  aligns 1:1 with `model.sharedRows` (same order);
+  `packageConflicts` covers every (scope, package);
+  `chunkAttribution` and `remoteBadges` are per remote in model
+  order. The view model groups and flattens — it derives nothing
+  new.
+- Expansion/filter/selection are UI state, never store state.
+- The "declared, not mapped" diff is a bounded residual: no capture
+  shows losing bundle-bearing copies; the rule rests on orchestrator
+  source reading — hence the mandatory source-derived tag and
+  informational tone.
+
+## Task 11: Remotes tab — view model and view
+
+Depends on: Task 10.
+
+### Instructions
+
+Per-remote perspective (spec 4.2). Core question: *what is the state
+of this remote?* The detail is the transposed projection — all
+packages from one participant's point of view; the full negotiation
+of a package is deliberately NOT repeated here (one click away via
+the package link).
+
+View model (pure, spec'd; XC-06): left list = remotes in model order
+(host marked HOST); detail for the selected remote:
+
+- Identity: name, `scopeUrl` as recorded plus the resolved URL.
+- Capability badges from `remoteBadges` (dense chunking / SRI /
+  dense externals) via the kit capability badge.
+- Exposes: module name + file + joined map target (`ExposeJoin`;
+  ingest already tolerates the literal `/./` infix of live maps).
+  Identity stays the V1 rule: remote name + expose key, never the
+  expose key alone.
+- Shared dependencies (this remote's view): `sharedRowFacts`
+  filtered to rows whose participant is this remote, rendered via
+  the kit participant row, each with an action chip and a package
+  link (`/packages?select=…`).
+- Chunks: the remote's `chunkAttribution` entry, with the
+  context-specific one-line explanation ("code shared between this
+  remote's exposes, plus lazy modules") — inline education instead
+  of external docs; level 'remote' states that package attribution
+  is not derivable; level 'none' renders explicit absence explained
+  by the badges.
+- Scoped externals: the remote's true scoped packages
+  (`scopedPackages`), as their own subsection when present.
+- Capture boundary note: a remote whose entry fetch/parse failed
+  leaves no registry trace at all — the tab states it cannot
+  enumerate what the capture cannot see (honest state, spec 2.3).
+
+Replace the Task-8 placeholder.
+
+### Acceptance
+
+- **T11-AC-01** — frankenstein-live fixture: three remotes with the
+  host marked; host badges dense chunking + dense externals + SRI;
+  whiteboard/mermaid SRI only.
+- **T11-AC-02** — Dependency rows show only this remote's own
+  declaration + arrow with a package link — the other participants
+  of the negotiation are not rendered.
+- **T11-AC-03** — scoped fixture: the true scoped package renders in
+  the scoped-externals subsection; non-dense fixture: reclassified
+  `@nf-internal/` chunks render in the chunk section
+  (level-'remote' wording), never as scoped packages.
+- **T11-AC-04** — Exposes render remote-qualified (name + expose
+  key) with joined map targets, including live `/./` specifiers.
+- **T11-AC-05** — The capture-boundary note renders; the view-model
+  builder is pure with specs; the template consumes only view-model
+  rows.
+- Contributes to **XC-03**, **XC-04**, **XC-05**, **XC-06**.
+
+### Key Locations
+
+- New: `views/remotes/` (component + html/css + spec + view model +
+  spec).
+- Inputs: `federation-store.ts`; `RemoteEntity`, `ScopedPackageRow`,
+  `ChunkGroup` (`federation-model.ts`); `RemoteBadges`,
+  `RemoteChunkAttribution`, `SharedRowFacts` (`derived-model.ts`);
+  kit.
+
+### Key Discoveries
+
+- `RemoteEntity.isHost` marks the host; scope URLs stay as recorded
+  (live registries keep relative URLs) with `resolvedScopeUrl`
+  resolved against the page base.
+- Failed remotes are invisible by design — "remote absent" and
+  "remote never initialized" are indistinguishable in passive data;
+  the note must claim a capture boundary, not an error.
+
+## Task 12: Import Map tab — annotated raw evidence view
+
+Depends on: Task 11.
+
+### Instructions
+
+The raw evidence view, unchanged in role, demoted as a destination,
+promoted as a data source (spec 4.3): every row now carries
+attribution back into the model. Render from the store
+(`importMapEntries` + `providers` + `chunkGroups`), not from a
+snapshot re-projection (the V1 `import-map-view-state` is gone).
+
+View model (pure, spec'd; XC-06):
+
+- Sections: GLOBAL IMPORTS first, then one section per scope prefix
+  in map order. A scope section header is annotated with the owning
+  remote — reuse the `providers` derivation (most-specific
+  scope-prefix rule), do not re-derive in the view.
+- Rows: specifier → target, SRI marker from `hasIntegrity`.
+  Annotation line per row where derivable: owning package
+  (`/packages?select=…`), provider remote (`/remotes?select=…`),
+  and — for `@nf-internal/chunk-*` specifiers — the owning chunk
+  group/bundle. Ambiguous providers render the `ambiguous`
+  `StateBadge`; unattributable targets state "unattributable" (CDN /
+  foreign origin) — honest outcomes, never a guessed owner.
+- The V1 honesty caption stays verbatim: "This layer proves
+  resolution only — an import-mapped file is not necessarily
+  requested, and a requested file is not proof of execution."
+- `mapMode === 'none'`: honest empty state (no invented map).
+- If the flat table needs virtual scrolling at live-corpus size,
+  Angular CDK virtual scroll (behavior-only) is acceptable — decide
+  on the ground and record the decision in the task log; do not add
+  it speculatively.
+
+Replace the Task-8 placeholder.
+
+### Acceptance
+
+- **T12-AC-01** — frankenstein-live fixture: global imports and
+  scope sections render in map order; each scope section names its
+  owning remote; SRI markers match the integrity data.
+- **T12-AC-02** — `@nf-internal/chunk-*` rows annotate their owning
+  remote/bundle and link to it; package rows link to the package
+  detail.
+- **T12-AC-03** — The honesty caption renders verbatim;
+  `mapMode 'none'` renders an honest empty state.
+- **T12-AC-04** — Seeded: an unattributable (foreign-origin) target
+  renders "unattributable"; an ambiguous provider renders the
+  ambiguous badge — no guessed owner in either case.
+- **T12-AC-05** — The view-model builder is pure with specs; the
+  template consumes only view-model rows.
+- Contributes to **XC-03**, **XC-04**, **XC-05**, **XC-06**.
+
+### Key Locations
+
+- New: `views/import-map/` (component + html/css + spec + view
+  model + spec).
+- Inputs: `ImportMapEntryRow`, `ProviderDerivation`, `ChunkGroup`;
+  kit; `shared/honest-state/` (ambiguous `StateBadge`, empty
+  states).
+
+### Key Discoveries
+
+- `importMapEntries` is the flattened effective map (top-level +
+  scoped, absolute URLs); `providers` carries one derivation per
+  unique target URL with the three honest outcomes — the view joins
+  by target URL and derives nothing itself.
+- The effective map is the store's own document-order merge; the
+  shim map was only a cross-check at ingest — the view renders one
+  map, no mode branches.
+
+## Task 13: Diagnostics tab — registry↔map lint
+
+Depends on: Task 8. (Parallel to Tasks 9–12 if useful.)
+
+### Instructions
+
+Core question: *does the committed state contradict itself?*
+Findings are sentences, not topology; V2 checks are
+registry↔import-map only.
+
+**Findings derivation lives in the store layer**, not the view (all
+derived knowledge in derivations — spec §3): a new pure module
+`shared/store/diagnostics.ts` (input `FederationModel` +
+`DerivedFederation`, output a findings list), spec'd against
+fixtures. Each finding carries: severity (`warning` | `info`), a
+one-sentence statement, the evidence layers it read, entity
+references for links, and the provenance tags (`rule`) it relied
+on.
+
+Checks:
+
+- ⚠ **Unexplained import** — an effective-map entry no registry
+  evidence explains. "Explained" = the specifier corresponds to a
+  shared package row (top-level or scoped section), a true scoped
+  package, a chunk-group member, an expose join, or a
+  secondary-entry external. Registry side: `sharedRows`,
+  `scopedPackages`, `chunkGroups`, `remotes[].exposes`.
+- ⚠ **Share mapped elsewhere** — a winning share row whose
+  effective target contradicts the winner's provider (the map
+  targets a different remote's scope than the provider derivation
+  expects).
+- ℹ **Chunks declared, not mapped** — `declaredNotMapped` files of
+  losing copies; expected for losers (winner-only bundle mapping),
+  informational by doctrine, cites its source-derived tag.
+- ℹ **No SRI** — a mapped file without an integrity entry.
+
+Explainable diffs are informational, never warnings — the linter
+must know the resolver's rules or it produces noise. Findings
+render with an interpretation caveat where applicable: a capture
+may contain remnants of a failed dynamic init (partial mutations
+persist with the next successful commit; no rollback) — findings
+are point-in-time evidence, not proof of a build bug.
+
+**Partial gating:** Diagnostics depends on both evidence layers.
+When either channel is missing (`nativeFederationGlobals` not
+available, or no import-map evidence), render the partial state
+(honest-state kit) and suppress cross-layer findings — a lint over
+one layer cannot claim cross-layer consistency.
+
+View: flat findings list, warnings before infos; each finding links
+its entities (package / remote / import-map selection). Replace the
+Task-8 placeholder.
+
+### Acceptance
+
+- **T13-AC-01** — All 11 corpus fixtures lint free of
+  warning-severity findings (info findings allowed) — a warning on
+  a corpus fixture indicates a linter rule error; any legitimate
+  exception found during implementation is documented in the task
+  log, never silently allowed.
+- **T13-AC-02** — Seeded: a map entry with no registry explanation
+  yields the unexplained-import warning naming both evidence
+  layers; a share row whose map target contradicts its provider
+  yields the share-mapped-elsewhere warning.
+- **T13-AC-03** — Seeded losing copy with unmapped declared files
+  yields the informational chunks-declared-not-mapped finding
+  citing its source-derived tag; a mapped file without integrity
+  yields the no-SRI info.
+- **T13-AC-04** — synthetic-missing-channel fixture: partial state
+  rendered, cross-layer findings suppressed; synthetic-empty-page
+  (both channels present, nothing federated): no partial, no
+  findings.
+- **T13-AC-05** — `diagnostics.ts` is pure with its own specs; the
+  view template consumes only view-model rows.
+- Contributes to **XC-03**, **XC-04**, **XC-05**, **XC-06**.
+
+### Key Locations
+
+- New: `shared/store/diagnostics.ts` (+ spec), `views/diagnostics/`
+  (component + html/css + spec + view model + spec).
+- Inputs: `federation-model.ts`, `derived-model.ts`
+  (`DeclaredNotMapped`, `ProviderDerivation`), honest-state kit.
+
+### Key Discoveries
+
+- The corpus is conflict-free on the map side: providers derive
+  uniquely for every mapped file in every capture — warnings can
+  only come from seeded inputs today, which is exactly why AC-01 is
+  the noise gate.
+- `mapping-or-exposed` is empty in every capture, lab and live — no
+  check may depend on its contents.
+- A dynamic init that fails mid-merge leaves partial mutations that
+  the next successful commit persists — the interpretation caveat
+  is spec doctrine (2.3), not defensive hedging.
+
+## Task 14: Global search
+
+Depends on: Task 12.
+
+### Instructions
+
+One search field over the store (spec 4.5). The primary entry is a
+foreign artifact — a file name from the Network panel, a package
+from an error message — whose home tab the user does not know;
+per-tab search would require knowing the answer first. Per-tab
+column filters stay out (a later, separate gesture: narrowing a
+list vs. navigating).
+
+- **Index derivation** (pure module, spec'd): entities from
+  `FederationModel`/`DerivedFederation` — remotes, packages
+  (scope-qualified), version tags, import-map specifiers, file
+  names (served files, expose files, chunk files), chunk/bundle
+  names. Case-insensitive substring match; each hit carries entity
+  type, display line, and its navigation target (route + `select`
+  param).
+- **Overlay UI** in the shell nav (top right): input + result
+  overlay, results grouped by entity type, keyboard-first: arrows
+  move, Enter opens the owning detail view (router navigation with
+  `select`), Esc closes and restores focus. Hand-rolled overlay by
+  default; CDK overlay/focus-trap (behavior-only) acceptable if
+  hand-rolling fights focus management — record the choice in the
+  task log.
+- Empty query renders nothing; no result caps hidden from the user
+  (if the list is truncated, the overlay says so).
+
+### Acceptance
+
+- **T14-AC-01** — frankenstein-live fixture: searching a chunk file
+  name yields grouped results (chunk group and import-map entry)
+  and Enter navigates to the owning detail with selection applied.
+- **T14-AC-02** — Searching a package name, remote name, version
+  tag, and specifier each yields a hit in its entity group; results
+  are grouped by type.
+- **T14-AC-03** — Keyboard flow: arrows move through results, Enter
+  navigates, Esc closes and restores focus to the field.
+- **T14-AC-04** — The index derivation is pure with its own specs;
+  an empty query yields no overlay; truncation, if any, is stated
+  in the overlay.
+- Contributes to **XC-03**, **XC-06**.
+
+### Key Locations
+
+- New: `shared/search/` (index module + spec) and the overlay
+  component (+ html/css + spec); `app.html` (nav slot).
+
+### Key Discoveries
+
+- Every searchable name already exists in the store model — the
+  index flattens, it does not re-derive; navigation reuses the
+  Task-8 `select` convention end to end.
+
 ## Cross-Cutting Acceptance
 
 - **XC-01** — Every checked-in **lab scenario** capture is regenerable
@@ -1023,19 +1628,21 @@ render the value as a declared range.
   participant spelling is visible only as generation provenance (and
   its badge) — no generation branch exists past the SnapshotV1
   mapper. **Touches:** T4, T5, T6, T7.
-
-## Roadmap — pending re-plan (Round 4, Tasks 8+)
-
-Not planned yet; re-run /plan when Tasks 4–7 are closed. Numbering
-continues at 8. Expected shape (one line each, non-binding):
-
-- Shell V2: tab set with Packages as default, design tokens + theme,
-  capture status strip with the tag-type channel mapping (spec
-  2.6/4.6).
-- Packages tab: tree-table, shared participant→resolution row
-  component, capability-gated chunk section (attribution ladder,
-  bounded-residual tagging), strict-scope rendering rules.
-- Remotes tab: per-remote projection, chunk sections with inline
-  explanations, scoped-externals subsection.
-- Import Map tab annotations + Diagnostics lint (registry↔map, incl.
-  the interpretation caveats) + global search.
+- **XC-03** — Cross-links everywhere: every rendered remote name,
+  package name, and file/specifier name navigates to its owning
+  detail view via the `select` convention — from any tab, including
+  search results. **Touches:** T10, T11, T12, T13, T14.
+- **XC-04** — Both generations render end to end in the views: the
+  frankenstein-live fixture (v4) and the lab fixtures (v4.5) render
+  every tab correctly with no generation branch in any view or
+  view-model — the generation surfaces only as the shell badge.
+  **Touches:** T8, T10, T11, T12, T13.
+- **XC-05** — No V1 leftovers: after round 4, no view or view model
+  reads `SnapshotV1` directly — the raw snapshot is consumed only by
+  `FederationStore` (ingest) and the export service. **Touches:**
+  T8, T10, T11, T12, T13.
+- **XC-06** — View-model discipline: every view (shell strip
+  included) renders from a dedicated pure view-model builder with
+  its own specs; templates consume view-model rows only, never
+  `FederationModel`/`DerivedFederation` types. **Touches:** T8, T10,
+  T11, T12, T13, T14.
