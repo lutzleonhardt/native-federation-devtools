@@ -117,7 +117,7 @@ export type ChunkOrigin = 'scoped-pseudo-external' | 'shared-chunks';
 /**
  * A chunk group of its owning remote, reclassified from the union of both
  * chunk sources: `@nf-internal/` pseudo-externals in scoped-externals
- * (dev non-dense builds) and `shared-chunks` bundle lists (released v4).
+ * (v4.5 non-dense builds) and `shared-chunks` bundle lists (v4/dense).
  * Chunk groups never count as packages.
  */
 export interface ChunkGroup {

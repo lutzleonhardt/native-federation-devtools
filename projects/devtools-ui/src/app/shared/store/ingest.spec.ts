@@ -93,7 +93,7 @@ describe('ingestSnapshot — core relation (T6-AC-01)', () => {
         servedFiles: [
           { entry: '@nf-lab/conflict-lib', file: '_nf_lab_conflict_lib.jvcc6K1csg.js' },
         ],
-        generation: 'dev',
+        generation: 'v4.5',
         resolution: {
           targetUrl: 'http://localhost:4300/mfe2/_nf_lab_conflict_lib.jvcc6K1csg.js',
           hasIntegrity: false,
@@ -114,7 +114,7 @@ describe('ingestSnapshot — core relation (T6-AC-01)', () => {
         servedFiles: [
           { entry: '@nf-lab/conflict-lib', file: '_nf_lab_conflict_lib.JF7uEdSVsN.js' },
         ],
-        generation: 'dev',
+        generation: 'v4.5',
         // The map serves the winning 2.0.0 copy to every importer — the
         // skip participant's own file has no map entry.
         resolution: {
@@ -275,11 +275,11 @@ describe('ingestSnapshot — seeded shapes and joins (T6-AC-06)', () => {
                 host: false,
                 remotes: [
                   seededParticipant('released'),
-                  seededParticipant('dev', {
+                  seededParticipant('v45', {
                     file: null,
                     entries: { pkg: './pkg.js' },
                     servedFiles: [{ entry: 'pkg', file: './pkg.js' }],
-                    generation: 'dev',
+                    generation: 'v4.5',
                   }),
                 ],
               },
@@ -292,7 +292,7 @@ describe('ingestSnapshot — seeded shapes and joins (T6-AC-06)', () => {
     const rows = ingestSnapshot(snapshot).sharedRows;
     expect(rows.map((row) => [row.participant, row.generation])).toEqual([
       ['released', 'v4'],
-      ['dev', 'dev'],
+      ['v45', 'v4.5'],
     ]);
   });
 

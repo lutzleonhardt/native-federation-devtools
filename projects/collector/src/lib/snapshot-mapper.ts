@@ -22,6 +22,7 @@ import type {
   ExternalScopesV1,
   ExternalV1,
   ExternalVersionV1,
+  GenerationV1,
   ImportMapEntryV1,
   ImportMapScopeV1,
   ImportMapsV1,
@@ -439,10 +440,10 @@ function toExternalRemotes(
       appendError(errors, limits, 'mapper', 'external-remote-incomplete', { path });
       continue;
     }
-    // The served-files spelling discriminates the orchestrator generation:
-    // released v4 records a single `file`, the dev generation an `entries`
-    // map. A participant carrying both or neither is a collection error —
-    // recorded and dropped, never silently normalized.
+    // The served-files spelling discriminates the registry-format
+    // generation: v4 records a single `file`, v4.5 (and later) an
+    // `entries` map. A participant carrying both or neither is a collection
+    // error — recorded and dropped, never silently normalized.
     const fileRaw = dataValue(remoteRaw, 'file');
     const file = typeof fileRaw === 'string' ? fileRaw : null;
     const entries = toFileEntries(dataValue(remoteRaw, 'entries'));
@@ -467,7 +468,7 @@ function toExternalRemotes(
         entries !== null
           ? Object.entries(entries).map(([entry, entryFile]) => ({ entry, file: entryFile }))
           : [{ entry: null, file: file as string }],
-      generation: entries !== null ? 'dev' : 'v4',
+      generation: entries !== null ? 'v4.5' : 'v4',
     });
   }
   return remotes;
@@ -497,7 +498,7 @@ function toFileEntries(value: unknown): Record<string, string> | null {
  * spelling evidence is absent — e.g. an all-scoped page).
  */
 function deriveGeneration(sharedExternals: ExternalScopesV1): SnapshotGenerationV1 {
-  const seen = new Set<'v4' | 'dev'>();
+  const seen = new Set<GenerationV1>();
   for (const packages of Object.values(sharedExternals)) {
     for (const external of Object.values(packages)) {
       for (const version of external.versions) {
@@ -513,7 +514,7 @@ function deriveGeneration(sharedExternals: ExternalScopesV1): SnapshotGeneration
   if (seen.size > 1) {
     return 'mixed';
   }
-  return seen.has('dev') ? 'dev' : 'v4';
+  return seen.has('v4.5') ? 'v4.5' : 'v4';
 }
 
 function toSharedChunks(value: unknown): Record<string, Record<string, string[]>> {

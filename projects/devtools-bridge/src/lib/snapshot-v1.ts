@@ -54,11 +54,14 @@ export interface RemoteV1 {
 }
 
 /**
- * Orchestrator generation, discriminated by the served-files spelling a
- * participant carries: the released v4 runtime records a single `file`
- * string, the dev generation (commit 8e5e0b3) records an `entries` map.
+ * Registry-format generation, named by the release that introduced the
+ * format and discriminated by the served-files spelling a participant
+ * carries: 'v4' is the format since v4.0 (a single `file` string),
+ * 'v4.5' the format since v4.5.0 (an `entries` map — commit `a424249`,
+ * "Support for integrated secondary entrypoints"). The corpus's pinned
+ * orchestrator commit `8e5e0b3` is the released v4.6.0.
  */
-export type GenerationV1 = 'v4' | 'dev';
+export type GenerationV1 = 'v4' | 'v4.5';
 
 /**
  * Generation aggregated over every participant in a snapshot. 'mixed'
@@ -69,7 +72,7 @@ export type SnapshotGenerationV1 = GenerationV1 | 'mixed' | 'unknown';
 
 /** One served file of a participant, normalized from either spelling. */
 export interface ServedFileV1 {
-  /** Entry name from the dev `entries` map; null for the v4 single-file spelling. */
+  /** Entry name from the v4.5 `entries` map; null for the v4 single-file spelling. */
   entry: string | null;
   file: string;
 }
@@ -86,7 +89,7 @@ export interface ExternalRemoteV1 {
   strictVersion: boolean;
   /** v4 spelling: one relative file name. */
   file: string | null;
-  /** dev spelling: entry name → file name. */
+  /** v4.5 spelling: entry name → file name. */
   entries: Record<string, string> | null;
   cached: boolean;
   /** Bundle name (join key into shared-chunks); optional in both generations. */

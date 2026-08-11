@@ -3,8 +3,8 @@
  * repositories, DOM import-map inventory, and an `importShim` presence
  * summary. The repository schemas are the corpus-validated V2 shapes
  * (ground truth: captures/ + docs/work/v2/shape-validation.md) and accept
- * both orchestrator generations — participants carry `entries` (dev) or
- * `file` (released v4), scoped-externals has its own single-object schema,
+ * both registry-format generations — participants carry `entries` (v4.5+)
+ * or `file` (v4), scoped-externals has its own single-object schema,
  * remotes carry per-remote `integrity` maps whose SRI hash values are
  * collected by policy.
  *
