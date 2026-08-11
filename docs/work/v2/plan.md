@@ -4,16 +4,18 @@ Spec: docs/specs/native-federation-devtools-v2.md
 
 Branch scope: v2
 
-Scope: capture-first inversion of the V2 work. Before any collector,
-store, or view task is detailed, the source-derived registry shapes
-(spec §2/§3) are validated against reality: Task 1 builds a serial
-scenario runner in the playground lab app (separate git repository at
-`/home/lutz/projects/nf/playground`), Task 2 adds a dedicated lossless
-lab capture probe, records one raw capture per scenario, and writes the
-shape-validation report. Tasks 3+ (collector delta, SnapshotV1 growth,
-normalized store, shell V2, views, search) are deliberately NOT detailed
-here — they are re-planned via /plan after Task 2's report, continuing
-the numbering at 3 (see the end-of-plan roadmap).
+Scope: capture-first inversion of the V2 work. Round 1 (Tasks 1–2,
+done): serial scenario runner in the playground lab app (separate git
+repository at `/home/lutz/projects/nf/playground`) plus the lossless
+10-scenario capture corpus and the shape-validation report
+(`docs/work/v2/shape-validation.md`); the spec was amended in place
+with its verdicts. Round 2 (Task 3): a lossless re-capture of the
+public frankenstein app closes the evidence gaps the lab corpus cannot
+cover (spec §7 I–K) before the collector schema is fixed. Tasks 4+
+(collector delta, fixture derivation, store, derivations, shell,
+views) stay deliberately NOT detailed — re-planned via /plan after
+Task 3's report extension, continuing the numbering at 4 (see the
+end-of-plan roadmap).
 
 Deliberate deviation from spec §7 ("one deployment serves a catalog"):
 scenarios run serially — self-contained, checked-in definition folders
@@ -344,36 +346,158 @@ need adjustment.
   existing probe cannot serve as ground truth; only the projection
   core is replaced, everything around it is reused.
 
+## Task 3: Lossless frankenstein re-capture and shape-validation extension
+
+Depends on: Task 2 (reuses its dump snippet, run-manifest pattern, and
+corpus validator).
+
+### Instructions
+
+Goal: close the three evidence gaps the lab corpus cannot cover — they
+need a *real* federation deployment, not a fixture — before the
+collector schema is fixed in the next task: (I) populated
+`shared-chunks` bundle lists and the winner-only bundle mapping, (J)
+`servedBy`/`pool` presence under real Angular sharing, (K) real
+secondary entry points / multi-key `entries` maps. Rationale: every
+`mapping-or-exposed` list in the lab corpus is empty, and
+`servedBy`/`pool` never appeared under the lab's minimal sharing; the
+only populated chunk evidence to date is allowlist-projected and
+unusable as ground truth.
+
+Target: the frankenstein meeting-room lab app, publicly served at
+`https://lutzleonhardt.de/frankenstein-meeting-room/` (Lutz's own
+deployment, listed on native-federation.com/resources). The deployed
+orchestrator version is not pinned by this repo — determine it as far
+as observable (registry contents, asset names) and record best-known
+provenance in the manifest; do not assume `8e5e0b3`.
+
+Capture flow — reuse, not rebuild:
+
+- Evaluate the checked-in `scripts/lab-capture-dump.js` in the live
+  page via the session's chrome-devtools MCP (`evaluate_script` with
+  `filePath` writes large results truncation-free).
+- The snippet awaits `window.__NF_SCENARIO_READY__`, which the live
+  app does not define: make the readiness await conditional (fall back
+  to a settled-page condition) without changing lab-scenario behavior;
+  the envelope's `scenario` block records
+  `scenarioId: "frankenstein-live"` plus a phase label.
+- Capture in phases following the research-corpus exemplar
+  (`/home/lutz/nf-insghts/native-federation-devtools/captures/raw/frankenstein/20260724T134007Z/`):
+  at minimum the initial post-init state; a second phase after
+  triggering any dynamic `initRemoteEntry` the app performs
+  (observable as appended import-map tags). If the app performs none,
+  one phase suffices — say so in the report.
+- Write to `captures/frankenstein-live/<runstamp>.json` (envelope
+  `lab-lossless-capture/1`), extend the run manifest (sha256 per file,
+  collector kind `browser-mcp`, sanitization `lossless`, capture URL +
+  date), update `captures/README.md` provenance (lab-data-only policy;
+  own app; SRI hashes may stay), and extend
+  `scripts/validate-lab-corpus.mjs` so the new captures are hash- and
+  structure-checked. Live captures are not regenerable from checkouts —
+  mark them deployment-dependent in the manifest (XC-01 is scoped to
+  lab scenarios).
+
+Report: extend `docs/work/v2/shape-validation.md` with rows 12–16,
+same verdict scheme (confirmed / deviates with cite / not exercised):
+
+12. Populated `shared-chunks` value shape (remote → bundle name → file
+    list) and winner-only bundle mapping: losers' chunks present in
+    the registry but absent from the effective map;
+    `mapping-or-exposed` contents vs. exposes and lazy chunks.
+13. `servedBy`/`pool` presence on participants under real sharing.
+14. Multi-key `entries` maps and secondary entry points of real
+    packages (e.g. `@angular/common/http`) — own-external pattern vs.
+    `selfFillUncovered`.
+15. Per-remote `integrity` at scale; effective-map integrity keys.
+16. Provider derivation uniqueness with the real remote set (bounds of
+    the closed open question G).
+
+Update the report's consequences section: each planned collector-delta
+decision (drop `servedBy`/`pool`, optional `bundle`, own scoped
+schema, lazy keys, `strict`-only scopes) is confirmed or amended —
+this is the direct input for planning Task 4.
+
+### Acceptance
+
+- **T3-AC-01** — Captures exist under `captures/frankenstein-live/`
+  (one per observed phase), envelope `lab-lossless-capture/1` with a
+  `frankenstein-live` scenario block and best-known deployment
+  provenance in the manifest; `scripts/validate-lab-corpus.mjs` passes
+  over the extended corpus.
+- **T3-AC-02** — Losslessness: for at least one phase the captured
+  namespace equals an in-page `JSON.stringify` of the global (same
+  evidence rule as the lab corpus).
+- **T3-AC-03** — `guards/privacy-scan.spec.ts` passes over the new
+  capture files.
+- **T3-AC-04** — Shape-validation rows 12–16 each carry a verdict with
+  capture cite (or an explicit "not exercised" with the reason); the
+  winner-only-mapping verdict states whether losing copies' chunks
+  appear unmapped.
+- **T3-AC-05** — The consequences section states, for each planned
+  collector-schema decision, "holds" or the amended shape.
+
+### Key Locations
+
+- `scripts/lab-capture-dump.js` (conditional readiness),
+  `captures/frankenstein-live/`, `captures/manifest.json`,
+  `captures/README.md`, `scripts/validate-lab-corpus.mjs`,
+  `guards/privacy-scan.spec.ts`, `docs/work/v2/shape-validation.md`.
+- Read-only exemplar (private research repo): phase captures under
+  `/home/lutz/nf-insghts/native-federation-devtools/captures/raw/frankenstein/20260724T134007Z/`
+  (phase pattern, manifest fields) — allowlist-projected, superseded
+  as evidence by this task.
+
+### Key Discoveries
+
+- The lab corpus validated the registry row shapes with the same
+  orchestrator generation; this task expects volume, not new
+  mechanisms — the primary unknowns are exactly I–K, but any
+  registry-shape surprise found here amends the schema before Task 4
+  builds on it.
+- chrome-devtools MCP shares one Chromium profile between clients —
+  only one client at a time; if the browser is not running, it must be
+  started with the manual `webmcp-profile` command (port 9222).
+- The deployed app is live and may be redeployed at any time; captures
+  are point-in-time evidence, made explicit by manifest provenance
+  (URL, date, sha256).
+- This supersedes the former roadmap item "real-app corpus refresh":
+  importing the research repo's allowlist-projected phase captures is
+  off the table; the research repo stays a read-only archive (its
+  `devtools-probe` extension is V3 claims/transport reference
+  material).
+
 ## Cross-Cutting Acceptance
 
-- **XC-01** — Every checked-in capture is regenerable from the two
-  checkouts alone: `run-scenario.mjs <id>` plus the checked-in dump
-  snippet reproduce a semantically identical capture (modulo
-  timestamps), with no manual config editing and no session-specific
-  state. **Touches:** T1, T2.
+- **XC-01** — Every checked-in **lab scenario** capture is regenerable
+  from the two checkouts alone: `run-scenario.mjs <id>` plus the
+  checked-in dump snippet reproduce a semantically identical capture
+  (modulo timestamps), with no manual config editing and no
+  session-specific state. Live-app captures
+  (`captures/frankenstein-live/`, T3) are deployment-dependent by
+  nature and exempt; they carry manifest provenance (URL, date,
+  sha256) instead. **Touches:** T1, T2, T3.
 
-## Roadmap — pending re-plan (Tasks 3+)
+## Roadmap — pending re-plan (Tasks 4+)
 
-Not planned yet; re-run /plan against the spec AND
-`docs/work/v2/shape-validation.md` after Task 2. Numbering continues
-at 3. Expected shape (one line each, non-binding):
+Not planned yet; re-run /plan against the amended spec AND the
+Task-3-extended `docs/work/v2/shape-validation.md`. Numbering
+continues at 4. Expected shape (one line each, non-binding):
 
 - Collector delta: extend probe + `runtime-schema.ts` + `SnapshotV1`
-  against validated shapes; privacy review; schemaVersion decision.
+  against the corpus-validated shapes (drop `servedBy`/`pool` if I/J
+  confirm, optional `bundle`, own scoped schema, integrity with
+  hashes, all keys lazy, `strict`-only scopes); privacy review;
+  schemaVersion decision incl. the export-compat assumption check.
 - Fixture derivation: `lab-lossless-capture/1` → SnapshotV1 fixture
-  modules per scenario.
+  modules per scenario, frankenstein-live as a first-class fixture.
 - Normalized store: entities + ingest (edge list, chunk
-  reclassification, generation handling, pinned map merge).
-- Store derivations: provider derivation, resolution arrows,
-  capability badges, provenance tags.
-- Shell V2: tab set (Packages default), design tokens, theme, capture
-  status strip with the §2.6-corrected channel mapping.
-- Packages tab + shared participant→resolution row + tree-table.
-- Remotes tab per-remote perspective.
-- Diagnostics lint + cross-navigation (global search, import-map
-  attribution).
-- Real-app corpus refresh (optional): lossless re-capture of the
-  frankenstein lab app with the Task-2 snippet — supersedes importing
-  the research repo's allowlist-projected phase captures; the research
-  repo itself is kept as a read-only archive (its `devtools-probe`
-  extension is V3 claims/transport reference material).
+  reclassification sourced from `scoped-externals`, generation
+  handling via tier-1 seeded fixtures, pinned `mergeDocumentMaps`,
+  store-side `(tag desc, action)` sort).
+- Store derivations: provider derivation, resolution arrows incl.
+  secondary-entry parent linking, capability badges, provenance tags.
+- Round 3+: shell V2 (tab set with Packages default, design tokens,
+  theme, capture status strip with the corrected tag-type channel
+  mapping), Packages tab + shared participant→resolution row +
+  tree-table, Remotes tab, Diagnostics lint + global search +
+  import-map attribution.
