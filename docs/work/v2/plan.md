@@ -1,28 +1,26 @@
-# Native Federation DevTools — V2 Plan, Round 1 (fixture-first)
+# Native Federation DevTools — V2 Plan
 
 Spec: docs/specs/native-federation-devtools-v2.md
 
 Branch scope: v2
 
 Scope: capture-first inversion of the V2 work. Round 1 (Tasks 1–2,
-done): serial scenario runner in the playground lab app (separate git
-repository at `/home/lutz/projects/nf/playground`) plus the lossless
-10-scenario capture corpus and the shape-validation report
-(`docs/work/v2/shape-validation.md`); the spec was amended in place
-with its verdicts. Round 2 (Task 3): a lossless re-capture of the
-public frankenstein app closes the evidence gaps the lab corpus cannot
-cover (spec §7 I–K) before the collector schema is fixed. Tasks 4+
-(collector delta, fixture derivation, store, derivations, shell,
-views) stay deliberately NOT detailed — re-planned via /plan after
-Task 3's report extension, continuing the numbering at 4 (see the
-end-of-plan roadmap).
+done): serial scenario runner in the playground lab repo
+(`/home/lutz/projects/nf/playground`) plus the lossless 10-scenario
+capture corpus and the shape-validation report
+(`docs/work/v2/shape-validation.md`). Round 2 (Task 3, done):
+lossless re-capture of the public frankenstein app — rows 12–16 and
+the per-decision consequences re-check closed spec §7 I–K; the spec
+was amended in place (variation catalog, chunk-attribution ladder,
+generation discriminator). Round 3 (Tasks 4–7, this edit): the
+corpus-validated data layer in the product — collector delta, fixture
+derivation from the lossless corpus, normalized store ingest, store
+derivations. Round 4 (shell + views) stays deliberately unplanned —
+see the end-of-plan roadmap.
 
 Deliberate deviation from spec §7 ("one deployment serves a catalog"):
-scenarios run serially — self-contained, checked-in definition folders
-plus a runner script replace the side-by-side deployment. The spec's
-motivation (stable scenario IDs, regenerable regression corpus) is
-preserved; cross-scenario coupling of shared remote variants and the
-host-variant dimension disappear. Rebuilds are cheap (esbuild).
+lab scenarios run serially from checked-in definition folders plus a
+runner; stable IDs and regenerability are preserved (XC-01).
 
 > The executing agent may adjust scope and ordering based on more
 > up-to-date context discovered during implementation, as long as
@@ -466,6 +464,440 @@ this is the direct input for planning Task 4.
   `devtools-probe` extension is V3 claims/transport reference
   material).
 
+## Task 4: Collector delta — corpus-validated schemas in probe, runtime-schema, and SnapshotV1
+
+### Instructions
+
+Extend the product collector to the corpus-validated registry shapes.
+Two projection layers change **in lockstep** (deliberate hand-sync
+discipline — probe string + host schema, no codegen): the in-page
+passive probe's inline projection and the host-side re-projection in
+`runtime-schema.ts` (everything crossing the eval boundary is
+attacker-shaped and re-projected; keep that model).
+
+Validated target shapes (ground truth: `captures/<scenario>/*.json`,
+`captures/frankenstein-live/*.json`, verdicts in
+`docs/work/v2/shape-validation.md`):
+
+- `shared-externals`: `scope → pkg → { dirty, versions[] }`; version
+  row `{ tag, host, action, remotes[] }`; participant
+  `{ name, requiredVersion, strictVersion, cached, bundle?,
+  entries? | file? }`. `entries` is a map (entry name → file name),
+  `file` a single relative-URL string. **Exactly one of the two is
+  present** — the spelling discriminates the orchestrator generation
+  (`entries` = dev `8e5e0b3`, `file` = released v4). A participant
+  carrying both or neither is recorded as a collection error, never
+  silently normalized. `servedBy`/`pool` stay out of the schema
+  (absent in both observed generations — final decision).
+- `scoped-externals`: **own schema** `remote → pkg →
+  { tag, bundle?, entries }` — a single object per package, no
+  `versions` array, no `dirty`, no negotiation fields. (The V1 schema
+  forcing this repository through the shared schema is corpus-proven
+  wrong.)
+- `remotes`: `{ scopeUrl, exposes[], integrity? }` — `integrity` is a
+  map file name → SRI hash; hash **values are kept** and validated
+  with the existing SRI validator.
+- `shared-chunks`: `remote → bundleName → fileName[]`.
+- All four repository keys are lazy: an absent key and a
+  present-but-`{}` key are the same zero-entry observation. Any share
+  scope set must project without assuming `__GLOBAL__` exists
+  (`strict` can be the only scope).
+
+`SnapshotV1` grows **additively** (no fork): the new fields, the
+corrected scoped shape, an explicit `schemaVersion` stamp on exports,
+a normalized participant **served-files** representation that both
+spellings feed, and a surfaced generation discriminator — derived per
+participant, aggregated per snapshot (v4 / dev / mixed), so
+mixed-generation storage stays representable. Check the spec's
+export-compat assumption (no consumer of exported snapshots depends
+on the old scoped-externals schema — that section was empty in every
+V1 live capture) against the actual snapshot consumers and record the
+outcome in the task log.
+
+Guardrails: the probe's global entry cap (`maxTotalEntries: 512`, a
+single counter across repositories) may never truncate silently —
+chunk-heavy captures must surface truncation as a collection error or
+explicit flag. Privacy: `entries` values and `file` are file names
+and fall under the URL sanitization rules (relative-URL branch strips
+query/fragment); SRI hash values are collected by policy.
+
+Tests: extend the collector specs with corpus-shaped vectors from
+`captures/` — at least one dev-generation registry (e.g. `clean-skip`
+for conflicts, `scoped` + `non-dense` for the scoped schema,
+`strict-scope` for scope laziness) and the released-v4 registry
+(`frankenstein-live/20260811T115536Z-01-initial.json`).
+
+### Acceptance
+
+- **T4-AC-01** — A dev-generation registry (`entries` spelling)
+  projects with participants keeping `{ name, requiredVersion,
+  strictVersion, cached, bundle?, entries }` and the
+  `{ dirty, versions }` package wrapper intact.
+- **T4-AC-02** — The released-v4 registry (`file` spelling,
+  frankenstein-live shapes) projects with `file` accepted; both
+  spellings produce the normalized served-files representation and
+  the snapshot surfaces the generation discriminator.
+- **T4-AC-03** — A participant carrying both spellings or neither
+  yields a recorded collection error, not silent output.
+- **T4-AC-04** — `scoped-externals` projects through its own
+  single-object schema; an absent repository key and `{}` produce the
+  same zero-entry observation; a `strict`-only scope set projects
+  without `__GLOBAL__` assumptions.
+- **T4-AC-05** — Per-remote `integrity` is collected with SRI hash
+  values (invalid SRI rejected); `shared-chunks` collects
+  `remote → bundleName → fileName[]`.
+- **T4-AC-06** — Entry-cap truncation is recorded loudly (collection
+  error/flag), verified with a synthetic over-cap page.
+- **T4-AC-07** — Exported snapshots carry the explicit
+  `schemaVersion`; the export-compat check outcome is documented.
+- **T4-AC-08** — `entries` values and `file` pass URL sanitization
+  (query/fragment stripped) in the collector privacy specs.
+- Contributes to **XC-02**.
+
+### Key Locations
+
+- `projects/collector/src/lib/passive-probe.ts` (in-page projection),
+  `runtime-schema.ts` (host re-projection), `snapshot-mapper.ts`,
+  `privacy.ts`, `safe.ts`; specs: `snapshot-mapper.spec.ts`,
+  `probe-source.spec.ts`, `edge-cases.spec.ts`.
+- `projects/devtools-bridge/src/lib/snapshot-v1.ts`; export path
+  `projects/devtools-ui/src/app/shared/snapshot-export*`.
+- Shape ground truth: `captures/`, `docs/work/v2/shape-validation.md`.
+
+### Key Discoveries
+
+- The V1 probe projects in-page through a hardcoded old-generation
+  schema (no `bundle`/`entries`, no per-remote `integrity`,
+  scoped-externals forced through the shared schema) — it is being
+  replaced, not extended field-by-field.
+- The mapper distrusts everything from the eval boundary; new fields
+  go through the same `safe.ts` defensive reads + sanitization.
+- The V1 mapper's `OPTIONAL_REPOSITORY_KEYS` concept generalizes to
+  every repository key (all lazy, absent == `{}`).
+- Multi-key `entries` maps were observed nowhere — the schema must
+  allow them (map type), nothing may require them.
+
+## Task 5: Fixture derivation from the lossless corpus
+
+Depends on: Task 4.
+
+### Instructions
+
+Adapt `scripts/derive-fixture.mjs` — which currently consumes
+`frankenstein-runtime-capture/1` envelopes — to the
+`lab-lossless-capture/1` envelope (same top-level channel blocks
+`page`/`collector`/`channels`; added `scenario` block with
+`scenarioId`, and for live captures `readySource`/`phase` plus
+`orchestratorCommit: null`). The channel-state derivation logic ports
+with minimal adaptation — the envelope was designed as a structurally
+compatible sibling for exactly this port.
+
+Derive SnapshotV1 fixture modules:
+
+- one per lab scenario (10) from `captures/<scenario>/<runstamp>.json`
+  (dev generation, `entries` spelling),
+- one `frankenstein-live` fixture from phase
+  `20260811T115536Z-01-initial.json` (released v4, `file` spelling).
+  The two phases are validator-enforced byte-identical — one fixture
+  suffices; say so in the module docstring.
+
+Fixtures land in `projects/devtools-bridge/src/lib/fixtures/`,
+registered in `fixtures/index.ts` and the fixture snapshot provider
+alongside the existing synthetic fixtures. Each module records its
+provenance (capture file, run id, generation; for live: capture URL +
+date, deployment-dependent).
+
+The old allowlist-projected `frankenstein-production.fixture.ts` is
+superseded as evidence: retire it in favor of the new
+frankenstein-live fixture and migrate its consumers. If a consumer
+needs a shape only the old fixture exercises, document that in the
+task log instead of silently keeping both.
+
+Projection follows the Task-4 SnapshotV1 (schemaVersion, served-files
+normalization, generation discriminator); URL sanitization rules
+unchanged (origin + path only); SRI hash handling follows the Task-4
+decision. The script rejects unknown envelope schemaVersions loudly,
+and re-running it is deterministic (byte-identical output).
+
+### Acceptance
+
+- **T5-AC-01** — One fixture module per lab scenario exists, derived
+  by script; re-running the script reproduces byte-identical output.
+- **T5-AC-02** — The frankenstein-live fixture is derived from phase
+  `01-initial`, carries released-generation (`file`-spelling)
+  participants, and records deployment provenance (URL, date,
+  generation).
+- **T5-AC-03** — All new fixtures load through the fixture snapshot
+  provider; the superseded `frankenstein-production` fixture is
+  removed or its remaining consumers are documented.
+- **T5-AC-04** — The script fails loudly on an unknown envelope
+  `schemaVersion`.
+- **T5-AC-05** — Generated fixtures contain no query/fragment/userinfo
+  in any URL (spec or guard evidence).
+- Contributes to **XC-02**.
+
+### Key Locations
+
+- `scripts/derive-fixture.mjs`;
+  `projects/devtools-bridge/src/lib/fixtures/` (+ `index.ts`),
+  `projects/devtools-bridge/src/lib/fixture-snapshot-provider.ts`.
+- Sources: `captures/<scenario>/`, `captures/frankenstein-live/`,
+  `captures/manifest.json`.
+
+### Key Discoveries
+
+- Live captures have no newest-wins rule: every file under
+  `captures/frankenstein-live/` is a corpus member; superseded runs
+  are deleted, not shadowed.
+- The envelope's `scenario` block is the discriminator between lab
+  and live captures (`readySource`/`phase` exist only in live/fallback
+  mode).
+- The privacy guard auto-covers new files under `captures/`
+  recursively; generated fixtures live outside that tree and need
+  their own evidence (AC-05).
+
+## Task 6: Normalized store — entities and ingest
+
+Depends on: Task 5.
+
+### Instructions
+
+Build the V2 normalized store: one ingest of a SnapshotV1 produces
+the model every V2 view will project. Suggested home: a new store
+module under `projects/devtools-ui/src/app/shared/` beside the
+existing V1 `snapshot-store.ts` (which keeps serving the V1 views
+until round 4 replaces them).
+
+**Core relation** (the edge list): one row per *(share scope,
+package, version tag, action, participant)* carrying
+`requiredVersion`, `strictVersion`, `bundle?`, `cached`, the
+participant's normalized served files (already normalized by the
+Task-4 mapper — the store never sees the `entries`/`file` spelling),
+and the joined effective resolution (target URL + integrity
+presence). Secondary entities: remotes (scopeUrl, exposes,
+integrity), chunk groups (owning remote, bundle name or
+pseudo-external origin, files, mapped?), import-map entries
+(specifier, target, scope, integrity).
+
+**Effective map**: implement `mergeDocumentMaps` as the map ground
+truth, exactly this pinned rule (corpus-verified for imports, scopes,
+and integrity):
+
+```
+mergeDocumentMaps(tags, pageBaseUrl):
+  eff = { imports: {}, scopes: {}, integrity: {} }
+  for tag in document order, keeping only tags of the active mode's type:
+    map = JSON.parse(tag.text)
+    for (specifier, target) in map.imports:
+      eff.imports[specifier] = resolveUrl(target, pageBaseUrl)   // later tag wins [*]
+    for (scopePrefix, scopeImports) in map.scopes:
+      for (specifier, target) in scopeImports:
+        eff.scopes[scopePrefix][specifier] = resolveUrl(target, pageBaseUrl)
+    for (url, hash) in map.integrity:
+      eff.integrity[resolveUrl(url, pageBaseUrl)] = hash
+  return eff
+```
+
+The active mode comes from **observed tag types** (`importmap` =
+native, `importmap-shim` = shim; zero tags of the other type is the
+corpus norm). In native mode the shim's `getImportMap()` is empty and
+must be ignored; in shim mode it serves as a cross-check only. An
+empty shim map means "shim uninvolved", never "no map". `[*]` The
+later-tag-wins collision branch is adopted from es-module-shims
+semantics, not corpus-proven — cover it with a seeded unit test.
+
+**Ingest rules:**
+
+- Chunk reclassification from the **union** of both sources:
+  (a) scoped externals whose package name starts `@nf-internal/`
+  (dev non-dense) and (b) `shared-chunks` bundle lists
+  (`remote → bundleName → fileName[]`; released v4 keeps chunks only
+  there). Reclassified entries become chunk groups of the owning
+  remote and never count as packages; true scoped packages stay
+  scoped externals.
+- Sort version rows `(semver tag desc, action)` in the store — the
+  registry's semver order is reliable but same-tag tie order is not.
+- Absent repository key == `{}` — one zero-entry accessor.
+- Expose joining tolerates the literal `/./` infix (live maps join
+  naively: `<remoteName>/./<moduleName>`).
+- Secondary-entry externals (`pkg/subpath`) stay their own externals
+  at ingest — parent linking is a Task-7 derivation.
+- Snapshot provenance carried into the store: generation, capture
+  timestamp, schemaVersion.
+
+Test data: the Task-5 fixtures (both generations). Seeded unit cases
+only for what no capture can show — same-specifier collision across
+tags, mixed-generation participants, a snapshot with neither
+spelling — each tagged as seeded (proves the store reads a shape, not
+that the runtime produces it).
+
+### Acceptance
+
+- **T6-AC-01** — clean-skip fixture: the skip row's participants are
+  intact in the edge list; strict-split fixture: the same tag yields
+  distinct `skip` and `scope` rows with their own participants.
+- **T6-AC-02** — frankenstein-live fixture: 20 packages, one
+  participant each; the store-computed merge equals the recorded shim
+  map for imports, scopes, AND integrity (absolute-URL keys).
+- **T6-AC-03** — dynamic-init-shim fixture: `mergeDocumentMaps` over
+  both tags reproduces the recorded `getImportMap()` exactly;
+  dynamic-init-native fixture: the merge is computed from tags while
+  the empty shim map is ignored.
+- **T6-AC-04** — Chunk union: non-dense fixture chunks come from
+  scoped-externals pseudo-externals; frankenstein-live chunks from
+  `shared-chunks` (host only); the scoped fixture's true package is
+  NOT reclassified; chunks never appear in package counts.
+- **T6-AC-05** — Version rows sort `(semver desc, action)` regardless
+  of input order; absent and `{}` repository keys are equivalent
+  (scoped fixture: no shared-externals; live fixture:
+  `scoped-externals: {}`).
+- **T6-AC-06** — Seeded: same-specifier collision resolves later-tag
+  wins; mixed-generation participants ingest per participant; an
+  expose with the `/./` infix joins to its map entry.
+- Contributes to **XC-02**.
+
+### Key Locations
+
+- New store module under `projects/devtools-ui/src/app/shared/`
+  (beside `snapshot-store.ts`); `projects/devtools-bridge/src/lib/`
+  types and fixtures as input.
+
+### Key Discoveries
+
+Variation catalog (corpus-closed; spec §3 has the full table) — every
+dimension and where it is absorbed:
+
+- Participant spelling `entries` XOR `file` → already normalized by
+  the Task-4 mapper; the store consumes served files + generation
+  provenance only.
+- Zero entries: absent key vs `{}` → one accessor here.
+- Chunk placement: scoped-externals pseudo-externals vs shared-chunks
+  → union reclassification here.
+- Map mode: tag type discriminates; shim map is cross-check only.
+- Share scopes: `__GLOBAL__`, `strict`, `strict`-only — no scope
+  assumed; strict semantics are Task-7 derivations.
+- Registry order: store sorts itself.
+- `mapping-or-exposed`: empty in every capture — nothing may depend
+  on its contents.
+- Expose specifiers: `/./` infix tolerated here.
+
+The strict share scope pins `requiredVersion` to the exact tag at
+store time (config ranges lost) — keep the scope name on rows so
+Task 7 can flag it.
+
+## Task 7: Store derivations — provider, resolution arrows, chunk attribution, badges, provenance
+
+Depends on: Task 6.
+
+### Instructions
+
+All derived knowledge lives in store derivations, never in views.
+Every derived field carries a provenance tag naming the rule that
+produced it (detail views may surface it; Diagnostics findings cite
+it).
+
+**Provider derivation** — match each effective target URL against the
+remotes' `scopeUrl` prefixes; three honest outcomes: *derived*
+(exactly one most-specific match; the host `./` wins only as
+least-specific fallback when no remote prefix matches beyond the page
+base), *ambiguous* (multiple matches without a unique most-specific
+winner — e.g. nested remote prefixes), *unattributable* (no scope
+matches — CDN/foreign origin). A bare longest-prefix rule must never
+let the host claim remote-prefixed files.
+
+**Resolution arrow per participant** — skip participant → the
+winner's served file; share participant and scope row → own file.
+
+**Chunk-attribution ladder** (three honest levels; views are gated on
+it in round 4):
+
+1. Package level — participant carries `bundle` AND the owning remote
+   has a `shared-chunks` bundle list: package → bundle → chunk files.
+2. Remote level only — the chunk group exists as `@nf-internal/`
+   pseudo-externals (dev non-dense): chunks belong to the remote,
+   package attribution is explicitly "not derivable".
+3. No chunk evidence — v4 remotes without bundle grouping: explicit
+   absence, explained by the capability badge.
+
+The "declared, not mapped" diff for losing copies stays
+source-derived (bounded residual — no capture shows it) and must
+carry the source-derived tag.
+
+**Secondary-entry parent linking** — a `pkg/subpath` external links
+to its parent package when the parent exists in the store;
+name-derived and tagged as such. Must handle the real corpus
+patterns: scoped (`@angular/common/http` → `@angular/common`),
+multi-segment (`@angular/core/primitives/di`), file-shaped
+(`@angular/core/event-dispatch-contract.min.js`), unscoped
+(`rxjs/operators`); no link when the parent is absent.
+
+**Capability badges** — per remote: dense chunking (`shared-chunks`
+entry with bundle lists), SRI (`integrity` present), dense externals
+(participants carry `bundle` — multi-key `entries` was observed
+nowhere and must not be the marker). Per snapshot: the generation
+badge (released v4 / dev / mixed) from the provenance the mapper
+recorded.
+
+**Strict-scope semantics** — in the share scope `strict` every exact
+version is `share` by design: the conflict indicator (more than one
+version row) must exclude that scope. `requiredVersion` there is
+pinned to the exact tag at store time — flag such rows so views never
+render the value as a declared range.
+
+### Acceptance
+
+- **T7-AC-01** — frankenstein-live fixture: 20/20 providers derived
+  uniquely; each target equals `scopeUrl + servedFile`; the host
+  never claims whiteboard/mermaid files.
+- **T7-AC-02** — Seeded: nested remote prefixes without a unique
+  most-specific winner → *ambiguous*; a foreign-origin target →
+  *unattributable*.
+- **T7-AC-03** — strict-split fixture: skip participant's arrow →
+  winner's file, scope participant's arrow → own copy; self-fill
+  fixture: the `/extra` external keeps its own share row with arrow →
+  own copy AND is parent-linked to its base package.
+- **T7-AC-04** — frankenstein-live subpath externals link to their
+  parents (`@angular/common/http`, `rxjs/operators`,
+  `@angular/core/primitives/di`, the file-shaped subpath), each
+  tagged name-derived; a seeded orphan subpath yields no link.
+- **T7-AC-05** — Badges: live fixture — host gets dense chunking +
+  dense externals + SRI, whiteboard/mermaid SRI only; generation
+  badge released v4; lab fixtures report dev.
+- **T7-AC-06** — Attribution ladder: a dense fixture yields level-1
+  package chunk data; the non-dense chunk group is level-2 with
+  package attribution "not derivable"; a v4 remote without bundle
+  grouping yields level-3 explicit absence; losing-copy "declared,
+  not mapped" values carry the source-derived tag.
+- **T7-AC-07** — Conflict indicator: strict-scope fixture (two share
+  rows) shows NO conflict; clean-skip (two version rows in
+  `__GLOBAL__`) does; strict-scope rows carry the pinned-range flag.
+- **T7-AC-08** — Every derived field carries a provenance tag naming
+  its rule.
+- Contributes to **XC-02**.
+
+### Key Locations
+
+- The Task-6 store module under
+  `projects/devtools-ui/src/app/shared/` (derivations layer + specs);
+  fixtures from `projects/devtools-bridge/src/lib/fixtures/`.
+
+### Key Discoveries
+
+- Provider derivation is corpus-confirmed unique for every mapped
+  file in all captures (longest prefix, host as fallback) — the
+  ambiguous/unattributable outcomes exist in no capture and need
+  seeded tests.
+- The self-fill mechanism is "secondary as own external" (sole-
+  declarer share row + top-level map entry) — the source-read
+  `selfFillUncovered` participant annotation was observed in neither
+  generation and must not be modeled.
+- `singleton` exists only in `remoteEntry.json` bodies (V3 claims
+  material), never in the runtime registry — section membership
+  (shared vs scoped) is the only singleton signal.
+- Nothing may depend on observing `dirty: true` passively (transient;
+  committed post-override state was clean in the corpus) — if seen,
+  render "pending re-election", never corruption.
+
 ## Cross-Cutting Acceptance
 
 - **XC-01** — Every checked-in **lab scenario** capture is regenerable
@@ -476,28 +908,26 @@ this is the direct input for planning Task 4.
   (`captures/frankenstein-live/`, T3) are deployment-dependent by
   nature and exempt; they carry manifest provenance (URL, date,
   sha256) instead. **Touches:** T1, T2, T3.
+- **XC-02** — Both orchestrator generations flow end to end: a
+  released-v4 capture (`file` spelling) and a dev-generation capture
+  (`entries` spelling) each travel collector → SnapshotV1 → fixture →
+  store → derivations producing equivalent projections; the
+  participant spelling is visible only as generation provenance (and
+  its badge) — no generation branch exists past the SnapshotV1
+  mapper. **Touches:** T4, T5, T6, T7.
 
-## Roadmap — pending re-plan (Tasks 4+)
+## Roadmap — pending re-plan (Round 4, Tasks 8+)
 
-Not planned yet; re-run /plan against the amended spec AND the
-Task-3-extended `docs/work/v2/shape-validation.md`. Numbering
-continues at 4. Expected shape (one line each, non-binding):
+Not planned yet; re-run /plan when Tasks 4–7 are closed. Numbering
+continues at 8. Expected shape (one line each, non-binding):
 
-- Collector delta: extend probe + `runtime-schema.ts` + `SnapshotV1`
-  against the corpus-validated shapes (drop `servedBy`/`pool` if I/J
-  confirm, optional `bundle`, own scoped schema, integrity with
-  hashes, all keys lazy, `strict`-only scopes); privacy review;
-  schemaVersion decision incl. the export-compat assumption check.
-- Fixture derivation: `lab-lossless-capture/1` → SnapshotV1 fixture
-  modules per scenario, frankenstein-live as a first-class fixture.
-- Normalized store: entities + ingest (edge list, chunk
-  reclassification sourced from `scoped-externals`, generation
-  handling via tier-1 seeded fixtures, pinned `mergeDocumentMaps`,
-  store-side `(tag desc, action)` sort).
-- Store derivations: provider derivation, resolution arrows incl.
-  secondary-entry parent linking, capability badges, provenance tags.
-- Round 3+: shell V2 (tab set with Packages default, design tokens,
-  theme, capture status strip with the corrected tag-type channel
-  mapping), Packages tab + shared participant→resolution row +
-  tree-table, Remotes tab, Diagnostics lint + global search +
-  import-map attribution.
+- Shell V2: tab set with Packages as default, design tokens + theme,
+  capture status strip with the tag-type channel mapping (spec
+  2.6/4.6).
+- Packages tab: tree-table, shared participant→resolution row
+  component, capability-gated chunk section (attribution ladder,
+  bounded-residual tagging), strict-scope rendering rules.
+- Remotes tab: per-remote projection, chunk sections with inline
+  explanations, scoped-externals subsection.
+- Import Map tab annotations + Diagnostics lint (registry↔map, incl.
+  the interpretation caveats) + global search.
