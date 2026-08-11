@@ -37,7 +37,7 @@ describe('importMapViewState', () => {
 
   it('maps null importMaps despite an available channel to a defensive missing state', () => {
     const snapshot: SnapshotV1 = {
-      ...structuredClone(FIXTURES['frankenstein-production']),
+      ...structuredClone(FIXTURES['frankenstein-live']),
       importMaps: null,
     };
     const result = importMapViewState(captured(snapshot));
@@ -76,7 +76,7 @@ describe('importMapViewState', () => {
   });
 
   it('maps a null effective map despite an available shim channel to a defensive document-only reason', () => {
-    const snapshot: SnapshotV1 = structuredClone(FIXTURES['frankenstein-production']);
+    const snapshot: SnapshotV1 = structuredClone(FIXTURES['frankenstein-live']);
     snapshot.importMaps!.effective = null;
     const result = importMapViewState(captured(snapshot));
     expect(result.kind).toBe('document-only');
@@ -84,7 +84,7 @@ describe('importMapViewState', () => {
   });
 
   it('maps an effective map to ready', () => {
-    const snapshot = FIXTURES['frankenstein-production'];
+    const snapshot = FIXTURES['frankenstein-live'];
     expect(importMapViewState(captured(snapshot))).toEqual({
       kind: 'ready',
       capture: snapshot.capture,

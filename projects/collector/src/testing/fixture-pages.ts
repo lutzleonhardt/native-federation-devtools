@@ -1,21 +1,21 @@
 /**
  * Test-only fixture pages for the probe safety tests.
  *
- * Pages are modelled as `node:vm` sandboxes. The frankenstein page is
- * seeded from the checked-in production capture (captures/README.md), so
- * the tests need no access to the private research corpus. The hostile
- * page plants getters, functions, and storage traps with call counters —
+ * Pages are modelled as `node:vm` sandboxes. `buildCapturePage`
+ * reconstructs a page from a lossless corpus capture (envelope
+ * `lab-lossless-capture/1`, see captures/README.md) — the same
+ * reconstruction the fixture deriver runs. The frankenstein page is that
+ * reconstruction over the frankenstein-live capture plus passivity
+ * tripwires: getters, functions, and storage traps with call counters —
  * every counter that stays at zero is a passivity proof.
  */
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
+import { loadLabCapture } from './lab-corpus';
 
-const CAPTURE_URL = new URL(
-  '../../../../captures/frankenstein/production-04-remote-interaction.json',
-  import.meta.url,
-);
+const LIVE_CAPTURE_FILE = '20260811T115536Z-01-initial.json';
+
+const IMPORT_MAP_SELECTOR = 'script[type="importmap"],script[type="importmap-shim"]';
 
 export interface PageCounters {
   getterCalls: number;
@@ -35,29 +35,46 @@ export function evaluateProbe(source: string, sandbox: object): unknown {
   return vm.runInNewContext(source, sandbox);
 }
 
-function loadCapture(): any {
-  return JSON.parse(readFileSync(fileURLToPath(CAPTURE_URL), 'utf8'));
-}
+/**
+ * Reconstructs a page sandbox from a lossless corpus capture: location
+ * from the page block, DOM import-map script nodes from the captured raw
+ * tag text, `__NATIVE_FEDERATION__` as a clone of the captured namespace,
+ * and `importShim` returning the captured effective map. Channels the
+ * capture recorded as absent stay absent on the page.
+ */
+export function buildCapturePage(capture: Record<string, any>): Record<string, unknown> {
+  const channels = capture['channels'];
 
-interface EntryList {
-  specifier: string;
-  target?: string;
-  integrity?: string;
-}
+  const domImportMaps = channels.domImportMaps;
+  const scriptNodes: Record<string, unknown>[] =
+    domImportMaps?.availability === 'available'
+      ? (domImportMaps.data.maps ?? []).map((map: any) => makeScriptNode(map.type, map.text))
+      : [];
 
-function entriesToRecord(entries: EntryList[], valueKey: 'target' | 'integrity'): Record<string, string> {
-  return Object.fromEntries(entries.map((entry) => [entry.specifier, entry[valueKey] as string]));
-}
-
-/** Rebuilds the page-shaped import-map object from a capture's entry lists. */
-function rebuildMapObject(map: any): Record<string, unknown> {
-  return {
-    imports: entriesToRecord(map.imports, 'target'),
-    scopes: Object.fromEntries(
-      map.scopes.map((scope: any) => [scope.scope, entriesToRecord(scope.imports, 'target')]),
-    ),
-    integrity: entriesToRecord(map.integrity, 'integrity'),
+  const sandbox: Record<string, unknown> = {
+    location: { origin: capture['page'].origin, pathname: capture['page'].path },
+    document: {
+      readyState: capture['page'].readyState,
+      querySelectorAll: (selector: string) => (selector === IMPORT_MAP_SELECTOR ? scriptNodes : []),
+    },
   };
+
+  const globals = channels.nativeFederationGlobals;
+  if (globals?.availability === 'available' && globals.data?.present === true) {
+    sandbox['__NATIVE_FEDERATION__'] = structuredClone(globals.data.namespace);
+  }
+
+  const shim = channels.importShim;
+  if (shim?.availability === 'available' && shim.data?.present === true) {
+    const importShim = () => {};
+    Object.assign(importShim, {
+      version: shim.data.version,
+      getImportMap: () => structuredClone(shim.data.map),
+    });
+    sandbox['importShim'] = importShim;
+  }
+
+  return sandbox;
 }
 
 function makeScriptNode(type: string, text: string): Record<string, unknown> {
@@ -83,12 +100,13 @@ function makeStorage(counters: PageCounters, sentinel: string): Record<string, u
 }
 
 /**
- * A page modelled on the real frankenstein production capture, with
- * passivity tripwires added outside the recognized schema surface: a
- * getter and a loader function that the probe must never touch.
+ * A page reconstructed from the frankenstein-live capture (phase
+ * 01-initial), with passivity tripwires added outside the recognized
+ * schema surface: a getter and a loader function that the probe must
+ * never touch.
  */
 export function buildFrankensteinPage(): FixturePage {
-  const capture = loadCapture();
+  const capture = loadLabCapture('frankenstein-live', LIVE_CAPTURE_FILE);
   const counters: PageCounters = {
     getterCalls: 0,
     loaderCalls: 0,
@@ -96,15 +114,11 @@ export function buildFrankensteinPage(): FixturePage {
     getImportMapCalls: 0,
   };
 
-  const repositories = capture.channels.nativeFederationGlobals.data.repositories;
-  const federation: Record<string, unknown> = {
-    remotes: structuredClone(repositories['remotes'].value),
-    'scoped-externals': structuredClone(repositories['scoped-externals'].value),
-    'shared-externals': structuredClone(repositories['shared-externals'].value),
-    'shared-chunks': structuredClone(repositories['shared-chunks'].value),
-    loadRemoteModule: () => {
-      counters.loaderCalls += 1;
-    },
+  const sandbox = buildCapturePage(capture);
+
+  const federation = sandbox['__NATIVE_FEDERATION__'] as Record<string, unknown>;
+  federation['loadRemoteModule'] = () => {
+    counters.loaderCalls += 1;
   };
   // Non-schema field on a remote object: the schema-directed projection
   // must never read it, so the getter must never fire.
@@ -121,39 +135,29 @@ export function buildFrankensteinPage(): FixturePage {
     },
   );
 
-  const domMap = capture.channels.domImportMaps.data.maps[0];
-  const scriptNode = makeScriptNode(domMap.type, JSON.stringify(rebuildMapObject(domMap.map)));
-
-  const effectiveMapObject = rebuildMapObject(capture.channels.importShim.data.effectiveImportMap);
+  const inner = sandbox['importShim'] as { version: string; getImportMap: () => unknown };
   const importShim = () => {};
   Object.assign(importShim, {
-    version: capture.channels.importShim.data.version,
+    version: inner.version,
     getImportMap: () => {
       counters.getImportMapCalls += 1;
-      return structuredClone(effectiveMapObject);
+      return inner.getImportMap();
     },
   });
+  sandbox['importShim'] = importShim;
 
   const localStorage = makeStorage(counters, 'local-unchanged');
   const sessionStorage = makeStorage(counters, 'session-unchanged');
+  sandbox['localStorage'] = localStorage;
+  sandbox['sessionStorage'] = sessionStorage;
 
-  const sandbox: Record<string, unknown> = {
-    location: { origin: capture.page.origin, pathname: capture.page.path },
-    document: {
-      readyState: capture.page.readyState,
-      querySelectorAll: (selector: string) =>
-        selector === 'script[type="importmap"],script[type="importmap-shim"]' ? [scriptNode] : [],
-    },
-    localStorage,
-    sessionStorage,
-    __NATIVE_FEDERATION__: federation,
-    importShim,
-  };
+  const scriptNodes = (sandbox['document'] as { querySelectorAll: (s: string) => unknown[] })
+    .querySelectorAll(IMPORT_MAP_SELECTOR);
 
   return {
     sandbox,
     counters,
-    digestTargets: { federation, scriptText: scriptNode, localStorage, sessionStorage },
+    digestTargets: { federation, scriptNodes, localStorage, sessionStorage },
   };
 }
 

@@ -63,8 +63,8 @@ describe('checked-in capture privacy scan', () => {
     (file) => file.endsWith('.json'),
   );
 
-  it('finds the frankenstein source capture', () => {
-    expect(captureFiles).toContain('frankenstein/production-04-remote-interaction.json');
+  it('finds the frankenstein-live source capture', () => {
+    expect(captureFiles).toContain('frankenstein-live/20260811T115536Z-01-initial.json');
   });
 
   it.each(captureFiles)('%s contains no privacy violations', (file) => {

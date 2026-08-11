@@ -41,7 +41,7 @@ describe('runtimeViewState', () => {
 
   it('maps a null runtime despite an available channel to a defensive missing state', () => {
     const snapshot: SnapshotV1 = {
-      ...structuredClone(FIXTURES['frankenstein-production']),
+      ...structuredClone(FIXTURES['frankenstein-live']),
       runtime: null,
     };
     const result = runtimeViewState(captured(snapshot));
@@ -52,7 +52,7 @@ describe('runtimeViewState', () => {
   });
 
   it('maps an available channel with a runtime projection to ready', () => {
-    const snapshot = FIXTURES['frankenstein-production'];
+    const snapshot = FIXTURES['frankenstein-live'];
     const result = runtimeViewState(captured(snapshot));
     expect(result).toEqual({
       kind: 'ready',

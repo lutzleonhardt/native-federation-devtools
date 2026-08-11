@@ -27,8 +27,8 @@ describe('serializeSnapshot', () => {
 
 describe('exportFilename', () => {
   it('names the file from the sanitized page host and the capture time', () => {
-    expect(exportFilename(FIXTURES['frankenstein-production'])).toBe(
-      'nf-snapshot-127.0.0.1-20260724T135022Z.json',
+    expect(exportFilename(FIXTURES['frankenstein-live'])).toBe(
+      'nf-snapshot-lutzleonhardt.de-20260811T115625Z.json',
     );
     expect(exportFilename(FIXTURES['synthetic-hostile'])).toBe(
       'nf-snapshot-synthetic-fixture.example-20260809T000000Z.json',

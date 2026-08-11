@@ -96,8 +96,8 @@ describe('App', () => {
 
     await settle(fixture);
     const status = el.querySelector('.shell-status')!;
-    expect(status.textContent).toContain('http://127.0.0.1:8088/frankenstein-meeting-room/');
-    expect(status.textContent).toContain('2026-07-24T13:50:22.812Z');
+    expect(status.textContent).toContain('https://lutzleonhardt.de/frankenstein-meeting-room/');
+    expect(status.textContent).toContain('2026-08-11T11:56:25.504Z');
     expect(el.querySelector<HTMLButtonElement>('.shell-refresh')!.disabled).toBe(false);
   });
 
@@ -118,7 +118,7 @@ describe('App', () => {
   // store, and the active view renders the new snapshot from the same instance.
   it('refresh re-captures and updates the active view through the shared store', async () => {
     const provider = new SequenceSnapshotProvider([
-      'frankenstein-production',
+      'frankenstein-live',
       'synthetic-collision',
     ]);
     TestBed.overrideProvider(SNAPSHOT_PROVIDER, { useValue: provider });
@@ -165,6 +165,6 @@ describe('appConfig snapshot provider', () => {
     expect(snapshot.schemaVersion).toBe(1);
     expect(snapshot.capture.mode).toBe('passive');
     expect(Object.keys(snapshot.runtime!.remotes)).toContain('whiteboard');
-    expect(PRIMARY_FIXTURE_ID).toBe('frankenstein-production');
+    expect(PRIMARY_FIXTURE_ID).toBe('frankenstein-live');
   });
 });
