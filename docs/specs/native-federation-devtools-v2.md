@@ -11,10 +11,14 @@ Marking convention, extended from V1: every statement is backed by the
 V1 capture evidence, by **source reading** of the pinned upstream
 repositories — orchestrator `8e5e0b3` (2026-08-05) and
 native-federation-core `5e93131` (2026-08-08), cloned under
-`~/projects/nf/` — or by the **lab lossless capture corpus**
-(`captures/<scenario>/`, envelope `lab-lossless-capture/1`,
-orchestrator 4.6.0 @ `8e5e0b3`, manifest `captures/manifest.json`;
-verdicts in `docs/work/v2/shape-validation.md`). Source-backed
+`~/projects/nf/` — or by the **lossless capture corpus**: the lab
+scenarios (`captures/<scenario>/`, envelope `lab-lossless-capture/1`,
+orchestrator 4.6.0 @ `8e5e0b3`) plus the **frankenstein-live**
+captures (`captures/frankenstein-live/`, same envelope, the publicly
+deployed released orchestrator line `^4.0.0`, deployment-dependent —
+provenance sidecar in that directory); manifest
+`captures/manifest.json`, verdicts in
+`docs/work/v2/shape-validation.md`. Source-backed
 statements cite `file:line`; corpus-backed statements cite
 `<scenario>/<runstamp>.json` + JSON path. Where corpus and source
 reading disagree, the corpus wins and the statement says so. Anything
@@ -156,11 +160,19 @@ into `__NATIVE_FEDERATION__`:
   (`generate-import-map.ts registerBundleChunks`), and
   `mapping-or-exposed` is registered unconditionally for every remote
   (`generate-import-map.ts:512`) — corpus-confirmed as a key, but
-  every `mapping-or-exposed` list in the lab corpus is **empty**, so
-  populated bundle lists and the "loser's chunks exist but are not
-  mapped" diff remain unvalidated at lossless fidelity (open question
-  I). That diff stays the source-derived expectation — an explainable
-  diff, not an inconsistency.
+  every `mapping-or-exposed` list is **empty** in the lab corpus AND
+  the live deployment; nothing may depend on its contents. The
+  populated value shape is corpus-confirmed live: `remote →
+  bundleName → fileName[]`, with every listed chunk file mapped as an
+  `@nf-internal/chunk-*` specifier
+  (`frankenstein-live/20260811T115536Z-01-initial.json`,
+  shape-validation row 12) — and only dense-built remotes appear
+  (live: the host only; the esbuild-built remotes are missing
+  entirely, mirroring the non-dense lab finding in the released
+  generation). The "loser's chunks exist but are not mapped" diff
+  stays source-derived: the live deployment is conflict-free, so the
+  winner-only filter is a **bounded residual** — an explainable diff,
+  not an inconsistency, rendered tagged as source-derived.
 - Without `denseChunking` (legacy builds): chunks are emitted as
   pseudo-shared entries `@nf-internal/chunk-*` with version `0.0.0` and
   `singleton: false` (`native-federation-core
@@ -170,10 +182,22 @@ into `__NATIVE_FEDERATION__`:
   than assumed — shared participants keep their `entries` map with the
   per-package served file, so file-level attribution stays intact;
   only the `bundle` grouping is absent.
-- Two registry generations exist in the wild: `file: string` per version
-  was replaced by `bundle` + `entries` (orchestrator commit `a424249`,
-  "Support for integrated secondary entrypoints"). There is no migration
-  code; mixed-generation storage is possible.
+- Two registry generations exist in the wild, and the corpus captured
+  both. The **released v4 line** spells participants
+  `{ name, file, requiredVersion, strictVersion, cached, bundle? }` —
+  `file` a single string
+  (`frankenstein-live/20260811T115536Z-01-initial.json`,
+  shape-validation row 14); the pinned dev commit spells them with an
+  `entries` map instead (commit `a424249`, "Support for integrated
+  secondary entrypoints", replaced `file`). The spelling is the
+  **generation discriminator**: `entries` XOR `file`, never both,
+  never neither — observed across every participant in both corpora.
+  Multi-key `entries` maps were observed **nowhere** (v4 has none,
+  every lab map is single-key): the schema must allow them (it is a
+  map), nothing may require them. There is no migration code;
+  mixed-generation storage stays source-possible and unobserved —
+  normalization must therefore work per participant, not per
+  snapshot.
 
 ### 2.5 Corrections to V1 assumptions
 
@@ -219,7 +243,11 @@ into `__NATIVE_FEDERATION__`:
   and integrity keys resolved against the page base URL — the URL
   normalization is the non-obvious, corpus-verified part; the
   same-specifier collision branch is adopted from es-module-shims
-  semantics, not corpus-proven.
+  semantics, not corpus-proven. The live capture strengthens the rule:
+  resolution against the page base is verified for `imports`,
+  `integrity` AND — first corpus evidence — `scopes` (the DOM tag's 29
+  relative integrity keys resolve to exactly the shim map's 29
+  absolute keys, shape-validation row 15).
 - Collector consequences: `domImportMaps` must collect **all** tags of
   both types in document order; only `importShim.getImportMap()` reports
   a browser-merged effective map, and only where the shim exists. This
@@ -238,9 +266,12 @@ normalized store per capture; every view is a projection of it.
 
 Core relation (the "edge list"): one row per
 *(scope, package, version tag, action, participant)* with
-`requiredVersion`, `strictVersion`, `bundle?`, `entries`, `cached`,
-plus the joined effective resolution (import-map target URL and
-integrity presence). The effective map is the store's own
+`requiredVersion`, `strictVersion`, `bundle?`, `cached`, and the
+participant's **served files** — normalized from the
+generation-discriminating spelling (`entries` map, dev; `file`
+string, released v4; see 2.4) at the collector mapper, so nothing
+past the snapshot branches on the generation — plus the joined
+effective resolution (import-map target URL and integrity presence). The effective map is the store's own
 document-order merge of the mode's tags (pinned rule, shape-validation
 row 8); in shim mode `importShim.getImportMap()` is a cross-check
 only. Secondary entities: remotes (scopeUrl, exposes),
@@ -261,12 +292,18 @@ Normalization rules applied on ingest:
    scope (`./`, effectively the page base URL) is a prefix of almost
    everything and must never win by default; a bare longest-prefix rule
    would silently attribute foreign files to the host.
-2. **Legacy chunk reclassification.** Scoped externals whose package name
-   starts with `@nf-internal/` are chunks, not packages; they move to the
-   owning remote's chunk group and never appear in package counts. The
-   prefix is the runtime's own `CHUNK_PREFIX` constant
-   (`native-federation-core src/lib/domain/core/chunk.ts:1`), but the
-   rule remains a heuristic over a name a real package could carry.
+2. **Chunk reclassification from the union of both sources.** Chunk
+   groups are built from (a) scoped externals whose package name
+   starts with `@nf-internal/` (dev-generation non-dense remotes) AND
+   (b) `shared-chunks` bundle lists (`remote → bundleName →
+   fileName[]`; the released v4 generation keeps chunks **only**
+   there — `scoped-externals` is empty in the live deployment,
+   shape-validation row 12). Reclassified entries move to the owning
+   remote's chunk group and never appear in package counts. The
+   `@nf-internal/` prefix is the runtime's own `CHUNK_PREFIX` constant
+   (`native-federation-core src/lib/domain/core/chunk.ts:1`) and the
+   stable marker in both generations, but the rule remains a heuristic
+   over a name a real package could carry.
 3. **Resolution arrow per participant.** Each participant row gets an
    explicit "resolves to" value: the winner's file (skip) or its own
    file (share participant / scope row). Corpus correction
@@ -278,15 +315,67 @@ Normalization rules applied on ingest:
    rule (proposal): link a secondary-entry external (`pkg/subpath`) to
    its parent package so the Packages tab can group them; the link is
    name-derived and tagged as such.
-4. **Capability detection per remote**, derived from data shape:
-   `shared-chunks` present → dense chunking; `integrity` present → SRI;
-   multi-key `entries` → dense externals. Rendered as badges so views can
-   degrade loudly instead of silently.
+4. **Capability detection per remote**, derived from data shape: a
+   `shared-chunks` entry with bundle lists → dense chunking;
+   `integrity` present → SRI; participants carrying `bundle` → dense
+   externals (re-based: multi-key `entries` — the earlier marker — was
+   observed nowhere, shape-validation row 14). Plus one snapshot-level
+   badge: the orchestrator **generation** (released v4 / dev / mixed),
+   derived from the participant spelling (2.4). Rendered as badges so
+   views can degrade loudly instead of silently.
 5. **Provenance marking.** Every field the store computes rather than
    reads — provider, resolution arrows, reclassified chunks, capability
    badges — is tagged `derived`, naming the rule that produced it. The
    spec's marking discipline extends into the data: detail views may
    surface the tag, and Diagnostics findings cite it.
+
+### Variation catalog (corpus-closed)
+
+The orchestrator variations are not an open permutation space: after
+the two capture rounds they form a closed, evidence-backed catalog
+with exactly one structural fork (the participant spelling). Each
+dimension is absorbed at exactly one layer; downstream code sees one
+model. Combinations are covered by the eleven real fixtures (ten lab
+scenarios + frankenstein-live) — natural, capture-backed combinations
+instead of an invented test matrix.
+
+| Dimension | Observed variants | Absorbed by |
+|---|---|---|
+| Participant spelling | `entries` map (dev) XOR `file` string (released v4) | collector mapper: normalized served files + generation provenance; both-or-neither → collection error |
+| Zero entries | repository key absent (lab) vs `{}` (live) | one ingest accessor — both mean "no entries" |
+| Chunk placement | `scoped-externals` pseudo-externals (dev non-dense) vs `shared-chunks` bundle lists (v4/dense) | union reclassification (rule 2), `@nf-internal/` marker |
+| `bundle` / `integrity` | present or absent, in both generations | optional fields + capability badges (rule 4) |
+| Map mode | native `importmap` vs `importmap-shim` tags; shim map empty in native mode | one `mergeDocumentMaps`; observed tag type is the discriminator, shim map cross-check only |
+| Share scopes | `__GLOBAL__`, `strict`, `strict`-only | schema assumes no scope; strict rules are derivations |
+| Registry order | semver-desc reliable; same-tag tie order not | store sorts `(tag desc, action)` itself |
+| `mapping-or-exposed` | empty in every capture, lab and live | nothing may depend on its contents |
+| Expose specifiers | live maps join naively: `<remote>/./<module>` | tolerate the literal `/./` infix at ingest |
+
+Anything outside the catalog fails loudly (collection error, rejected
+envelope schemaVersion) instead of rendering silently wrong; the
+corpus validator pins observed reality, so an orchestrator update
+that introduces a new variant surfaces at the next re-capture, not
+silently in the panel.
+
+**Chunk-attribution ladder** — the concrete face of
+"feature-dependent richness" (§5): chunk→package attribution is a
+capability-dependent derivation with three honest levels.
+
+1. **Package level** — the participant carries `bundle` AND the
+   owning remote has a `shared-chunks` bundle list: package → bundle
+   name → chunk files (dense-built; live: the host only).
+2. **Remote level only** — the chunk group exists as `@nf-internal/`
+   pseudo-externals (dev non-dense): chunks provably belong to the
+   remote, package attribution is honestly "not derivable" (no bundle
+   grouping exists).
+3. **No chunk evidence** — v4 remotes without bundle grouping
+   (esbuild-built; live: whiteboard/mermaid): neither a
+   `shared-chunks` entry nor pseudo-externals. Views render explicit
+   absence, and the capability badge explains why.
+
+The 4.1 chunk section and the Remotes-tab chunk sections are gated on
+this ladder; a view must state its level instead of silently showing
+a gap.
 
 The three pivots — by package, by remote, by file — group the same edges
 differently. Rendering the same edge in two pivots is projection, not
@@ -306,14 +395,18 @@ precedes the views**, not an afterthought:
 
 - per-remote `integrity` (SRI capability badge, per-file SRI columns)
   — corpus shape: `remotes` entry = `{ scopeUrl, exposes[],
-  integrity? }`, hash values included,
-- `bundle` (optional — absent for non-dense participants) and
-  `entries` on shared participants (chunk attribution, resolution
-  arrows, entry-point coverage), plus the `{ dirty, versions }`
+  integrity? }`, hash values included; live-confirmed at scale
+  (29 SRI entries across three remotes, shape-validation row 15),
+- `bundle` (optional — the released-generation norm, not a non-dense
+  edge case: live host participants carry it, whiteboard/mermaid
+  don't) and the served-files spelling on shared participants:
+  `entries` map (dev) XOR `file` string (released v4), both accepted
+  and normalized into one served-files representation with the
+  generation surfaced (2.4) — plus the `{ dirty, versions }`
   package wrapper,
-- `servedBy` and `pool` on participants — **dropped**: never observed
-  in the corpus (shape-validation row 1); reinstate only if the
-  real-app re-capture surfaces them (§7 J),
+- `servedBy` and `pool` on participants — **dropped, final**: absent
+  in both observed generations under real sharing (shape-validation
+  rows 1 and 13),
 - the `ScopedVersion` shape, corpus-validated
   (`scoped/20260811T095215Z.json`): nesting is
   `scoped-externals[remote][pkg] → { tag, bundle?, entries }` — a
@@ -322,8 +415,11 @@ precedes the views**, not an afterthought:
   wrong,
 - all four repository keys are lazy in both directions (a conflict
   capture has no `scoped-externals`, a scoped capture no
-  `shared-externals`), and `strict` can be the **only** share scope
-  present — nothing may assume `__GLOBAL__` exists
+  `shared-externals`), and lazy means absent **or** present-but-empty
+  — the live deployment carries `scoped-externals: {}`
+  (shape-validation row 12); both are the same zero-entry
+  observation. `strict` can be the **only** share scope present —
+  nothing may assume `__GLOBAL__` exists
   (`strict-scope/20260811T095035Z.json`).
 
 Every addition triggers the established hand-sync discipline (probe
@@ -400,10 +496,14 @@ Rules demonstrated in the sketch:
   configured range is lost (`strict-scope/20260811T095035Z.json`), so
   strict-scope rows must not present `requiredVersion` as a declared
   range.
-- Chunk lists on the provider's version row; losing rows show
-  "n chunks declared, not mapped" (from `shared-chunks`, 2.4) —
-  rendering blocked on open question I: populated `shared-chunks`
-  lists are unvalidated at lossless fidelity.
+- Chunk lists on the provider's version row, gated on the
+  chunk-attribution ladder (§3): package-level detail only at level 1
+  (`bundle` + `shared-chunks` list; value shape corpus-confirmed,
+  shape-validation row 12); levels 2/3 state their bound instead of
+  showing a silent gap. Losing rows show "n chunks declared, not
+  mapped" — the winner-only diff itself stays source-derived (bounded
+  residual: no conflicting deployment with bundle-bearing copies
+  exists) and renders with the source-derived tag, informational.
 - Wording is "mapped / loaded on demand", never "loaded" — resolution is
   not delivery (V1 invariant, unchanged).
 
@@ -584,10 +684,17 @@ request ≠ execution. New, source-backed:
   never runtime use. Row wording: "resolves to", not "uses".
 - **Singleton is implicit.** Section membership only (2.2); the per-copy
   flag needs bodies (deferred).
-- **Absent keys are lazy, not errors.** All four repository keys are
-  written on first use only; absence means "nothing of this kind
-  registered" — corpus-confirmed in both directions (`scoped` has no
-  `shared-externals`, conflict scenarios no `scoped-externals`).
+- **Absent keys are lazy, not errors — and empty equals absent.** All
+  four repository keys are written on first use only; absence means
+  "nothing of this kind registered" — corpus-confirmed in both
+  directions (`scoped` has no `shared-externals`, conflict scenarios
+  no `scoped-externals`) — and the live deployment shows the second
+  spelling of the same observation: `scoped-externals: {}`
+  (shape-validation row 12).
+- **Generation is provenance, not a branch.** The participant
+  spelling (`entries` XOR `file`, 2.4) discriminates the orchestrator
+  generation; it is normalized at the collector mapper and surfaces
+  only as a snapshot-level badge — no view logic may branch on it.
 - **Failed remotes are invisible** (2.3). The UI must not enumerate what
   it cannot see; the Remotes tab states the capture boundary.
 - **Feature-dependent richness.** Capability badges (3.4) explain why a
@@ -634,10 +741,12 @@ and the lab lossless capture corpus; verdicts live in
   skip, strict split (`skip`+`scope` rows of one tag), scope
   isolation, and self-fill; the row model held, the self-fill
   *mechanism* deviated (secondary as own external, 3.3).
-- **E — Legacy-generation fixture. Half-closed.** Non-dense captured
-  (`non-dense`); the pre-`a424249` `file`-field generation remains
-  uncaptured — tier-1 seeded fixtures stay the vehicle for the store's
-  generation handling; that claim stays source-derived.
+- **E — Legacy-generation fixture. Closed by the live re-capture.**
+  Non-dense captured (`non-dense`), and the `file`-spelling
+  generation is captured for real: the live deployment runs the
+  released v4 line (shape-validation row 14) — frankenstein-live is
+  the released-generation fixture. Only mixed-generation storage
+  stays uncaptured (seeded unit tests, per participant).
 - **F — shareScope / strict-scope fixture. Closed.** `strict` scope
   captured, including the range-pinning finding (4.1) and
   `strict`-as-only-scope.
@@ -653,30 +762,42 @@ and the lab lossless capture corpus; verdicts live in
   collision branch is not corpus-proven ("later tag wins" follows
   es-module-shims semantics).
 
-Still open — the lab corpus cannot answer these; they need a real
-deployment (the planned lossless re-capture of the public
-frankenstein app):
+Round-2 validation (plan task 3) closed the remaining gaps with the
+lossless frankenstein-live re-capture (shape-validation rows 12–16):
 
-- **I — Populated `shared-chunks` and winner-only bundle mapping.**
-  Every `mapping-or-exposed` list in the lab corpus is empty; the only
-  populated evidence is allowlist-projected. The Packages-tab chunk
-  detail (4.1) is blocked on this.
-- **J — `servedBy`/`pool` in a real app.** Never observed under the
-  lab's minimal sharing; the schema drop (§3 collector delta) is final
-  only if a real-app capture with real Angular packages also lacks
-  them.
-- **K — Real secondary entry points at scale.** Multi-key `entries`
-  and the secondary-as-own-external pattern (3.3) are exercised only
-  with the lab's artificial package so far.
+- **I — Populated `shared-chunks` and winner-only bundle mapping.
+  Closed as far as observable.** The value shape (`remote →
+  bundleName → fileName[]`) is confirmed at lossless fidelity and
+  every listed chunk file is mapped (row 12). The winner-only filter
+  itself stays not exercised — the deployment is conflict-free, and
+  no available deployment produces losing bundle-bearing copies:
+  accepted as a **bounded residual**. The 4.1 chunk detail is
+  unblocked; the diff renders tagged source-derived.
+- **J — `servedBy`/`pool` in a real app. Closed.** Absent in both
+  observed generations under real sharing (row 13); the schema drop
+  is final.
+- **K — Real secondary entry points at scale. Closed.** The
+  secondary-as-own-external pattern holds with real packages
+  (`@angular/common/http`, `rxjs/operators`, multi-segment and
+  file-shaped subpaths, row 14); `selfFillUncovered` was observed in
+  neither generation. Multi-key `entries` maps remain unobserved:
+  allow, never require.
+- **New finding, promoted to requirement: generation awareness**
+  (2.4, §3 catalog). Released v4 spells participants with `file`,
+  dev with `entries`; schema and fixtures must carry both, normalized
+  per participant, surfaced as provenance.
 
 ### Fixture strategy
 
 Status: tier 2 exists — the serial scenario runner plus the
 10-scenario lossless corpus (plan round 1; a deliberate deviation from
 the one-deployment catalog below: checked-in definition folders plus a
-runner preserve stable IDs and regenerability). Tier-1 seeded fixtures
-remain the vehicle for the legacy `file` generation. Questions I–K
-need a real deployment, not a fixture.
+runner preserve stable IDs and regenerability), extended by the
+frankenstein-live captures (plan round 2): a real released-generation
+(`file`-spelling) capture, so seeded fixtures are no longer the only
+vehicle for that generation. Tier-1 seeded fixtures remain for what no
+capture can show: mixed-generation storage and the same-specifier
+map-collision branch. Questions I–K are closed (above).
 
 These questions are answerable with artificial fixtures, on two tiers
 that prove different things:
