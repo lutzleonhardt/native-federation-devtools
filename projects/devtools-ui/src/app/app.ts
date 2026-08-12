@@ -1,19 +1,24 @@
+import { NgComponentOutlet } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
+import { environment } from '../environments/environment';
 import { SnapshotExportService } from './shared/snapshot-export.service';
 import { FederationStore } from './shared/store/federation-store';
 import { CaptureStatusStrip } from './shell/capture-status-strip';
 
 @Component({
   selector: 'nf-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, CaptureStatusStrip],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, CaptureStatusStrip, NgComponentOutlet],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
 export class App {
   protected readonly exporter = inject(SnapshotExportService);
   private readonly store = inject(FederationStore);
+
+  /** Dev-only shell additions (fixture picker); empty in the extension build. */
+  protected readonly shellExtras = environment.shellExtras;
 
   protected readonly capturing = computed(() => this.store.state().status === 'capturing');
 

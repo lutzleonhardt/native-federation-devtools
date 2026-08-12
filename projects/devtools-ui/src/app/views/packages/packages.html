@@ -1,0 +1,331 @@
+<section class="view packages-view">
+  <h1>Packages</h1>
+  @if (vm(); as vm) {
+    <div class="packages-toolbar">
+      <div class="filter-group" role="group" aria-label="filter packages">
+        <button
+          type="button"
+          class="nf-button filter-button"
+          [class.active]="filter() === 'all'"
+          [attr.aria-pressed]="filter() === 'all'"
+          (click)="setFilter('all')"
+        >
+          All ({{ vm.packageCount }})
+        </button>
+        <button
+          type="button"
+          class="nf-button filter-button"
+          [class.active]="filter() === 'conflicts'"
+          [attr.aria-pressed]="filter() === 'conflicts'"
+          (click)="setFilter('conflicts')"
+        >
+          Conflicts ({{ vm.conflictCount }})
+        </button>
+      </div>
+      <ul class="scopes-summary" aria-label="share scopes">
+        @for (scope of vm.scopes; track scope.scope) {
+          <li class="scope-item">
+            <span
+              class="scope-name"
+              [class.tip]="scope.label !== scope.scope"
+              [attr.title]="scope.label === scope.scope ? null : scope.scope"
+              >{{ scope.label }}</span
+            >
+            <span class="scope-count">{{ scope.packageCount }}</span>
+          </li>
+        }
+      </ul>
+    </div>
+
+    @if (vm.emptyNote) {
+      <p class="view-observation">{{ vm.emptyNote }}</p>
+    } @else {
+      <nf-master-detail class="packages-split">
+        <nf-tree-table
+          nfMaster
+          label="shared packages"
+          [rows]="vm.rows"
+          [selectedId]="selectedId()"
+          (selectRow)="onSelect($event)"
+        >
+          <ng-template let-payload>
+            @if (payload.linked) {
+              <span class="linked-glyph" aria-hidden="true">↳</span>
+            }
+            <span
+              class="pkg-name"
+              [attr.title]="
+                payload.linked
+                  ? 'secondary entry of ' +
+                    payload.linked.parentPackage +
+                    ' — rule: ' +
+                    payload.linked.rule
+                  : null
+              "
+              >{{ payload.displayName }}</span
+            >
+            @if (payload.scopeLabel) {
+              <span class="pkg-scope" title="share scope">{{ payload.scopeLabel }}</span>
+            }
+            <span class="pkg-version">{{ payload.versionSummary }}</span>
+            @if (payload.conflict) {
+              <span class="pkg-conflict" [title]="payload.conflict.note">{{
+                payload.conflict.label
+              }}</span>
+            }
+            <span class="pkg-tail">
+              @if (payload.providers.length <= 3) {
+                @for (provider of payload.providers; track provider.name) {
+                  <nf-participant-chip [name]="provider.name" [host]="provider.host" />
+                }
+              } @else {
+                <span class="pkg-declarers tip" [title]="providerNames(payload)"
+                  >{{ payload.providers.length }} providers</span
+                >
+              }
+              @if (payload.alsoDeclaredBy; as also) {
+                <span class="pkg-count tip" [title]="also.tooltip">+{{ also.count }}</span>
+              }
+            </span>
+          </ng-template>
+        </nf-tree-table>
+
+        <div nfDetail class="pkg-detail">
+          @if (vm.detail; as detail) {
+            <h2 class="detail-name">{{ detail.packageName }}</h2>
+            <p class="detail-meta">
+              <span class="detail-scope"
+                >share scope
+                <span
+                  class="mono"
+                  [class.tip]="detail.scopeDisplay !== detail.scope"
+                  [attr.title]="detail.scopeDisplay === detail.scope ? null : detail.scope"
+                  >{{ detail.scopeDisplay }}</span
+                ></span
+              >
+              @if (detail.strictScope) {
+                <span
+                  class="detail-strict"
+                  title="every exact version in the strict scope is shared by design"
+                  >pinned scope</span
+                >
+              }
+              @if (detail.parent) {
+                <span class="detail-parent">
+                  secondary entry of
+                  <a
+                    [routerLink]="['/packages']"
+                    [queryParams]="{ select: detail.parent.packageId }"
+                    [title]="
+                      'parent association derived from the package name — rule: ' +
+                      detail.parent.rule
+                    "
+                    >{{ detail.parent.packageName }}</a
+                  >
+                </span>
+              }
+            </p>
+
+            <h3>Negotiation</h3>
+            @if (detail.negotiationNote) {
+              <p class="negotiation-note view-observation">{{ detail.negotiationNote }}</p>
+            }
+            @for (version of detail.negotiation; track version.tag + version.action) {
+              <div class="detail-version">
+                <p class="detail-version-head">
+                  <span class="ver-symbol" aria-hidden="true">{{ version.symbol }}</span>
+                  <span class="ver-tag">{{ version.tag }}</span>
+                  <span class="ver-action" [title]="version.actionNote">{{ version.action }}</span>
+                  @if (version.isolated) {
+                    <span class="ver-isolated"
+                      >isolated — mapped only for {{ version.isolated.audience }}</span
+                    >
+                  }
+                </p>
+                @for (participant of version.participants; track participant.name) {
+                  <div class="detail-participant">
+                    <nf-participant-row
+                      [name]="participant.name"
+                      [host]="participant.host"
+                      [declared]="participant.declared"
+                      [strict]="participant.strict"
+                      [arrow]="participant.arrow ?? undefined"
+                    >
+                      <a
+                        nfParticipant
+                        class="chip-link"
+                        [routerLink]="['/remotes']"
+                        [queryParams]="{ select: participant.remoteSelect }"
+                        ><nf-participant-chip
+                          [name]="participant.name"
+                          [host]="participant.host"
+                      /></a>
+                    </nf-participant-row>
+                    @if (participant.provider; as provider) {
+                      <p class="provider-line">
+                        @switch (provider.outcome) {
+                          @case ('derived') {
+                            provider:
+                            <a
+                              class="chip-link"
+                              [routerLink]="['/remotes']"
+                              [queryParams]="{ select: provider.remote }"
+                              [title]="
+                                'derived by most-specific scope-prefix matching — rule: ' +
+                                provider.rule
+                              "
+                              ><nf-participant-chip [name]="provider.remote" [host]="provider.host"
+                            /></a>
+                            @if (provider.hostFallback) {
+                              <span
+                                class="provider-fallback"
+                                title="the host matched only as least-specific fallback — no remote scope prefix matched"
+                                >fallback</span
+                              >
+                            }
+                          }
+                          @case ('ambiguous') {
+                            <nf-state-badge
+                              kind="ambiguous"
+                              [note]="
+                                'most-specific scope tie: ' + provider.candidates.join(', ')
+                              "
+                            />
+                          }
+                          @case ('unattributable') {
+                            <span class="view-observation"
+                              >provider unattributable — no scope prefix matches this target</span
+                            >
+                          }
+                        }
+                      </p>
+                    }
+                    @if (participant.declaredNotMapped; as residual) {
+                      @if (residual.count > 0) {
+                        <p class="residual-line">
+                          {{ residual.count }} declared, not mapped
+                          <span
+                            class="rule-tag"
+                            [title]="
+                              'grounded in orchestrator source reading, not capture evidence: ' +
+                              residual.files.join(', ')
+                            "
+                            >{{ residual.rule }}</span
+                          >
+                        </p>
+                      }
+                    }
+                  </div>
+                }
+              </div>
+            }
+
+            <h3>Entries</h3>
+            @if (detail.entries.length > 0) {
+              <ul class="entry-list">
+                @for (entry of detail.entries; track entry.participant + entry.file) {
+                  <li class="entry-item">
+                    <a
+                      class="chip-link"
+                      [routerLink]="['/remotes']"
+                      [queryParams]="{ select: entry.participant }"
+                      ><nf-participant-chip [name]="entry.participant" [host]="entry.host"
+                    /></a>
+                    <span class="entry-file">{{ entry.file }}</span>
+                    @if (entry.targetUrl) {
+                      <a
+                        class="entry-mapped"
+                        [routerLink]="['/import-map']"
+                        [queryParams]="{ select: entry.importMapSelect }"
+                        [title]="entry.targetUrl"
+                        >mapped</a
+                      >
+                    } @else {
+                      <span class="view-observation">not mapped</span>
+                    }
+                    @if (entry.hasIntegrity) {
+                      <span class="entry-sri" title="the mapped target carries an SRI hash"
+                        >SRI</span
+                      >
+                    }
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="view-observation">no served files recorded for mapped copies</p>
+            }
+
+            <h3>Integrity</h3>
+            @if (detail.integrity.mappedTargets > 0) {
+              <p class="integrity-line">
+                {{ detail.integrity.withIntegrity }} of {{ detail.integrity.mappedTargets }} mapped
+                targets carry SRI hashes
+              </p>
+            } @else {
+              <p class="view-observation">no mapped targets for this package</p>
+            }
+
+            <h3>Chunks</h3>
+            @if (detail.chunks; as chunks) {
+              @switch (chunks.level) {
+                @case ('package') {
+                  @if (chunks.packageEntry; as chunkEntry) {
+                    <dl class="detail-kv">
+                      <div class="kv-row">
+                        <dt>bundle</dt>
+                        <dd class="mono">{{ chunkEntry.bundleName }}</dd>
+                      </div>
+                      <div class="kv-row">
+                        <dt>chunk files</dt>
+                        <dd
+                          [title]="
+                            'joined from the registry bundle-chunk lists — rule: ' + chunks.rule
+                          "
+                        >
+                          {{ chunkEntry.files.length }} · {{ chunkEntry.mappedCount }} mapped ·
+                          loaded on demand
+                        </dd>
+                      </div>
+                    </dl>
+                    @if (chunkEntry.files.length > 0) {
+                      <ul class="chunk-list">
+                        @for (file of chunkEntry.files; track file) {
+                          <li class="mono">{{ file }}</li>
+                        }
+                      </ul>
+                    } @else {
+                      <p class="view-observation">
+                        the bundle records no chunk list in this capture
+                      </p>
+                    }
+                    <p class="chunk-link"><a [routerLink]="['/import-map']">open in Import Map</a></p>
+                  } @else {
+                    <p class="view-observation" [attr.title]="'rule: ' + chunks.rule">
+                      {{ chunks.remoteDisplay }} records chunk lists, but none for this package
+                    </p>
+                  }
+                }
+                @case ('remote') {
+                  <p class="view-observation" [attr.title]="'rule: ' + chunks.rule">
+                    {{ chunks.note }} ({{ chunks.groupCount }} chunk groups)
+                  </p>
+                }
+                @case ('none') {
+                  <p class="view-observation" [attr.title]="'rule: ' + chunks.rule">
+                    {{ chunks.note }}
+                  </p>
+                }
+              }
+            } @else if (detail.chunksUnavailable) {
+              <p class="view-observation">{{ detail.chunksUnavailable }}</p>
+            }
+          } @else {
+            <p class="view-observation">Select a package on the left.</p>
+          }
+        </div>
+      </nf-master-detail>
+    }
+  } @else {
+    <p class="view-observation">no captured snapshot to render</p>
+  }
+</section>

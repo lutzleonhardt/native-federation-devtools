@@ -1,0 +1,35 @@
+:host {
+  display: inline-flex;
+}
+
+.chip {
+  padding: 0 5px;
+  border: 1px solid var(--nf-color-border);
+  border-radius: 3px;
+  background: var(--nf-color-surface);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.chip-remote {
+  font-family: var(--nf-font-mono);
+  color: var(--nf-color-text);
+}
+
+.chip-host {
+  color: var(--nf-color-text-muted);
+  /* Tooltip affordance (shell convention): the verbatim sentinel is the title. */
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+}
+
+/* Inside a link the chip is the navigation affordance: pointer + hover
+ * accent (the shell's link convention), overriding the tooltip cursor. */
+:host-context(a) .chip {
+  cursor: pointer;
+}
+
+:host-context(a:hover) .chip {
+  border-color: var(--nf-color-accent);
+}

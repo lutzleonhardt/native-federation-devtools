@@ -70,17 +70,19 @@ describe('App', () => {
     expect(labels).toEqual(['Packages', 'Remotes', 'Import Map', 'Diagnostics']);
   });
 
-  // T8-AC-01: `/packages` is the default route and every tab renders an
-  // honest placeholder — plain text, no fake data.
-  it('defaults to /packages and renders honest placeholders on all tabs', async () => {
+  // T8-AC-01: `/packages` is the default route (since Task 10 the real
+  // Packages view); the remaining tabs render honest placeholders.
+  it('defaults to /packages and renders honest placeholders on the open tabs', async () => {
     const fixture = TestBed.createComponent(App);
     const router = TestBed.inject(Router);
     await router.navigateByUrl('/');
     await settle(fixture);
     expect(router.url).toBe('/packages');
+    const packagesView = (fixture.nativeElement as HTMLElement).querySelector('.view')!;
+    expect(packagesView.querySelector('h1')?.textContent).toBe('Packages');
+    expect(packagesView.textContent).not.toContain('view not implemented yet');
 
     for (const [url, title] of [
-      ['/packages', 'Packages'],
       ['/remotes', 'Remotes'],
       ['/import-map', 'Import Map'],
       ['/diagnostics', 'Diagnostics'],
@@ -193,6 +195,15 @@ describe('App', () => {
     );
     expect(el.querySelectorAll('.strip-entry')).toHaveLength(0);
     expect(el.querySelectorAll('.strip-warning')).toHaveLength(0);
+  });
+
+  // Dev environment only: the fixture picker mounts in the status line via
+  // environment.shellExtras (the extension environment ships an empty list).
+  it('mounts the dev fixture picker in the status line', async () => {
+    const fixture = TestBed.createComponent(App);
+    await settle(fixture);
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.shell-status nf-fixture-picker select')).not.toBeNull();
   });
 
   // T6: clicking the button delegates to the export service.
