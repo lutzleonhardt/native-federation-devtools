@@ -1,0 +1,71 @@
+<section class="view kit-demo">
+  <h1>View kit demo</h1>
+  <p class="view-observation">
+    Dev-only playground for the Task-9 kit — hand-made sample data, not captured evidence. The
+    extension build ships no route to this page.
+  </p>
+
+  <h2>tree-table · master-detail · kv-list</h2>
+  <nf-master-detail class="demo-split">
+    <nf-tree-table
+      nfMaster
+      label="demo scopes"
+      [rows]="rows()"
+      [selectedId]="selectedId()"
+      (toggleRow)="onToggle($event)"
+      (selectRow)="onSelect($event)"
+    >
+      <ng-template let-payload>
+        <span class="node-name">{{ payload.name }}</span>
+        @if (payload.hint) {
+          <span class="node-hint">{{ payload.hint }}</span>
+        }
+      </ng-template>
+    </nf-tree-table>
+    <div nfDetail>
+      @if (detail(); as items) {
+        <nf-kv-list [items]="items" />
+      } @else {
+        <p class="view-observation">Select a row on the left.</p>
+      }
+    </div>
+  </nf-master-detail>
+  <p class="demo-hint">
+    Keyboard: Up/Down move focus, Right/Left expand/collapse, Enter selects. Expansion and
+    selection live in this page's state — the tree only emits requests.
+  </p>
+
+  <h2>participant-row variants</h2>
+  <div class="demo-rows">
+    @for (variant of rowVariants; track $index) {
+      <div class="demo-row">
+        <span class="demo-caption">{{ variant.caption }}</span>
+        <nf-participant-row
+          [name]="variant.name"
+          [declared]="variant.declared"
+          [strict]="variant.strict"
+          [arrow]="variant.arrow"
+          [action]="variant.action"
+          [actionNote]="variant.actionNote"
+        >
+          @if (variant.link) {
+            <a nfRowLinks href="#">map entry</a>
+          }
+        </nf-participant-row>
+      </div>
+    }
+  </div>
+
+  <h2>capability badge vs. honest-state badge</h2>
+  <div class="demo-badges">
+    <nf-capability-badge label="chunking" note="bundle chunk lists are recorded in the registry" />
+    <nf-capability-badge
+      label="dense externals"
+      note="participants carry per-bundle external metadata"
+    />
+    <nf-capability-badge label="SRI" note="import map entries carry integrity hashes" />
+    <span class="demo-vs">vs</span>
+    <nf-state-badge kind="partial" note="only one channel fed this capture" />
+    <nf-state-badge kind="ambiguous" note="association not proven by evidence" />
+  </div>
+</section>

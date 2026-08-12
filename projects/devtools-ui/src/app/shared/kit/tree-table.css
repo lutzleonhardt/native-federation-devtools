@@ -1,0 +1,62 @@
+.tree {
+  display: flex;
+  flex-direction: column;
+}
+
+.tree-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  padding-inline-start: calc(8px + var(--tree-depth, 0) * 16px);
+  cursor: default;
+  user-select: none;
+}
+
+.tree-row:hover {
+  background: var(--nf-color-surface);
+}
+
+.tree-row.selected {
+  background: var(--nf-color-accent);
+  color: var(--nf-color-accent-contrast);
+  /* Re-point the muted token so projected row content (which the kit cannot
+   * style directly) stays readable on the accent background. */
+  --nf-color-text-muted: var(--nf-color-accent-contrast);
+}
+
+.tree-row:focus-visible {
+  outline: 2px solid var(--nf-color-focus-ring);
+  outline-offset: -2px;
+}
+
+.twisty {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--nf-color-text-muted);
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tree-row.selected .twisty {
+  color: inherit;
+}
+
+.twisty::before {
+  content: '\25B8';
+  display: inline-block;
+  width: 12px;
+  text-align: center;
+  transition: transform 80ms ease-out;
+}
+
+.twisty.expanded::before {
+  transform: rotate(90deg);
+}
+
+.twisty-spacer {
+  display: inline-block;
+  width: 12px;
+}

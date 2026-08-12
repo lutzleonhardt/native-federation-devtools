@@ -1,0 +1,23 @@
+<span class="participant">{{ name() }}</span>
+@if (declaredPinned(); as pinned) {
+  <span class="declared declared-pinned" title="exact tag — pinned by the strict scope">{{
+    pinned.tag
+  }}</span>
+} @else if (declaredRange(); as range) {
+  <span class="declared declared-range">{{ range.range }}</span>
+}
+@if (strict()) {
+  <span class="strict-marker" title="strict version negotiation">strict</span>
+}
+@if (winnerArrow(); as winner) {
+  <span class="arrow" [attr.aria-label]="arrowLabel()"
+    >→ <span class="arrow-target">{{ winner.target }}</span>
+    <span class="arrow-provider">{{ winner.provider }}</span></span
+  >
+} @else {
+  <span class="arrow arrow-own" [attr.aria-label]="arrowLabel()">→ own copy</span>
+}
+@if (action(); as action) {
+  <span class="action-chip" [attr.title]="actionNote() ?? null">{{ action }}</span>
+}
+<span class="row-links"><ng-content select="[nfRowLinks]"></ng-content></span>

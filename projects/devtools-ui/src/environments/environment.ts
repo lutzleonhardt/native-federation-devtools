@@ -1,3 +1,4 @@
+import { Routes } from '@angular/router';
 import { FixtureSnapshotProvider, fixtureIdFromQuery, SnapshotProvider } from 'devtools-bridge';
 
 // Read at module-evaluation time, before bootstrap: the hash-location
@@ -14,4 +15,15 @@ const initialFixtureId = fixtureIdFromQuery(location.search);
  */
 export const environment = {
   snapshotProviderFactory: (): SnapshotProvider => new FixtureSnapshotProvider(initialFixtureId),
+  /**
+   * Dev-only routes appended to the tab set. The extension environment
+   * ships an empty list, so neither the route nor the lazily referenced
+   * component reaches the packaged bundle.
+   */
+  extraRoutes: [
+    {
+      path: 'kit-demo',
+      loadComponent: () => import('../app/views/kit-demo').then((m) => m.KitDemo),
+    },
+  ] satisfies Routes,
 };

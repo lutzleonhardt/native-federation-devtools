@@ -11,6 +11,10 @@
 :root {
   color-scheme: light;
 
+  /* Identifier face: package names, versions, file paths. Theme-invariant,
+   * so it lives outside the light/dark blocks. */
+  --nf-font-mono: ui-monospace, 'Cascadia Mono', Menlo, Consolas, monospace;
+
   --nf-color-bg: #ffffff;
   --nf-color-surface: #f1f3f4;
   --nf-color-border: #d9d9d9;
@@ -130,7 +134,7 @@ body {
 .nf-table td {
   padding: 2px 8px;
   border-bottom: 1px solid var(--nf-color-border);
-  font-family: ui-monospace, 'Cascadia Mono', Menlo, Consolas, monospace;
+  font-family: var(--nf-font-mono);
   font-size: 11px;
   white-space: nowrap;
 }
