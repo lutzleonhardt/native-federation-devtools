@@ -1,8 +1,9 @@
 <div class="shell">
   <nav class="shell-nav" aria-label="Views">
-    <a routerLink="/remotes" routerLinkActive="active">Remotes &amp; Exposes</a>
-    <a routerLink="/shared" routerLinkActive="active">Shared Dependencies</a>
+    <a routerLink="/packages" routerLinkActive="active">Packages</a>
+    <a routerLink="/remotes" routerLinkActive="active">Remotes</a>
     <a routerLink="/import-map" routerLinkActive="active">Import Map</a>
+    <a routerLink="/diagnostics" routerLinkActive="active">Diagnostics</a>
     <span class="shell-actions">
       <button
         type="button"
@@ -26,8 +27,16 @@
   </nav>
   @if (capture(); as capture) {
     <div class="shell-status">
-      <span class="shell-status-url" [title]="capture.pageUrl">{{ capture.pageUrl }}</span>
-      <span class="shell-status-time">{{ capture.capturedAt }}</span>
+      <a
+        class="shell-status-url"
+        [href]="capture.pageUrl"
+        target="_blank"
+        rel="noopener noreferrer"
+        [title]="capture.pageUrl"
+        >{{ capture.pageUrl }}</a
+      >
+      <span class="shell-status-date" [title]="capture.capturedAt">{{ capture.capturedDate }}</span>
+      <nf-capture-status-strip />
     </div>
   }
   <main class="shell-content">

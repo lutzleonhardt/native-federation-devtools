@@ -19,3 +19,10 @@
   border-style: dashed;
   font-style: italic;
 }
+
+/* Tooltip affordance: a badge carrying a note signals it. */
+.badge[title] {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+}

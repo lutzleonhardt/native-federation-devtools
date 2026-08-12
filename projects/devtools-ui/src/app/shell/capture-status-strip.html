@@ -1,0 +1,31 @@
+@if (vm(); as vm) {
+  @if (vm.noFederation; as noFederation) {
+    <span class="strip-none" [title]="noFederation.tooltip">no Native Federation detected</span>
+  }
+  @for (entry of vm.entries; track entry.tab) {
+    <span class="strip-entry">
+      <span class="strip-label">{{ entry.tab }}</span>
+      @switch (entry.indicator.kind) {
+        @case ('off') {
+          <span class="strip-na" [title]="entry.indicator.tooltip">n/a</span>
+        }
+        @case ('partial') {
+          <nf-state-badge kind="partial" [note]="entry.indicator.tooltip" />
+        }
+        @case ('warning') {
+          <span class="strip-warning" [title]="entry.indicator.tooltip">!</span>
+        }
+      }
+    </span>
+  }
+  @if (vm.generation; as generation) {
+    <a
+      class="strip-generation"
+      href="https://native-federation.com/"
+      target="_blank"
+      rel="noopener noreferrer"
+      title="Orchestrator generation (snapshot provenance) — opens the Native Federation site"
+      >{{ generation }}</a
+    >
+  }
+}

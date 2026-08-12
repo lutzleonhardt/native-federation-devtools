@@ -2,28 +2,35 @@ import { Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 import { SnapshotExportService } from './shared/snapshot-export.service';
-import { SnapshotStore } from './shared/snapshot-store';
+import { FederationStore } from './shared/store/federation-store';
+import { CaptureStatusStrip } from './shell/capture-status-strip';
 
 @Component({
   selector: 'nf-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, CaptureStatusStrip],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
 export class App {
   protected readonly exporter = inject(SnapshotExportService);
-  private readonly store = inject(SnapshotStore);
+  private readonly store = inject(FederationStore);
 
   protected readonly capturing = computed(() => this.store.state().status === 'capturing');
 
   /**
    * Capture identity of the current snapshot. Read from the store directly,
-   * not through a view-state helper: the shell is channel-agnostic — which
+   * not through a view-model builder: the shell is channel-agnostic — which
    * page was captured when is evidence even when nothing was detected.
+   * `capturedDate` is the UTC date part of the verbatim ISO stamp; the
+   * full stamp stays available as the tooltip.
    */
   protected readonly capture = computed(() => {
     const state = this.store.state();
-    return state.status === 'captured' ? state.snapshot.capture : null;
+    if (state.status !== 'captured') {
+      return null;
+    }
+    const { pageUrl, capturedAt } = state.snapshot.capture;
+    return { pageUrl, capturedAt, capturedDate: capturedAt.slice(0, 10) };
   });
 
   protected refresh(): void {

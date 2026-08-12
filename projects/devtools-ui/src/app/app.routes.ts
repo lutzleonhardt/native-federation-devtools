@@ -1,12 +1,22 @@
 import { Routes } from '@angular/router';
 
-import { ImportMap } from './views/import-map';
-import { RemotesExposes } from './views/remotes-exposes';
-import { SharedDependencies } from './views/shared-dependencies';
+import { ViewPlaceholder } from './views/placeholder';
 
+/**
+ * V2 tab set (spec order); `/packages` is the default view.
+ *
+ * Cross-link selection convention: each view owns an optional `select`
+ * query parameter carrying its initial selection —
+ *   /packages?select=<scope>|<pkg>
+ *   /remotes?select=<remote>
+ *   /import-map?select=<specifier>
+ * Views (Tasks 10–13) read it on entry; cross-view links (e.g. from
+ * Diagnostics) navigate with it.
+ */
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'remotes' },
-  { path: 'remotes', component: RemotesExposes },
-  { path: 'shared', component: SharedDependencies },
-  { path: 'import-map', component: ImportMap },
+  { path: '', pathMatch: 'full', redirectTo: 'packages' },
+  { path: 'packages', component: ViewPlaceholder, data: { title: 'Packages' } },
+  { path: 'remotes', component: ViewPlaceholder, data: { title: 'Remotes' } },
+  { path: 'import-map', component: ViewPlaceholder, data: { title: 'Import Map' } },
+  { path: 'diagnostics', component: ViewPlaceholder, data: { title: 'Diagnostics' } },
 ];

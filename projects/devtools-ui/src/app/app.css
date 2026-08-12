@@ -54,10 +54,36 @@
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  align-self: center;
+  padding: 0 4px;
+  border-radius: 3px;
+  color: var(--nf-color-text-muted);
+  border: 1px solid var(--nf-color-border);
+  text-decoration: none;
+  white-space: nowrap;
 }
 
-.shell-status-time {
+.shell-status-url:hover {
+  color: var(--nf-color-text);
+  border-color: var(--nf-color-accent);
+}
+
+.shell-status-url:focus-visible {
+  outline: 2px solid var(--nf-color-focus-ring);
+  outline-offset: 1px;
+}
+
+.shell-status-date {
   flex: none;
+  align-self: center;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 10px;
+  color: var(--nf-color-text-muted);
+  border: 1px solid var(--nf-color-border);
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
 }
 
 .shell-content {
