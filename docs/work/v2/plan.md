@@ -1463,6 +1463,54 @@ Replace the Task-8 placeholder.
   "remote never initialized" are indistinguishable in passive data;
   the note must claim a capture boundary, not an error.
 
+## Task 11.5: Chunk-claim wording — packages detail aligns with the remotes absence claim
+
+Depends on: Task 11. Addendum (review finding on the shipped Task-11
+view, pattern: Task 10.5).
+
+### Instructions
+
+Root finding (user review of Task 11): a bundle that participant rows
+name but the chunks repository holds no list for rendered as
+"0 chunk files" — a zero masquerading as a data hole. Task 11 fixed
+the Remotes view (`fileClaim`: "no chunk list recorded in this
+capture"); the Packages detail still renders the same fact as the KV
+line "0 · 0 mapped · loaded on demand" with a differently-worded note
+below ("the bundle records no chunk list in this capture"). Two views
+wording one fact differently is exactly what a tab-switching user
+notices.
+
+- **Single-source the chunk-file claim**: lift the claim builders
+  (count claim + the absence sentence) into
+  `shared/view-conventions.ts`; the Remotes detail vm consumes them
+  instead of its local copies.
+- **Packages detail renders the shared claim**: the no-list case
+  replaces the zero-count KV line (and the now-redundant note below
+  collapses into it); the positive case keeps its counts and the
+  mapped tally. The first hop (package → bundle) is observed evidence
+  on the participant row and stays rendered — only the file-list claim
+  changes.
+
+### Acceptance
+
+- **T11.5-AC-01** — frankenstein-live packages detail: a no-list
+  bundle (tslib, @angular/platform-browser) renders the absence claim
+  and no zero counts; a listed bundle (@angular/common) keeps its
+  counts and mapped tally.
+- **T11.5-AC-02** — the claim wording is single-sourced in
+  `view-conventions.ts` and identical in Packages and Remotes (vm
+  specs on both views).
+- **T11.5-AC-03** — full chain green + bundle checks; behavior
+  otherwise unchanged.
+
+### Key Locations
+
+- `shared/view-conventions.ts` (claim helpers),
+  `views/packages/packages-chunk-vm.ts` (packageEntry claim),
+  `views/packages/package-detail.html|.css`,
+  `views/remotes/remotes-detail-vm.ts` (consume shared helpers),
+  both view-model specs.
+
 ## Task 12: Import Map tab — annotated raw evidence view
 
 Depends on: Task 11.

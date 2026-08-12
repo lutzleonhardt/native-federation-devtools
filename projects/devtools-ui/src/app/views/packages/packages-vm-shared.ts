@@ -3,24 +3,19 @@
  * shape and the election helpers used by both the row half
  * (`packages-row-vm.ts`) and the detail half (`packages-detail-vm.ts`).
  * Views import from the `packages-view-model.ts` facade only.
+ *
+ * The cross-view vocabulary (scope constants, select ids, sentinel
+ * display) lives in `shared/view-conventions.ts` since T11; the re-exports
+ * keep this module's import sites stable.
  */
-import { NF_HOST } from 'devtools-bridge';
-
 import type { PackageConflict, SharedRowFacts } from '../../shared/store/derived-model';
 
-/** The registry's strict share scope name (spec-pinned, matches derivations). */
-export const STRICT_SCOPE = 'strict';
-export const GLOBAL_SCOPE = '__GLOBAL__';
-
-/** Selection / `select`-param id of one (share scope, package). */
-export function packageId(scope: string, packageName: string): string {
-  return `${scope}|${packageName}`;
-}
-
-/** Display form of a participant — the `__NF-HOST__` sentinel reads as 'host'. */
-export function participantDisplay(name: string): string {
-  return name === NF_HOST ? 'host' : name;
-}
+export {
+  GLOBAL_SCOPE,
+  STRICT_SCOPE,
+  packageId,
+  participantDisplay,
+} from '../../shared/view-conventions';
 
 export interface PackageGroup {
   id: string;

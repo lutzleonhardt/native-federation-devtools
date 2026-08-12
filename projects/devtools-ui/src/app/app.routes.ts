@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 
 import { environment } from '../environments/environment';
 import { PackagesView } from './views/packages/packages';
+import { RemotesView } from './views/remotes/remotes';
 import { ViewPlaceholder } from './views/placeholder';
 
 /**
@@ -18,7 +19,7 @@ import { ViewPlaceholder } from './views/placeholder';
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'packages' },
   { path: 'packages', component: PackagesView },
-  { path: 'remotes', component: ViewPlaceholder, data: { title: 'Remotes' } },
+  { path: 'remotes', component: RemotesView },
   { path: 'import-map', component: ViewPlaceholder, data: { title: 'Import Map' } },
   { path: 'diagnostics', component: ViewPlaceholder, data: { title: 'Diagnostics' } },
   // Dev-only additions (e.g. /kit-demo); empty in the extension build.

@@ -1,0 +1,142 @@
+.detail-name {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-family: var(--nf-font-mono);
+}
+
+h3 {
+  margin: 14px 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--nf-color-text-muted);
+}
+
+.mono {
+  font-family: var(--nf-font-mono);
+  font-size: 11px;
+}
+
+/* Tooltip affordance (shell convention): dotted underline + help cursor. */
+.tip {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+}
+
+.capability-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 0;
+}
+
+.expose-list,
+.chunk-packages,
+.scoped-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.expose-item,
+.chunk-package,
+.scoped-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 1px 0;
+}
+
+.expose-file,
+.scoped-file {
+  overflow-wrap: anywhere;
+  color: var(--nf-color-text-muted);
+}
+
+.deps-note,
+.chunk-note {
+  margin: 0 0 4px;
+  color: var(--nf-color-text-muted);
+}
+
+.dep-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 1px 0;
+  /* The own-copy arrow is the norm of a provider-heavy remote — keep it
+   * visible but quiet so skip arrows and honest 'none' states lead the scan. */
+  --nf-arrow-own-opacity: 0.55;
+}
+
+.dep-symbol {
+  color: var(--nf-color-text-muted);
+}
+
+.dep-name {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.pkg-link {
+  font-family: var(--nf-font-mono);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.dep-scope,
+.dep-no-election {
+  padding: 0 4px;
+  border: 1px solid var(--nf-color-border);
+  border-radius: 3px;
+  font-size: 10px;
+  color: var(--nf-color-text-muted);
+}
+
+.dep-scope {
+  font-family: var(--nf-font-mono);
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+}
+
+.chunk-bundle,
+.chunk-count {
+  color: var(--nf-color-text-muted);
+}
+
+.chunk-mapped,
+.scoped-tag {
+  padding: 0 4px;
+  border: 1px solid var(--nf-color-border);
+  border-radius: 3px;
+  font-size: 10px;
+  color: var(--nf-color-text-muted);
+}
+
+/* Glyph legend — quiet one-liner, notes one hover away. */
+.glyph-legend {
+  display: flex;
+  gap: 12px;
+  margin: 2px 0 0;
+  font-size: 10px;
+  color: var(--nf-color-text-muted);
+}
+
+/* Navigating elements: pointer + hover accent (shell affordance rule). */
+a {
+  color: var(--nf-color-accent);
+  cursor: pointer;
+}
+
+a:not(.tip) {
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}

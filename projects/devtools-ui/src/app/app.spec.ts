@@ -71,7 +71,8 @@ describe('App', () => {
   });
 
   // T8-AC-01: `/packages` is the default route (since Task 10 the real
-  // Packages view); the remaining tabs render honest placeholders.
+  // Packages view, since Task 11 joined by the real Remotes view); the
+  // remaining tabs render honest placeholders.
   it('defaults to /packages and renders honest placeholders on the open tabs', async () => {
     const fixture = TestBed.createComponent(App);
     const router = TestBed.inject(Router);
@@ -82,8 +83,13 @@ describe('App', () => {
     expect(packagesView.querySelector('h1')?.textContent).toBe('Packages');
     expect(packagesView.textContent).not.toContain('view not implemented yet');
 
+    await router.navigateByUrl('/remotes');
+    await settle(fixture);
+    const remotesView = (fixture.nativeElement as HTMLElement).querySelector('.view')!;
+    expect(remotesView.querySelector('h1')?.textContent).toBe('Remotes');
+    expect(remotesView.textContent).not.toContain('view not implemented yet');
+
     for (const [url, title] of [
-      ['/remotes', 'Remotes'],
       ['/import-map', 'Import Map'],
       ['/diagnostics', 'Diagnostics'],
     ]) {
