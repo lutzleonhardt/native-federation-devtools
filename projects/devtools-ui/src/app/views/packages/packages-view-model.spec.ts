@@ -267,10 +267,34 @@ describe('buildPackagesVm — live fixture detail (T10-AC-04)', () => {
       packageEntry: {
         bundleName: 'browser-angular_common',
         files: ['chunk-WW26EZ22.js'],
+        fileClaim: '1 chunk file',
         mappedCount: 1,
       },
       rule: 'bundle-chunk-join',
     });
+  });
+
+  // T11.5-AC-01/02: the chunk-file claim is shared wording with the Remotes
+  // detail (`view-conventions.ts`) — a bundle the participant row names but
+  // the chunks repository holds no list for claims the absence explicitly,
+  // never a zero count.
+  it('claims chunk-list absence for no-list bundles instead of zero counts', () => {
+    const noListBundles = [
+      { packageName: 'tslib', bundleName: 'browser-tslib' },
+      { packageName: '@angular/platform-browser', bundleName: 'browser-angular_platform_browser' },
+    ];
+    for (const { packageName, bundleName } of noListBundles) {
+      const vm = build(packageId('__GLOBAL__', packageName));
+      expect(vm.detail!.chunks).toMatchObject({
+        level: 'package',
+        remote: NF_HOST,
+        packageEntry: {
+          bundleName,
+          files: [],
+          fileClaim: 'no chunk list recorded in this capture',
+        },
+      });
+    }
   });
 
   it('states explicit level-none absence for a whiteboard-served package', () => {

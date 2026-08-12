@@ -13,6 +13,7 @@ import type { PackageConflict, SharedRowFacts } from '../../shared/store/derived
 export {
   GLOBAL_SCOPE,
   STRICT_SCOPE,
+  chunkFileClaim,
   packageId,
   participantDisplay,
 } from '../../shared/view-conventions';

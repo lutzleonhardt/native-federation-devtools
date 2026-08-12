@@ -4,7 +4,7 @@
  * with honest unavailability when no unique providing remote exists.
  */
 import type { DerivedFederation, SharedRowFacts } from '../../shared/store/derived-model';
-import { PackageGroup, participantDisplay } from './packages-vm-shared';
+import { PackageGroup, chunkFileClaim, participantDisplay } from './packages-vm-shared';
 
 /** Chunk section, strictly gated on the providing remote's attribution ladder. */
 export type ChunkSectionVm =
@@ -13,8 +13,17 @@ export type ChunkSectionVm =
       remote: string;
       /** Display form of the remote (`__NF-HOST__` reads as 'host'). */
       remoteDisplay: string;
-      /** Null when the remote records chunk lists but none for this package. */
-      packageEntry: { bundleName: string; files: string[]; mappedCount: number } | null;
+      /**
+       * Null when the remote records chunk lists but none for this package.
+       * `fileClaim` renders the evidence, never a bare count (shared wording
+       * with the Remotes detail): an empty file list claims the absence.
+       */
+      packageEntry: {
+        bundleName: string;
+        files: string[];
+        fileClaim: string;
+        mappedCount: number;
+      } | null;
       rule: 'bundle-chunk-join';
     }
   | {
@@ -61,6 +70,7 @@ export function buildChunkSection(
               : {
                   bundleName: entry.bundleName,
                   files: entry.files,
+                  fileClaim: chunkFileClaim(entry.files),
                   mappedCount: attribution.groups
                     .filter(
                       (chunkGroup) =>
