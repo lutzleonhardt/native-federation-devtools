@@ -50,6 +50,23 @@ export const NEGOTIATION_LEGEND: { symbol: string; action: string; note: string 
   'skip',
 ].map((action) => ({ symbol: ACTION_SYMBOLS[action], action, note: ACTION_NOTES[action] }));
 
+/** Pluralizing count claim of an observed quantity — `3 files`, `1 chunk file`. */
+export function countClaim(count: number, noun: string): string {
+  return `${count} ${noun}${count === 1 ? '' : 's'}`;
+}
+
+/**
+ * The chunk-file claim of one bundle (rule: bundle-chunk-join). An empty
+ * list is the no-list marker (spec-pinned since T7): the participant names
+ * the bundle, the chunks repository holds no list — claim the absence
+ * explicitly instead of masquerading as "0 files" (T11 doctrine).
+ */
+export function chunkFileClaim(files: string[]): string {
+  return files.length === 0
+    ? 'no chunk list recorded in this capture'
+    : countClaim(files.length, 'chunk file');
+}
+
 /** Kit declared-version of one row — strict-pinned rows render the exact tag, never a range. */
 export function declaredOf(facts: SharedRowFacts): DeclaredVersion {
   return facts.strictPinned !== null

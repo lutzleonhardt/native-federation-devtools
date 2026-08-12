@@ -22,6 +22,8 @@ import {
   ACTION_SYMBOLS,
   GLOBAL_SCOPE,
   STRICT_SCOPE,
+  chunkFileClaim,
+  countClaim,
   declaredOf,
   explicitArrowOf,
   packageId,
@@ -116,10 +118,6 @@ export interface RemoteDetailVm {
 }
 
 const CHUNK_EXPLANATION = "code shared between this remote's exposes, plus lazy modules";
-
-function countClaim(count: number, noun: string): string {
-  return `${count} ${noun}${count === 1 ? '' : 's'}`;
-}
 
 function capabilitiesOf(badges: RemoteBadges | undefined): CapabilityVm[] {
   if (badges === undefined) {
@@ -221,16 +219,10 @@ function chunksOf(
   return {
     level: 'package',
     note: `${CHUNK_EXPLANATION} — loaded on demand`,
-    // An empty list is the no-list marker (spec-pinned since T7): the
-    // participant names the bundle, the chunks repository holds no list —
-    // claim the absence instead of rendering a zero.
     packages: attribution.packages.map((entry) => ({
       packageName: entry.packageName,
       bundleName: entry.bundleName,
-      fileClaim:
-        entry.files.length === 0
-          ? 'no chunk list recorded in this capture'
-          : countClaim(entry.files.length, 'chunk file'),
+      fileClaim: chunkFileClaim(entry.files),
     })),
     rule: 'bundle-chunk-join',
   };

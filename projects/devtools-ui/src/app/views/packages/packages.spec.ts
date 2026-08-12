@@ -58,6 +58,13 @@ async function createView(options: { fixture: FixtureId | null; select?: string 
 
 const CONFLICT_LIB = '__GLOBAL__|@nf-lab/conflict-lib';
 
+/** The rendered chunk-files claim of the detail's kv block. */
+function chunkClaimOf(el: HTMLElement): string {
+  const rows = Array.from(el.querySelectorAll('.detail-kv .kv-row'));
+  const chunkRow = rows.find((row) => row.querySelector('dt')?.textContent === 'chunk files')!;
+  return chunkRow.querySelector('dd')!.textContent!.replace(/\s+/g, ' ').trim();
+}
+
 describe('PackagesView', () => {
   // T10-AC-04 (DOM half): a FLAT leaf list — every package is one row,
   // nothing expands (negotiation lives in the detail pane).
@@ -249,6 +256,31 @@ describe('PackagesView', () => {
     for (const arrow of el.querySelectorAll('.arrow')) {
       expect(arrow.getAttribute('aria-label')).toMatch(/^(resolves to|resolution not derived)/);
     }
+  });
+
+  // T11.5-AC-01 (DOM half): a no-list bundle renders the shared absence
+  // claim in the chunk-files line — never a zero masquerading as a count;
+  // a listed bundle keeps its counts and the mapped tally.
+  it('renders the absence claim for a no-list bundle without zero counts', async () => {
+    const fixture = await createView({
+      fixture: 'frankenstein-live',
+      select: '__GLOBAL__|tslib',
+    });
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(chunkClaimOf(el)).toBe('no chunk list recorded in this capture');
+    expect(el.querySelector('.chunk-list')).toBeNull();
+  });
+
+  it('keeps counts and the mapped tally for a listed bundle', async () => {
+    const fixture = await createView({
+      fixture: 'frankenstein-live',
+      select: '__GLOBAL__|@angular/common',
+    });
+
+    expect(chunkClaimOf(fixture.nativeElement as HTMLElement)).toBe(
+      '1 chunk file · 1 mapped · loaded on demand',
+    );
   });
 
   // Winner-less multi-share: the no-winner note renders and every share

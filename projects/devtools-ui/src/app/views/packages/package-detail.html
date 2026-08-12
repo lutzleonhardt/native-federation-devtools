@@ -94,8 +94,12 @@
             <div class="kv-row">
               <dt>chunk files</dt>
               <dd [title]="'joined from the registry bundle-chunk lists — rule: ' + chunks.rule">
-                {{ chunkEntry.files.length }} · {{ chunkEntry.mappedCount }} mapped ·
-                loaded on demand
+                @if (chunkEntry.files.length > 0) {
+                  {{ chunkEntry.fileClaim }} · {{ chunkEntry.mappedCount }} mapped · loaded on
+                  demand
+                } @else {
+                  {{ chunkEntry.fileClaim }}
+                }
               </dd>
             </div>
           </dl>
@@ -105,8 +109,6 @@
                 <li class="mono">{{ file }}</li>
               }
             </ul>
-          } @else {
-            <p class="view-observation">the bundle records no chunk list in this capture</p>
           }
           <p class="chunk-link"><a [routerLink]="['/import-map']">open in Import Map</a></p>
         } @else {
