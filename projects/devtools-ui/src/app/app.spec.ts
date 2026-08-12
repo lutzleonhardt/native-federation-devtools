@@ -59,16 +59,38 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
-  // T1-AC-01: the shell renders navigation placeholders for the three
-  // Phase-1 views.
-  it('should render navigation links for the three views', async () => {
+  // T8-AC-01: the nav shows the V2 tab set in spec order.
+  it('renders the V2 tab set', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
     const labels = Array.from(compiled.querySelectorAll('.shell-nav a')).map((a) =>
       a.textContent?.trim(),
     );
-    expect(labels).toEqual(['Remotes & Exposes', 'Shared Dependencies', 'Import Map']);
+    expect(labels).toEqual(['Packages', 'Remotes', 'Import Map', 'Diagnostics']);
+  });
+
+  // T8-AC-01: `/packages` is the default route and every tab renders an
+  // honest placeholder — plain text, no fake data.
+  it('defaults to /packages and renders honest placeholders on all tabs', async () => {
+    const fixture = TestBed.createComponent(App);
+    const router = TestBed.inject(Router);
+    await router.navigateByUrl('/');
+    await settle(fixture);
+    expect(router.url).toBe('/packages');
+
+    for (const [url, title] of [
+      ['/packages', 'Packages'],
+      ['/remotes', 'Remotes'],
+      ['/import-map', 'Import Map'],
+      ['/diagnostics', 'Diagnostics'],
+    ]) {
+      await router.navigateByUrl(url);
+      await settle(fixture);
+      const view = (fixture.nativeElement as HTMLElement).querySelector('.view')!;
+      expect(view.querySelector('h1')?.textContent).toBe(title);
+      expect(view.textContent).toContain('view not implemented yet');
+    }
   });
 
   // T6: the shell-level export button follows the snapshot state.
@@ -85,60 +107,92 @@ describe('App', () => {
     expect(button.disabled).toBe(false);
   });
 
-  // T9-AC-01: the shell shows the capture identity (page URL, captured-at)
-  // once a snapshot exists; while capturing it claims no state.
+  // T8-AC-06 (shell level): while capturing, neither capture meta nor any
+  // channel state is claimed; once captured, the identity line appears.
   it('shows page URL and captured-at in the shell status once captured', async () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('.shell-status')).toBeNull();
+    expect(el.querySelector('nf-capture-status-strip')).toBeNull();
     expect(el.querySelector<HTMLButtonElement>('.shell-refresh')!.disabled).toBe(true);
 
     await settle(fixture);
     const status = el.querySelector('.shell-status')!;
-    expect(status.textContent).toContain('https://lutzleonhardt.de/frankenstein-meeting-room/');
-    expect(status.textContent).toContain('2026-08-11T11:56:25.504Z');
+    const url = status.querySelector<HTMLAnchorElement>('a.shell-status-url')!;
+    expect(url.textContent).toContain('https://lutzleonhardt.de/frankenstein-meeting-room/');
+    expect(url.getAttribute('href')).toBe('https://lutzleonhardt.de/frankenstein-meeting-room/');
+    expect(url.target).toBe('_blank');
+    const date = status.querySelector<HTMLElement>('.shell-status-date')!;
+    expect(date.textContent?.trim()).toBe('2026-08-11');
+    expect(date.title).toBe('2026-08-11T11:56:25.504Z');
     expect(el.querySelector<HTMLButtonElement>('.shell-refresh')!.disabled).toBe(false);
   });
 
-  // The capture identity stays visible for every captured snapshot — including
-  // one where nothing was detected (guarantee moved here with the meta, from
-  // the view specs).
-  it('keeps the capture meta visible when nothing was detected', async () => {
+  // T8-AC-08: the generation badge is provenance surfaced by the shell —
+  // v4 for the live fixture; the healthy live strip claims nothing else.
+  it('shows the v4 generation badge and an otherwise quiet strip for the live fixture', async () => {
+    const fixture = TestBed.createComponent(App);
+    await settle(fixture);
+    const el = fixture.nativeElement as HTMLElement;
+    const badge = el.querySelector<HTMLAnchorElement>('a.strip-generation')!;
+    expect(badge.textContent?.trim()).toBe('v4');
+    expect(badge.getAttribute('href')).toBe('https://native-federation.com/');
+    expect(badge.target).toBe('_blank');
+    expect(el.querySelectorAll('.strip-entry')).toHaveLength(0);
+  });
+
+  // T8-AC-08: lab fixtures carry the v4.5 generation.
+  it('shows the v4.5 generation badge for a lab fixture', async () => {
+    TestBed.overrideProvider(SNAPSHOT_PROVIDER, {
+      useValue: new SequenceSnapshotProvider(['clean-skip']),
+    });
+    const fixture = TestBed.createComponent(App);
+    await settle(fixture);
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('.strip-generation')?.textContent?.trim(),
+    ).toBe('v4.5');
+  });
+
+  // T8-AC-05: a not-recognized channel renders in warning tone with the
+  // reason verbatim as tooltip; the capture meta stays visible.
+  it('renders not-recognized channels as warnings with the verbatim reason', async () => {
     const provider = new SequenceSnapshotProvider(['synthetic-not-recognized']);
     TestBed.overrideProvider(SNAPSHOT_PROVIDER, { useValue: provider });
     const fixture = TestBed.createComponent(App);
     await settle(fixture);
-    expect(
-      (fixture.nativeElement as HTMLElement).querySelector('.shell-status')?.textContent,
-    ).toContain('synthetic-fixture.example');
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.shell-status')?.textContent).toContain('synthetic-fixture.example');
+    const warnings = Array.from(el.querySelectorAll<HTMLElement>('.strip-warning'));
+    expect(warnings.length).toBeGreaterThan(0);
+    expect(warnings[0].title).toBe('global present but carries none of the four repository keys');
   });
 
-  // T9-AC-04: shell refresh re-invokes captureSnapshot() through the shared
-  // store, and the active view renders the new snapshot from the same instance.
-  it('refresh re-captures and updates the active view through the shared store', async () => {
-    const provider = new SequenceSnapshotProvider([
-      'frankenstein-live',
-      'synthetic-collision',
-    ]);
+  // The shell refresh re-invokes captureSnapshot() through the single
+  // store; meta and strip follow the refreshed snapshot.
+  it('refresh re-captures through the shared store', async () => {
+    const provider = new SequenceSnapshotProvider(['frankenstein-live', 'synthetic-empty-page']);
     TestBed.overrideProvider(SNAPSHOT_PROVIDER, { useValue: provider });
     const fixture = TestBed.createComponent(App);
-    await TestBed.inject(Router).navigateByUrl('/remotes');
     await settle(fixture);
 
     const el = fixture.nativeElement as HTMLElement;
     expect(provider.calls).toBe(1);
-    expect(el.querySelector('.nf-table')?.textContent).toContain('whiteboard');
+    expect(el.querySelector('.shell-status')?.textContent).toContain('frankenstein-meeting-room');
 
     el.querySelector<HTMLButtonElement>('.shell-refresh')!.click();
     await settle(fixture);
 
     expect(provider.calls).toBe(2);
-    const table = el.querySelector('.nf-table')!;
-    expect(table.textContent).toContain('calendar');
-    expect(table.textContent).not.toContain('whiteboard');
-    // The shell meta follows the refreshed snapshot too.
     expect(el.querySelector('.shell-status')?.textContent).toContain('synthetic-fixture.example');
+    // The empty page collapses to the no-federation summary (a normal
+    // state), with no warnings and no per-tab entries.
+    expect(el.querySelector('.strip-none')?.textContent).toContain(
+      'no Native Federation detected',
+    );
+    expect(el.querySelectorAll('.strip-entry')).toHaveLength(0);
+    expect(el.querySelectorAll('.strip-warning')).toHaveLength(0);
   });
 
   // T6: clicking the button delegates to the export service.

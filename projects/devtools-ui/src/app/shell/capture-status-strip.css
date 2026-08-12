@@ -1,0 +1,68 @@
+:host {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  margin-left: auto;
+}
+
+.strip-entry {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.strip-label {
+  color: var(--nf-color-text-muted);
+}
+
+.strip-none {
+  color: var(--nf-color-text-muted);
+}
+
+.strip-na {
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--nf-color-text-muted);
+  border: 1px solid var(--nf-color-border);
+}
+
+.strip-warning {
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--nf-color-warning-text);
+  background: var(--nf-color-warning-bg);
+  border: 1px solid var(--nf-color-warning-border);
+}
+
+.strip-generation {
+  padding: 0 4px;
+  border-radius: 3px;
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--nf-color-text-muted);
+  border: 1px solid var(--nf-color-border);
+  text-decoration: none;
+}
+
+.strip-generation:hover {
+  color: var(--nf-color-text);
+  border-color: var(--nf-color-accent);
+}
+
+.strip-generation:focus-visible {
+  outline: 2px solid var(--nf-color-focus-ring);
+  outline-offset: 1px;
+}
+
+/* Tooltip affordance: every element carrying a reason signals it. */
+.strip-none[title],
+.strip-na[title],
+.strip-warning[title] {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+}
