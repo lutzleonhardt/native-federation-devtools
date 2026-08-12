@@ -82,13 +82,20 @@ describe('PackagesView', () => {
     expect(el.textContent).not.toContain('name-derived');
   });
 
-  // T10-AC-01 (DOM half): the detail pane keeps the skip participant
-  // intact with the arrow to the winner's file; the winner stays quiet.
+  // T10-AC-01 (DOM half, amended by T10.5): the clean election carries NO
+  // warning badge; the detail pane keeps the skip participant intact with
+  // the arrow to the winner's file; the winner stays quiet.
   it('renders skip arrows in the detail pane while the winner stays quiet', async () => {
     const fixture = await createView({ fixture: 'clean-skip', select: CONFLICT_LIB });
     const el = fixture.nativeElement as HTMLElement;
 
-    expect(el.querySelector('.pkg-conflict')?.textContent).toBe('⚠ 2 versions');
+    // Only one version is mapped — declared-only multiplicity never warns.
+    expect(el.querySelector('.pkg-conflict')).toBeNull();
+    expect(
+      Array.from(el.querySelectorAll<HTMLElement>('.pkg-versions .pkg-version')).map(
+        (version) => version.textContent,
+      ),
+    ).toEqual(['2.0.0']);
     // The row tail shows providers as chips; the skip-only declarer
     // collapses to "+1" with names + verbatim action in the tooltip.
     const tailChips = Array.from(el.querySelectorAll('.tree-row .pkg-tail .chip'));
@@ -101,10 +108,22 @@ describe('PackagesView', () => {
     expect(arrows).toHaveLength(1);
     expect(arrows[0].textContent).toContain('_nf_lab_conflict_lib.jvcc6K1csg.js');
     expect(arrows[0].querySelector('.arrow-provider')?.textContent).toBe('mfe2');
+
+    // T10.5: the glyph legend names all three shapes, notes one hover away.
+    const legendItems = Array.from(
+      el.querySelectorAll<HTMLElement>('.glyph-legend .legend-item'),
+    );
+    expect(legendItems.map((item) => item.textContent?.trim())).toEqual([
+      '● share',
+      '◆ scope',
+      '○ skip',
+    ]);
+    expect(legendItems[0].title).toContain('version election');
   });
 
-  // T10-AC-07 (DOM half): the Conflicts filter narrows the list.
-  it('narrows to conflicted packages with the Conflicts filter', async () => {
+  // T10-AC-07 (DOM half, amended by T10.5): the Conflicts filter keys on
+  // mapped multiplicity — a clean election narrows to the honest empty note.
+  it('narrows the clean self-fill capture to the empty note under Conflicts', async () => {
     const fixture = await createView({ fixture: 'self-fill' });
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelectorAll('.tree-row')).toHaveLength(2);
@@ -112,12 +131,36 @@ describe('PackagesView', () => {
     const conflictsButton = Array.from(el.querySelectorAll<HTMLButtonElement>('.filter-button')).find(
       (button) => button.textContent?.includes('Conflicts'),
     )!;
-    expect(conflictsButton.textContent?.trim()).toBe('Conflicts (1)');
+    expect(conflictsButton.textContent?.trim()).toBe('Conflicts (0)');
     conflictsButton.click();
     fixture.detectChanges();
 
+    expect(el.querySelectorAll('.tree-row')).toHaveLength(0);
+    expect(el.textContent).toContain('no version conflicts in this capture');
+  });
+
+  // T10.5: the badge and the row versions speak about the same set — the
+  // mapped copies; the scoped second copy renders muted with its claim.
+  it('flags mapped multiplicity with the badge and the muted scoped copy', async () => {
+    const fixture = await createView({ fixture: 'strict-split' });
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(el.querySelector('.pkg-conflict')?.textContent).toBe('⚠ 2 versions mapped');
+    const versions = Array.from(
+      el.querySelectorAll<HTMLElement>('.pkg-versions .pkg-version'),
+    );
+    expect(versions.map((version) => version.textContent)).toEqual(['2.0.0', '1.0.0']);
+    expect(versions[0].classList.contains('pkg-version-muted')).toBe(false);
+    expect(versions[1].classList.contains('pkg-version-muted')).toBe(true);
+    expect(versions[1].title).toBe('own copy of mfe3 (scope)');
+
+    const conflictsButton = Array.from(el.querySelectorAll<HTMLButtonElement>('.filter-button')).find(
+      (button) => button.textContent?.includes('Conflicts'),
+    )!;
+    expect(conflictsButton.textContent?.trim()).toBe('Conflicts (1)');
+    conflictsButton.click();
+    fixture.detectChanges();
     expect(el.querySelectorAll('.tree-row')).toHaveLength(1);
-    expect(el.querySelector('.pkg-name')?.textContent).toBe('@nf-lab/conflict-lib');
   });
 
   // T10-AC-06 (DOM half): the linked sibling carries its association as a
@@ -152,6 +195,33 @@ describe('PackagesView', () => {
     );
     // The participant chips themselves are the /remotes links.
     expect(el.querySelectorAll('.pkg-detail a.chip-link .chip').length).toBeGreaterThan(0);
+  });
+
+  // T10.5: scope surfaces name their config origin — shareScope for named
+  // scopes, the default note for __GLOBAL__, strictVersion for the marker.
+  it('names the config origin of scopes and the strict marker in tooltips', async () => {
+    const strictFixture = await createView({
+      fixture: 'strict-scope',
+      select: 'strict|@nf-lab/conflict-lib',
+    });
+    const strictEl = strictFixture.nativeElement as HTMLElement;
+    expect(strictEl.querySelector<HTMLElement>('.pkg-scope')?.title).toBe(
+      'share scope — configured via shareScope: strict',
+    );
+    expect(strictEl.querySelector<HTMLElement>('.detail-strict')?.title).toContain(
+      "shareScope: 'strict'",
+    );
+    expect(strictEl.querySelector<HTMLElement>('.detail-scope .mono')?.title).toBe(
+      'configured via shareScope: strict',
+    );
+  });
+
+  it('marks the global scope as the unconfigured default in the detail tooltip', async () => {
+    const fixture = await createView({ fixture: 'clean-skip', select: CONFLICT_LIB });
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector<HTMLElement>('.detail-scope .mono')?.title).toBe(
+      '__GLOBAL__ — the default share scope (no shareScope configured)',
+    );
   });
 
   it('selects a package on row click', async () => {

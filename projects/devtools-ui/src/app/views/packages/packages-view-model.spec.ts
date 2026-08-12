@@ -1,8 +1,11 @@
 /**
  * Packages view-model specs — fixture-driven acceptance (T10, after the
- * user-directed flat-list rework):
- *  - T10-AC-01: clean-skip — conflict indicator "⚠ 2 versions"; the skip
- *    participant keeps its arrow to the winner's file (detail pane).
+ * user-directed flat-list rework; conflict semantics amended by T10.5:
+ * the badge keys on MAPPED multiplicity — row versions and badge speak
+ * about the same set, declared-only multiplicity is never flagged):
+ *  - T10-AC-01 (amended): clean-skip — NO conflict indicator (one mapped
+ *    version); the skip participant keeps its arrow to the winner's file
+ *    (detail pane).
  *  - T10-AC-02: strict-split — one tag renders distinct skip and scope
  *    negotiation rows; the scope row is labeled isolated and names its
  *    audience.
@@ -60,17 +63,17 @@ function participantsOf(detail: PackageDetailVm, action: string): DetailParticip
 
 const CONFLICT_LIB = packageId('__GLOBAL__', '@nf-lab/conflict-lib');
 
-describe('buildPackagesVm — conflict indicator and skip arrows (T10-AC-01)', () => {
-  it('flags the clean-skip package with "⚠ 2 versions" and its provider', () => {
+describe('buildPackagesVm — conflict indicator and skip arrows (T10-AC-01, T10.5)', () => {
+  it('keeps the clean-skip package badge-free — the election succeeded', () => {
     const vm = vmOf('clean-skip');
     const [row] = packageRows(vm);
 
     expect(vm.packageCount).toBe(1);
-    expect(row.conflict).toEqual({
-      label: '⚠ 2 versions',
-      note: 'more than one version declared in this share scope (rule: version-multiplicity)',
-    });
-    expect(row.versionSummary).toBe('2.0.0');
+    // T10.5: only ONE version is mapped — declared-only multiplicity is
+    // the mechanism succeeding, never a warning.
+    expect(row.conflict).toBeNull();
+    expect(vm.conflictCount).toBe(0);
+    expect(row.versions).toEqual([{ tag: '2.0.0', muted: false, note: null }]);
     // Chips answer "who provides": the mapped copy only; the skip-only
     // declarer collapses to "+1" with its verbatim action in the tooltip.
     expect(row.providers).toEqual([{ name: 'mfe2', host: false }]);
@@ -104,7 +107,21 @@ describe('buildPackagesVm — strict-split negotiation rows (T10-AC-02)', () => 
     const sameTag = vm.detail!.negotiation.filter((version) => version.tag === '1.0.0');
     // Store order sorts actions alphabetically within a tag: scope, skip.
     expect(sameTag.map((version) => version.action)).toEqual(['scope', 'skip']);
-    expect(sameTag.map((version) => version.symbol)).toEqual(['◌', '○']);
+    // T10.5 glyphs distinguish by shape: ◆ isolated copy, ○ no own copy.
+    expect(sameTag.map((version) => version.symbol)).toEqual(['◆', '○']);
+  });
+
+  it('flags mapped multiplicity and lists the scoped copy muted (T10.5)', () => {
+    const [row] = packageRows(vm);
+    // Badge and row versions derive from the same set — the mapped tags.
+    expect(row.conflict).toEqual({
+      label: '⚠ 2 versions mapped',
+      note: 'more than one version mapped in this share scope (rule: mapped-multiplicity)',
+    });
+    expect(row.versions).toEqual([
+      { tag: '2.0.0', muted: false, note: null },
+      { tag: '1.0.0', muted: true, note: 'own copy of mfe3 (scope)' },
+    ]);
   });
 
   it('labels the scope row isolated and names its audience', () => {
@@ -145,8 +162,11 @@ describe('buildPackagesVm — strict scope rendering (T10-AC-03)', () => {
 
     expect(row.conflict).toBeNull();
     expect(vm.conflictCount).toBe(0);
-    // No unique winner — the collapsed line joins the pinned tags honestly.
-    expect(row.versionSummary).toBe('2.0.0 · 1.0.0');
+    // No unique winner — every pinned tag lists unmuted (side-by-side by design).
+    expect(row.versions).toEqual([
+      { tag: '2.0.0', muted: false, note: null },
+      { tag: '1.0.0', muted: false, note: null },
+    ]);
     expect(row.scopeLabel).toBe('strict');
     expect(row.providers).toEqual([
       { name: 'mfe2', host: false },
@@ -200,7 +220,16 @@ describe('buildPackagesVm — winner-less multi-share (synthetic-multi-version)'
     expect(arrows).toEqual([{ kind: 'own' }, { kind: 'own' }]);
 
     const [row] = packageRows(vm);
-    expect(row.versionSummary).toBe('2.0.0 · 1.2.3');
+    // Both mapped copies list unmuted (no winner to privilege) and the
+    // badge counts the same set (T10.5).
+    expect(row.versions).toEqual([
+      { tag: '2.0.0', muted: false, note: null },
+      { tag: '1.2.3', muted: false, note: null },
+    ]);
+    expect(row.conflict).toEqual({
+      label: '⚠ 2 versions mapped',
+      note: 'more than one version mapped in this share scope (rule: mapped-multiplicity)',
+    });
     expect(row.providers).toEqual([
       { name: 'chat', host: false },
       { name: 'calendar', host: false },
@@ -312,15 +341,24 @@ describe('buildPackagesVm — linked sibling subpath rows (T10-AC-06)', () => {
   });
 });
 
-describe('buildPackagesVm — filter and scopes summary (T10-AC-07)', () => {
-  it('narrows the Conflicts filter to conflicted packages only', () => {
+describe('buildPackagesVm — filter and scopes summary (T10-AC-07, T10.5)', () => {
+  it('empties the Conflicts filter when every election succeeded', () => {
     const all = vmOf('self-fill');
     expect(packageRows(all).map((row) => row.packageName)).toEqual([
       '@nf-lab/conflict-lib',
       '@nf-lab/conflict-lib/extra',
     ]);
 
+    // T10.5: the self-fill skip resolves cleanly — no mapped multiplicity,
+    // the filter narrows to the honest empty note.
     const conflicts = vmOf('self-fill', { filter: 'conflicts' });
+    expect(conflicts.conflictCount).toBe(0);
+    expect(conflicts.rows).toEqual([]);
+    expect(conflicts.emptyNote).toBe('no version conflicts in this capture');
+  });
+
+  it('keeps mapped-multiplicity packages under the Conflicts filter', () => {
+    const conflicts = vmOf('strict-split', { filter: 'conflicts' });
     expect(conflicts.conflictCount).toBe(1);
     expect(packageRows(conflicts).map((row) => row.packageName)).toEqual([
       '@nf-lab/conflict-lib',

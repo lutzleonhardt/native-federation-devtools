@@ -1312,6 +1312,80 @@ file targets to `/import-map?select=…` (XC-03).
   source reading — hence the mandatory source-derived tag and
   informational tone.
 
+## Task 10.5: Conflict semantics — mapped multiplicity, glyphs, view split
+
+Depends on: Task 10. Addendum (user feedback on the shipped view,
+pattern: Task 6.5).
+
+### Instructions
+
+Two user findings share one root: the conflict badge keyed on DECLARED
+multiplicity, so the cleanest election (clean-skip: mfe1's 1.0.0
+declared, skipped, resolved within range to the elected 2.0.0) carried
+a ⚠ while the row showed only the winner tag next to "2 versions" —
+badge and row spoke about different sets.
+
+- **Conflict flag → mapped multiplicity** (store): `deriveConflicts`
+  splits `declaredTags` / `mappedTags` (non-skip rows); `conflict` =
+  more than one mapped tag outside the strict scope; rule renamed
+  `version-multiplicity` → `mapped-multiplicity`. Declared-only
+  multiplicity is the election succeeding — never flagged.
+- **Row lists the mapped-copy versions** (vm): winner first, other
+  mapped tags muted with their own-copy claim as tooltip; winner-less
+  groups list every mapped tag unmuted. Badge label
+  "⚠ n versions mapped" counts the SAME set — row and badge cannot
+  diverge by construction.
+- **Action glyphs distinguish by shape, not fill pattern**: share ●,
+  scope ◆, skip ○ (filled = mapped copy exists, circle = in the
+  election, diamond = isolated) — ○ vs ◌ was indistinguishable at UI
+  size. A quiet one-line legend under the negotiation section names
+  all three glyphs (notes as tooltips, single source with the
+  symbols).
+- **Size split** (user-directed): `packages-view-model.ts` (638 lines)
+  → facade + `packages-vm-shared` / `packages-row-vm` /
+  `packages-detail-vm` / `packages-chunk-vm`; `packages.html`
+  (332 lines) → list view + `package-detail` + `package-negotiation`
+  dumb components. Pure functions + dumb components, NO service (the
+  builder stays stateless by doctrine).
+- **Config-origin tooltips** (user-directed, disambiguates the strict
+  naming collision): scope surfaces name their config origin
+  (`shareScope: '<name>'`, global = "no shareScope configured",
+  strict = "special strict share scope — no election"), the kit
+  strict marker names `strictVersion: true`, the pinned tag names the
+  lost `requiredVersion` range. Scope name / `strictVersion` flag /
+  `scope` action are three different mechanisms — each tooltip says
+  which one it is.
+
+### Acceptance
+
+- **T10.5-AC-01** — clean-skip carries NO conflict indicator
+  (`Conflicts (0)`, no badge); strict-split keeps ⚠ with label
+  "2 versions mapped"; strict scope stays excluded (vm + DOM specs).
+- **T10.5-AC-02** — the row versions list equals the badge's mapped
+  set: strict-split `2.0.0 · 1.0.0` (scoped copy muted, own-copy
+  tooltip), winner-less fixtures list all mapped tags unmuted.
+- **T10.5-AC-03** — negotiation glyphs are ●/◆/○ (share/scope/skip)
+  and the negotiation section carries the glyph legend; no template
+  file exceeds ~150 lines; view behavior unchanged otherwise (full
+  chain green, bundle checks pass).
+- **T10.5-AC-04** — scope chips, the detail scope line, the pinned
+  scope chip, the strict marker, and the pinned tag carry
+  config-origin tooltips (`shareScope` / `strictVersion` /
+  `requiredVersion` named verbatim).
+
+### Key Locations
+
+- `shared/store/derived-model.ts` (`PackageConflict`),
+  `shared/store/derivations.ts` (`deriveConflicts`),
+  `views/packages/*` (facade + split modules + split components).
+
+### Out of Scope (recorded)
+
+- A range-satisfaction warning ("elected version outside a skip
+  declarer's declared range") needs a semver RANGE evaluator —
+  `semver-compare.ts` is deliberately a comparator over resolved tags.
+  Diagnostics candidate (Task 13).
+
 ## Task 11: Remotes tab — view model and view
 
 Depends on: Task 10.

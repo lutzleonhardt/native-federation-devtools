@@ -62,9 +62,7 @@
 /* --- flat list rows -------------------------------------------------- */
 
 .pkg-name,
-.pkg-version,
-.ver-tag,
-.mono {
+.pkg-version {
   font-family: var(--nf-font-mono);
   font-size: 11px;
 }
@@ -91,8 +89,24 @@
   cursor: help;
 }
 
+/* Mapped-copy versions: winner plain, other mapped tags dimmed. */
+.pkg-versions {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  white-space: nowrap;
+}
+
 .pkg-version {
   color: var(--nf-color-text-muted);
+}
+
+.pkg-version + .pkg-version::before {
+  content: '· ';
+}
+
+.pkg-version-muted {
+  opacity: 0.6;
 }
 
 .pkg-conflict {
@@ -122,198 +136,10 @@
   white-space: nowrap;
 }
 
-/* share/all declaration ratio — quiet, details in the tooltip. */
+/* Skip-only declarer count — quiet, details in the tooltip. */
 .pkg-count {
   color: var(--nf-color-text-muted);
   font-family: var(--nf-font-mono);
   font-size: 10px;
   white-space: nowrap;
-}
-
-/* --- detail pane ----------------------------------------------------- */
-
-.pkg-detail h2 {
-  margin: 0 0 4px;
-  font-size: 12px;
-  font-family: var(--nf-font-mono);
-}
-
-.pkg-detail h3 {
-  margin: 14px 0 4px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--nf-color-text-muted);
-}
-
-.detail-meta {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin: 0;
-  color: var(--nf-color-text-muted);
-}
-
-.detail-strict {
-  color: var(--nf-color-warning-text);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  text-decoration: underline dotted;
-  text-underline-offset: 2px;
-  cursor: help;
-}
-
-.ver-symbol {
-  color: var(--nf-color-text-muted);
-}
-
-.ver-action {
-  padding: 0 4px;
-  border: 1px solid var(--nf-color-border);
-  border-radius: 3px;
-  background: var(--nf-color-surface);
-  font-size: 10px;
-  color: var(--nf-color-text-muted);
-  text-decoration: underline dotted;
-  text-underline-offset: 2px;
-  cursor: help;
-}
-
-.ver-isolated {
-  color: var(--nf-color-text-muted);
-  font-style: italic;
-}
-
-.negotiation-note {
-  margin: 0 0 6px;
-}
-
-.detail-version {
-  margin-bottom: 8px;
-}
-
-.detail-version-head {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  margin: 0 0 2px;
-}
-
-.detail-participant {
-  margin: 2px 0 2px 16px;
-}
-
-.provider-line,
-.residual-line,
-.integrity-line {
-  margin: 2px 0 0 2px;
-  color: var(--nf-color-text-muted);
-}
-
-/* Anchors wrapping a participant chip: the chip IS the link — never an
- * underline through the chip text (hover accent lives in the chip's css). */
-.chip-link {
-  text-decoration: none !important;
-}
-
-.provider-fallback {
-  padding: 0 4px;
-  border: 1px solid var(--nf-color-border);
-  border-radius: 3px;
-  font-size: 10px;
-  text-decoration: underline dotted;
-  text-underline-offset: 2px;
-  cursor: help;
-}
-
-/* The one visible provenance tag: source-derived (not capture-backed). */
-.rule-tag {
-  padding: 0 4px;
-  border: 1px dashed var(--nf-color-border);
-  border-radius: 3px;
-  font-family: var(--nf-font-mono);
-  font-size: 10px;
-  color: var(--nf-color-text-muted);
-  text-decoration: underline dotted;
-  text-underline-offset: 2px;
-  cursor: help;
-  white-space: nowrap;
-}
-
-.entry-list,
-.chunk-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.entry-item {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  flex-wrap: wrap;
-  padding: 1px 0;
-}
-
-.entry-file {
-  font-family: var(--nf-font-mono);
-  font-size: 11px;
-  overflow-wrap: anywhere;
-}
-
-.entry-sri {
-  padding: 0 4px;
-  border: 1px solid var(--nf-color-border);
-  border-radius: 3px;
-  font-size: 10px;
-  color: var(--nf-color-text-muted);
-  text-decoration: underline dotted;
-  text-underline-offset: 2px;
-  cursor: help;
-}
-
-/* One fact per line: label column + value. */
-.detail-kv {
-  margin: 0;
-}
-
-.kv-row {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 1px 0;
-}
-
-.kv-row dt {
-  min-width: 80px;
-  color: var(--nf-color-text-muted);
-}
-
-.kv-row dd {
-  margin: 0;
-}
-
-.chunk-list li {
-  padding: 1px 0 1px 88px;
-}
-
-.chunk-link {
-  margin: 4px 0 0;
-}
-
-/* Navigating elements: pointer + hover accent (shell affordance rule). */
-.pkg-detail a {
-  color: var(--nf-color-accent);
-  cursor: pointer;
-}
-
-.pkg-detail a:not(.tip) {
-  text-decoration: none;
-}
-
-.pkg-detail a:hover {
-  text-decoration: underline;
 }

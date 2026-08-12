@@ -414,10 +414,11 @@ describe('deriveFederation — strict-scope semantics (T7-AC-07)', () => {
       {
         scope: 'strict',
         packageName: '@nf-lab/conflict-lib',
-        tags: ['2.0.0', '1.0.0'],
+        declaredTags: ['2.0.0', '1.0.0'],
+        mappedTags: ['2.0.0', '1.0.0'],
         conflict: false,
         strictExcluded: true,
-        rule: 'version-multiplicity',
+        rule: 'mapped-multiplicity',
       },
     ]);
     expect(derived.sharedRowFacts).toHaveLength(2);
@@ -426,22 +427,41 @@ describe('deriveFederation — strict-scope semantics (T7-AC-07)', () => {
     }
   });
 
-  it('flags the clean-skip __GLOBAL__ version rows as a conflict', () => {
+  // T10.5 amendment: the flag keys on mapped multiplicity — a clean skip
+  // (declared, resolved to the elected copy) is the election succeeding.
+  it('keeps the clean-skip election conflict-free — one mapped version', () => {
     const derived = deriveFixture('clean-skip');
 
     expect(derived.packageConflicts).toEqual([
       {
         scope: '__GLOBAL__',
         packageName: '@nf-lab/conflict-lib',
-        tags: ['2.0.0', '1.0.0'],
-        conflict: true,
+        declaredTags: ['2.0.0', '1.0.0'],
+        mappedTags: ['2.0.0'],
+        conflict: false,
         strictExcluded: false,
-        rule: 'version-multiplicity',
+        rule: 'mapped-multiplicity',
       },
     ]);
     for (const facts of derived.sharedRowFacts) {
       expect(facts.strictPinned).toBeNull();
     }
+  });
+
+  it('flags the strict-split package — a scoped second copy is mapped', () => {
+    const derived = deriveFixture('strict-split');
+
+    expect(derived.packageConflicts).toEqual([
+      {
+        scope: '__GLOBAL__',
+        packageName: '@nf-lab/conflict-lib',
+        declaredTags: ['2.0.0', '1.0.0'],
+        mappedTags: ['2.0.0', '1.0.0'],
+        conflict: true,
+        strictExcluded: false,
+        rule: 'mapped-multiplicity',
+      },
+    ]);
   });
 });
 
@@ -476,7 +496,7 @@ describe('deriveFederation — provenance tags (T7-AC-08)', () => {
       }
       expect(derived.generationBadge.rule).toBe('generation-aggregate');
       for (const conflict of derived.packageConflicts) {
-        expect(conflict.rule).toBe('version-multiplicity');
+        expect(conflict.rule).toBe('mapped-multiplicity');
       }
     }
   });

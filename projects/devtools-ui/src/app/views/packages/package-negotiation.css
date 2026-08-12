@@ -1,0 +1,96 @@
+.negotiation-note {
+  margin: 0 0 6px;
+}
+
+/* Glyph legend — quiet one-liner, notes one hover away. */
+.glyph-legend {
+  display: flex;
+  gap: 12px;
+  margin: 2px 0 0;
+  font-size: 10px;
+  color: var(--nf-color-text-muted);
+}
+
+/* Tooltip affordance (shell convention): dotted underline + help cursor. */
+.tip {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+}
+
+.detail-version {
+  margin-bottom: 8px;
+}
+
+.detail-version-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0 0 2px;
+}
+
+.ver-tag {
+  font-family: var(--nf-font-mono);
+  font-size: 11px;
+}
+
+.ver-symbol {
+  color: var(--nf-color-text-muted);
+}
+
+.ver-action {
+  padding: 0 4px;
+  border: 1px solid var(--nf-color-border);
+  border-radius: 3px;
+  background: var(--nf-color-surface);
+  font-size: 10px;
+  color: var(--nf-color-text-muted);
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+}
+
+.ver-isolated {
+  color: var(--nf-color-text-muted);
+  font-style: italic;
+}
+
+.detail-participant {
+  margin: 2px 0 2px 16px;
+}
+
+.provider-line,
+.residual-line {
+  margin: 2px 0 0 2px;
+  color: var(--nf-color-text-muted);
+}
+
+/* Anchors wrapping a participant chip: the chip IS the link — never an
+ * underline through the chip text (hover accent lives in the chip's css). */
+.chip-link {
+  text-decoration: none !important;
+}
+
+.provider-fallback {
+  padding: 0 4px;
+  border: 1px solid var(--nf-color-border);
+  border-radius: 3px;
+  font-size: 10px;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+}
+
+/* The one visible provenance tag: source-derived (not capture-backed). */
+.rule-tag {
+  padding: 0 4px;
+  border: 1px dashed var(--nf-color-border);
+  border-radius: 3px;
+  font-family: var(--nf-font-mono);
+  font-size: 10px;
+  color: var(--nf-color-text-muted);
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+  white-space: nowrap;
+}
