@@ -1,0 +1,22 @@
+.capability {
+  display: inline-block;
+  padding: 0 4px;
+  border: 1px solid var(--nf-color-border);
+  border-radius: 3px;
+  background: var(--nf-color-surface);
+  font-size: 10px;
+  line-height: 1.4;
+  color: var(--nf-color-text-muted);
+  white-space: nowrap;
+}
+
+.capability-check {
+  color: var(--nf-color-accent);
+}
+
+/* Tooltip affordance (shell convention): a chip carrying a note signals it. */
+.capability[title] {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+}

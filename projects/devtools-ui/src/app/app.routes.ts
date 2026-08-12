@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 
+import { environment } from '../environments/environment';
 import { ViewPlaceholder } from './views/placeholder';
 
 /**
@@ -19,4 +20,6 @@ export const routes: Routes = [
   { path: 'remotes', component: ViewPlaceholder, data: { title: 'Remotes' } },
   { path: 'import-map', component: ViewPlaceholder, data: { title: 'Import Map' } },
   { path: 'diagnostics', component: ViewPlaceholder, data: { title: 'Diagnostics' } },
+  // Dev-only additions (e.g. /kit-demo); empty in the extension build.
+  ...environment.extraRoutes,
 ];

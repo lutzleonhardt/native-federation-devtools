@@ -1,0 +1,55 @@
+.kit-demo h2 {
+  margin: 16px 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.demo-split {
+  height: 180px;
+  border: 1px solid var(--nf-color-border);
+  border-radius: 3px;
+}
+
+.node-name {
+  font-family: var(--nf-font-mono);
+  font-size: 11px;
+}
+
+.node-hint {
+  margin-left: 6px;
+  color: var(--nf-color-text-muted);
+}
+
+.demo-hint {
+  margin: 6px 0 0;
+  color: var(--nf-color-text-muted);
+}
+
+.demo-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.demo-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.demo-caption {
+  width: 220px;
+  flex: none;
+  color: var(--nf-color-text-muted);
+}
+
+.demo-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.demo-vs {
+  color: var(--nf-color-text-muted);
+  font-size: 10px;
+}

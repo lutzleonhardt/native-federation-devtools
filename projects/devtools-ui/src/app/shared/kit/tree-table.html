@@ -1,0 +1,34 @@
+<div class="tree" role="tree" [attr.aria-label]="label() ?? null">
+  @for (row of rows(); track row.id; let index = $index) {
+    <div
+      #rowEl
+      class="tree-row"
+      role="treeitem"
+      [attr.aria-level]="row.depth + 1"
+      [attr.aria-expanded]="row.expandable ? row.expanded : null"
+      [attr.aria-selected]="row.id === selectedId()"
+      [attr.tabindex]="row.id === tabStopId() ? 0 : -1"
+      [class.selected]="row.id === selectedId()"
+      [style.--tree-depth]="row.depth"
+      (click)="onRowClick(row)"
+      (keydown)="onKeydown($event, row, index)"
+    >
+      @if (row.expandable) {
+        <button
+          type="button"
+          class="twisty"
+          tabindex="-1"
+          aria-hidden="true"
+          [class.expanded]="row.expanded"
+          (click)="onTwistyClick($event, row)"
+        ></button>
+      } @else {
+        <span class="twisty-spacer" aria-hidden="true"></span>
+      }
+      <ng-container
+        [ngTemplateOutlet]="rowTemplate()"
+        [ngTemplateOutletContext]="{ $implicit: row.payload, row }"
+      ></ng-container>
+    </div>
+  }
+</div>

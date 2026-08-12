@@ -1,0 +1,31 @@
+.kv {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px 12px;
+  margin: 0;
+}
+
+.kv-label {
+  color: var(--nf-color-text-muted);
+}
+
+.kv-value {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.kv-mono {
+  font-family: var(--nf-font-mono);
+  font-size: 11px;
+}
+
+/* Navigation affordance (shell convention): pointer + hover accent. */
+.kv-link {
+  color: var(--nf-color-accent);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.kv-link:hover {
+  text-decoration: underline;
+}

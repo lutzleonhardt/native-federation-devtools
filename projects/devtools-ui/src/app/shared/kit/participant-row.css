@@ -1,0 +1,68 @@
+:host {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.participant,
+.declared,
+.arrow-target {
+  font-family: var(--nf-font-mono);
+  font-size: 11px;
+}
+
+.declared {
+  color: var(--nf-color-text-muted);
+}
+
+/* Tooltip affordance (shell convention): dotted underline + help cursor. */
+.declared-pinned,
+.strict-marker {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+}
+
+.strict-marker {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--nf-color-warning-text);
+}
+
+.arrow {
+  white-space: nowrap;
+}
+
+.arrow-provider {
+  /* Angular strips whitespace-only nodes between spans — space via margin. */
+  margin-left: 4px;
+  color: var(--nf-color-text-muted);
+}
+
+.arrow-own {
+  color: var(--nf-color-text-muted);
+}
+
+/* Registry action, verbatim — quiet chip, not the accent-colored .nf-tag. */
+.action-chip {
+  padding: 0 4px;
+  border: 1px solid var(--nf-color-border);
+  border-radius: 3px;
+  background: var(--nf-color-surface);
+  font-size: 10px;
+  color: var(--nf-color-text-muted);
+}
+
+/* Tooltip affordance (shell convention): a chip carrying a note signals it. */
+.action-chip[title] {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+}
+
+.row-links {
+  display: inline-flex;
+  gap: 6px;
+}

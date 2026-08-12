@@ -1,0 +1,19 @@
+<dl class="kv">
+  @for (item of items(); track $index) {
+    <dt class="kv-label">{{ item.label }}</dt>
+    <dd class="kv-value">
+      @if (item.href; as href) {
+        <a
+          class="kv-link"
+          [class.kv-mono]="item.mono"
+          [href]="href"
+          target="_blank"
+          rel="noopener noreferrer"
+          >{{ item.value }}</a
+        >
+      } @else {
+        <span [class.kv-mono]="item.mono">{{ item.value }}</span>
+      }
+    </dd>
+  }
+</dl>
