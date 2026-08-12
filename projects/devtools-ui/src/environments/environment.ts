@@ -1,5 +1,8 @@
+import { Type } from '@angular/core';
 import { Routes } from '@angular/router';
 import { FixtureSnapshotProvider, fixtureIdFromQuery, SnapshotProvider } from 'devtools-bridge';
+
+import { FixturePicker } from '../app/shell/fixture-picker';
 
 // Read at module-evaluation time, before bootstrap: the hash-location
 // router rewrites the URL during its initial navigation and drops the
@@ -26,4 +29,10 @@ export const environment = {
       loadComponent: () => import('../app/views/kit-demo').then((m) => m.KitDemo),
     },
   ] satisfies Routes,
+  /**
+   * Dev-only components mounted at the end of the shell status line (e.g.
+   * the fixture picker). Empty in the extension environment, so the
+   * components never reach the packaged bundle.
+   */
+  shellExtras: [FixturePicker] satisfies Type<unknown>[],
 };

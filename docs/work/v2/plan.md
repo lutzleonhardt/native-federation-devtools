@@ -1611,6 +1611,54 @@ list vs. navigating).
   index flattens, it does not re-derive; navigation reuses the
   Task-8 `select` convention end to end.
 
+## Task 15: Polishment — view-shell fit and finish
+
+Depends on: Task 14.
+
+### Instructions
+
+Collection task for small fit-and-finish items discovered while
+building the V2 views. Fixed content so far (both in the kit
+`master-detail`, so every view profits without consumer changes):
+
+**Movable splitter**: a slim drag handle between the panes; pointer
+drag updates a clamped `--nf-master-width` custom property on the
+host, double-click resets to the default ratio. The handle is a
+`role="separator"` with `aria-orientation="vertical"`; Arrow keys
+resize in steps (kit keyboard convention). No dependency, no
+persistence — the kit stays stateless across sessions.
+
+**Narrow-panel stacking**: below a container width of ~560px the
+split flips to rows (master above detail) — the DevTools pattern for
+small docked panels; pure container-query CSS, no JS. Verify the
+breakpoint feel during the pre-PR manual smoke of the packaged
+extension.
+
+Further polish items found during Tasks 11–14 are appended here as
+they surface (each with its own AC) instead of widening the view
+tasks.
+
+### Acceptance
+
+- **T15-AC-01** — dragging the handle resizes the master pane within
+  its clamp bounds; double-click restores the default ratio; Arrow
+  keys resize via the separator role.
+- **T15-AC-02** — in a container narrower than the breakpoint the
+  panes stack (master above detail) and reflow back when widened.
+- **T15-AC-03** — the kit spec covers both behaviors; consumers
+  (Packages and the later views) are unchanged.
+
+### Key Locations
+
+- `projects/devtools-ui/src/app/shared/kit/master-detail.ts|.html|.css`
+  + spec.
+
+### Key Discoveries
+
+- Task 10 already widened the default column to
+  `minmax(220px, 40%)`; the splitter only overrides this default via
+  `--nf-master-width`.
+
 ## Cross-Cutting Acceptance
 
 - **XC-01** — Every checked-in **lab scenario** capture is regenerable

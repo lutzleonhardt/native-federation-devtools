@@ -20,9 +20,12 @@
 .tree-row.selected {
   background: var(--nf-color-accent);
   color: var(--nf-color-accent-contrast);
-  /* Re-point the muted token so projected row content (which the kit cannot
-   * style directly) stays readable on the accent background. */
+  /* Re-point the surface tokens so projected row content (which the kit
+   * cannot style directly) stays readable on the accent background —
+   * muted text turns contrast-colored, chips lose their light fill. */
   --nf-color-text-muted: var(--nf-color-accent-contrast);
+  --nf-color-surface: transparent;
+  --nf-color-border: var(--nf-color-accent-contrast);
 }
 
 .tree-row:focus-visible {

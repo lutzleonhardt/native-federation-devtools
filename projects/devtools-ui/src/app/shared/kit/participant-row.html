@@ -1,4 +1,7 @@
-<span class="participant">{{ name() }}</span>
+<span class="participant"
+  ><ng-content select="[nfParticipant]"
+    ><nf-participant-chip [name]="name()" [host]="host()" /></ng-content
+></span>
 @if (declaredPinned(); as pinned) {
   <span class="declared declared-pinned" title="exact tag — pinned by the strict scope">{{
     pinned.tag
@@ -14,7 +17,9 @@
     >→ <span class="arrow-target">{{ winner.target }}</span>
     <span class="arrow-provider">{{ winner.provider }}</span></span
   >
-} @else {
+} @else if (noneArrow(); as none) {
+  <span class="arrow arrow-none" [attr.aria-label]="arrowLabel()">→ {{ none.reason }}</span>
+} @else if (ownArrow()) {
   <span class="arrow arrow-own" [attr.aria-label]="arrowLabel()">→ own copy</span>
 }
 @if (action(); as action) {

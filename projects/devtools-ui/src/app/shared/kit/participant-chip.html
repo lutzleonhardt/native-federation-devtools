@@ -1,0 +1,5 @@
+@if (host()) {
+  <span class="chip chip-host" [title]="name()">host</span>
+} @else {
+  <span class="chip chip-remote">{{ name() }}</span>
+}

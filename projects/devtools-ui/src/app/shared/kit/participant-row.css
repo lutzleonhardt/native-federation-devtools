@@ -14,6 +14,8 @@
 
 .declared {
   color: var(--nf-color-text-muted);
+  /* Ranges contain spaces (">=1.0.0 <3.0.0") — never wrap mid-declaration. */
+  white-space: nowrap;
 }
 
 /* Tooltip affordance (shell convention): dotted underline + help cursor. */
@@ -43,6 +45,12 @@
 
 .arrow-own {
   color: var(--nf-color-text-muted);
+}
+
+/* Winner-less honest state: reason text, never an invented target. */
+.arrow-none {
+  color: var(--nf-color-text-muted);
+  font-style: italic;
 }
 
 /* Registry action, verbatim — quiet chip, not the accent-colored .nf-tag. */

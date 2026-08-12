@@ -42,6 +42,7 @@
         <span class="demo-caption">{{ variant.caption }}</span>
         <nf-participant-row
           [name]="variant.name"
+          [host]="variant.host ?? false"
           [declared]="variant.declared"
           [strict]="variant.strict"
           [arrow]="variant.arrow"

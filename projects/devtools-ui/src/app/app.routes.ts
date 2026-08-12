@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 
 import { environment } from '../environments/environment';
+import { PackagesView } from './views/packages/packages';
 import { ViewPlaceholder } from './views/placeholder';
 
 /**
@@ -16,7 +17,7 @@ import { ViewPlaceholder } from './views/placeholder';
  */
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'packages' },
-  { path: 'packages', component: ViewPlaceholder, data: { title: 'Packages' } },
+  { path: 'packages', component: PackagesView },
   { path: 'remotes', component: ViewPlaceholder, data: { title: 'Remotes' } },
   { path: 'import-map', component: ViewPlaceholder, data: { title: 'Import Map' } },
   { path: 'diagnostics', component: ViewPlaceholder, data: { title: 'Diagnostics' } },

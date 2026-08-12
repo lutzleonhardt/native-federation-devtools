@@ -5,16 +5,22 @@ import { DeclaredVersion, ParticipantArrow, ParticipantRow } from './participant
 
 function createRow(inputs: {
   name: string;
+  host?: boolean;
   declared: DeclaredVersion;
   strict?: boolean;
-  arrow: ParticipantArrow;
+  arrow?: ParticipantArrow;
   action?: string;
   actionNote?: string;
 }) {
   const fixture = TestBed.createComponent(ParticipantRow);
   fixture.componentRef.setInput('name', inputs.name);
   fixture.componentRef.setInput('declared', inputs.declared);
-  fixture.componentRef.setInput('arrow', inputs.arrow);
+  if (inputs.arrow !== undefined) {
+    fixture.componentRef.setInput('arrow', inputs.arrow);
+  }
+  if (inputs.host !== undefined) {
+    fixture.componentRef.setInput('host', inputs.host);
+  }
   if (inputs.strict !== undefined) {
     fixture.componentRef.setInput('strict', inputs.strict);
   }
@@ -81,6 +87,49 @@ describe('ParticipantRow (view kit)', () => {
     expect(el.querySelector('.action-chip')).toBeNull();
   });
 
+  // T10 (rework): the norm is quiet — without an arrow input no resolution
+  // claim is drawn at all.
+  it('renders no arrow when none is given', () => {
+    const el = createRow({
+      name: 'whiteboard',
+      declared: { kind: 'range', range: '^18.3.1' },
+      action: 'share',
+    });
+
+    expect(el.querySelector('.arrow')).toBeNull();
+    expect(el.querySelector('.action-chip')?.textContent).toBe('share');
+  });
+
+  // T10 (rework): host renders as the quiet chip, sentinel in the tooltip.
+  it('renders the host registration as a host chip', () => {
+    const el = createRow({
+      name: '__NF-HOST__',
+      host: true,
+      declared: { kind: 'range', range: '^21.2.0' },
+    });
+
+    const chip = el.querySelector('.participant .chip')!;
+    expect(chip.textContent).toBe('host');
+    expect(chip.getAttribute('title')).toBe('__NF-HOST__');
+  });
+
+  // T10: winner-less honest state — reason verbatim, no invented target.
+  it('renders the winner-less arrow with its reason and no target', () => {
+    const el = createRow({
+      name: 'mfe1',
+      declared: { kind: 'range', range: '~1.0.0' },
+      arrow: { kind: 'none', reason: 'no unique winner' },
+      action: 'skip',
+    });
+
+    const arrow = el.querySelector('.arrow')!;
+    expect(arrow.classList.contains('arrow-none')).toBe(true);
+    expect(arrow.textContent).toContain('→ no unique winner');
+    expect(arrow.getAttribute('aria-label')).toBe('resolution not derived: no unique winner');
+    expect(el.querySelector('.arrow-target')).toBeNull();
+    expect(el.querySelector('.arrow-provider')).toBeNull();
+  });
+
   // T9-AC-03: the pinned variant renders the exact tag, never a range.
   it('pinned variant renders the exact tag with pinned styling', () => {
     const el = createRow({
@@ -118,6 +167,27 @@ describe('ParticipantRow (view kit)', () => {
       arrow: { kind: 'own' },
     });
     expect(own.querySelector('.arrow')?.getAttribute('aria-label')).toBe('resolves to own copy');
+  });
+
+  // T10 (cross-link rework): a caller may replace the default name chip
+  // with a linked element — the kit itself stays router-free.
+  it('projects a caller-provided name element over the default chip', () => {
+    // Test scaffolding only — real consumers keep templates in separate files.
+    @Component({
+      imports: [ParticipantRow],
+      template: `
+        <nf-participant-row name="chat" [declared]="{ kind: 'range', range: '^2.0.0' }">
+          <a nfParticipant class="the-name-link" href="#">chat</a>
+        </nf-participant-row>
+      `,
+    })
+    class NameHost {}
+
+    const fixture = TestBed.createComponent(NameHost);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.participant .the-name-link')?.textContent).toBe('chat');
+    expect(el.querySelector('.participant nf-participant-chip')).toBeNull();
   });
 
   it('projects optional link slots', () => {

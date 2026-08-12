@@ -1,0 +1,15 @@
+<label class="picker-label">
+  fixture
+  <select class="picker-select" title="dev preview — reloads with ?fixture=<id>" (change)="onPick($event)">
+    <optgroup label="captured">
+      @for (id of capturedIds; track id) {
+        <option [value]="id" [selected]="id === current">{{ id }}</option>
+      }
+    </optgroup>
+    <optgroup label="synthetic">
+      @for (id of syntheticIds; track id) {
+        <option [value]="id" [selected]="id === current">{{ id }}</option>
+      }
+    </optgroup>
+  </select>
+</label>

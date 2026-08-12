@@ -26,9 +26,11 @@ interface DemoRowPayload {
 interface RowVariant {
   caption: string;
   name: string;
+  host?: boolean;
   declared: DeclaredVersion;
   strict: boolean;
-  arrow: ParticipantArrow;
+  /** Absent = the quiet norm (no resolution claim drawn). */
+  arrow?: ParticipantArrow;
   action?: string;
   actionNote?: string;
   link?: boolean;
@@ -155,6 +157,23 @@ export class KitDemo {
       declared: { kind: 'pinned', tag: '1.2.3' },
       strict: true,
       arrow: { kind: 'own' },
+    },
+    {
+      caption: 'winner-less honest state',
+      name: 'mfe3',
+      declared: { kind: 'range', range: '^2.0.0' },
+      strict: false,
+      arrow: { kind: 'none', reason: 'no unique winner' },
+      action: 'skip',
+    },
+    {
+      caption: 'quiet host winner (no arrow)',
+      name: '__NF-HOST__',
+      host: true,
+      declared: { kind: 'range', range: '^21.2.0' },
+      strict: false,
+      action: 'share',
+      actionNote: 'offers this copy to the version election',
     },
   ];
 

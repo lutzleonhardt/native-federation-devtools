@@ -36,6 +36,9 @@
         >{{ capture.pageUrl }}</a
       >
       <span class="shell-status-date" [title]="capture.capturedAt">{{ capture.capturedDate }}</span>
+      @for (extra of shellExtras; track $index) {
+        <ng-container *ngComponentOutlet="extra" />
+      }
       <nf-capture-status-strip />
     </div>
   }

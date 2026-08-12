@@ -1,0 +1,29 @@
+:host {
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.picker-label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--nf-color-text-muted);
+  font-size: 11px;
+}
+
+.picker-select {
+  max-width: 200px;
+  padding: 0 2px;
+  font: inherit;
+  font-family: var(--nf-font-mono);
+  font-size: 11px;
+  color: var(--nf-color-text);
+  background: var(--nf-color-surface);
+  border: 1px solid var(--nf-color-border);
+  border-radius: 3px;
+}
+
+.picker-select:focus-visible {
+  outline: 2px solid var(--nf-color-focus-ring);
+  outline-offset: 1px;
+}
