@@ -31,7 +31,7 @@ export type DerivationRule =
   | 'integrity-map-present'
   | 'participant-bundle'
   | 'generation-aggregate'
-  | 'version-multiplicity'
+  | 'mapped-multiplicity'
   | 'strict-scope-policy';
 
 /**
@@ -159,18 +159,23 @@ export interface GenerationBadge {
 }
 
 /**
- * Conflict indicator of one (scope, package): more than one version row.
- * In the share scope `strict` every exact version is `share` by design —
- * the indicator is excluded there (`strictExcluded`).
+ * Conflict indicator of one (scope, package): more than one version exists
+ * as a MAPPED copy (share and scope rows). Declared-only multiplicity — a
+ * skip row whose copy is never mapped — is the election succeeding, not a
+ * conflict, and must not raise the indicator. In the share scope `strict`
+ * every exact version is `share` by design — the indicator is excluded
+ * there (`strictExcluded`).
  */
 export interface PackageConflict {
   scope: string;
   packageName: string;
-  /** Distinct version tags, store order. */
-  tags: string[];
+  /** Distinct declared version tags (any action), store order. */
+  declaredTags: string[];
+  /** Distinct tags of mapped copies (share and scope rows), store order. */
+  mappedTags: string[];
   conflict: boolean;
   strictExcluded: boolean;
-  rule: 'version-multiplicity';
+  rule: 'mapped-multiplicity';
 }
 
 export interface DerivedFederation {

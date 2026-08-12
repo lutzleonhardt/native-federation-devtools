@@ -3,14 +3,20 @@
     ><nf-participant-chip [name]="name()" [host]="host()" /></ng-content
 ></span>
 @if (declaredPinned(); as pinned) {
-  <span class="declared declared-pinned" title="exact tag — pinned by the strict scope">{{
-    pinned.tag
-  }}</span>
+  <span
+    class="declared declared-pinned"
+    title="exact tag — pinned by the strict share scope; the configured requiredVersion range is not stored"
+    >{{ pinned.tag }}</span
+  >
 } @else if (declaredRange(); as range) {
   <span class="declared declared-range">{{ range.range }}</span>
 }
 @if (strict()) {
-  <span class="strict-marker" title="strict version negotiation">strict</span>
+  <span
+    class="strict-marker"
+    title="strict version negotiation — accepts only an elected version satisfying the declared range (config: strictVersion: true)"
+    >strict</span
+  >
 }
 @if (winnerArrow(); as winner) {
   <span class="arrow" [attr.aria-label]="arrowLabel()"

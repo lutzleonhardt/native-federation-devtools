@@ -49,7 +49,10 @@ describe('ParticipantRow (view kit)', () => {
     const declared = el.querySelector('.declared')!;
     expect(declared.textContent).toBe('^19.0.0');
     expect(declared.classList.contains('declared-range')).toBe(true);
-    expect(el.querySelector('.strict-marker')?.textContent).toBe('strict');
+    const strictMarker = el.querySelector<HTMLElement>('.strict-marker')!;
+    expect(strictMarker.textContent).toBe('strict');
+    // Config-origin reference (T10.5): the tooltip names the config field.
+    expect(strictMarker.title).toContain('strictVersion: true');
 
     const arrow = el.querySelector('.arrow')!;
     expect(arrow.textContent).toContain('→');

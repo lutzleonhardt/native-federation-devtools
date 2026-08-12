@@ -1,0 +1,134 @@
+@if (detail(); as detail) {
+  <h2 class="detail-name">{{ detail.packageName }}</h2>
+  <p class="detail-meta">
+    <span class="detail-scope"
+      >share scope
+      <span
+        class="mono tip"
+        [attr.title]="
+          detail.scopeDisplay === detail.scope
+            ? 'configured via shareScope: ' + detail.scope
+            : detail.scope + ' — the default share scope (no shareScope configured)'
+        "
+        >{{ detail.scopeDisplay }}</span
+      ></span
+    >
+    @if (detail.strictScope) {
+      <span
+        class="detail-strict"
+        title="special strict share scope — no election, every exact version is shared side by side (config: shareScope: 'strict')"
+        >pinned scope</span
+      >
+    }
+    @if (detail.parent) {
+      <span class="detail-parent">
+        secondary entry of
+        <a
+          [routerLink]="['/packages']"
+          [queryParams]="{ select: detail.parent.packageId }"
+          [title]="
+            'parent association derived from the package name — rule: ' + detail.parent.rule
+          "
+          >{{ detail.parent.packageName }}</a
+        >
+      </span>
+    }
+  </p>
+
+  <h3>Negotiation</h3>
+  <nf-package-negotiation [versions]="detail.negotiation" [note]="detail.negotiationNote" />
+
+  <h3>Entries</h3>
+  @if (detail.entries.length > 0) {
+    <ul class="entry-list">
+      @for (entry of detail.entries; track entry.participant + entry.file) {
+        <li class="entry-item">
+          <a
+            class="chip-link"
+            [routerLink]="['/remotes']"
+            [queryParams]="{ select: entry.participant }"
+            ><nf-participant-chip [name]="entry.participant" [host]="entry.host"
+          /></a>
+          <span class="entry-file">{{ entry.file }}</span>
+          @if (entry.targetUrl) {
+            <a
+              class="entry-mapped"
+              [routerLink]="['/import-map']"
+              [queryParams]="{ select: entry.importMapSelect }"
+              [title]="entry.targetUrl"
+              >mapped</a
+            >
+          } @else {
+            <span class="view-observation">not mapped</span>
+          }
+          @if (entry.hasIntegrity) {
+            <span class="entry-sri" title="the mapped target carries an SRI hash">SRI</span>
+          }
+        </li>
+      }
+    </ul>
+  } @else {
+    <p class="view-observation">no served files recorded for mapped copies</p>
+  }
+
+  <h3>Integrity</h3>
+  @if (detail.integrity.mappedTargets > 0) {
+    <p class="integrity-line">
+      {{ detail.integrity.withIntegrity }} of {{ detail.integrity.mappedTargets }} mapped
+      targets carry SRI hashes
+    </p>
+  } @else {
+    <p class="view-observation">no mapped targets for this package</p>
+  }
+
+  <h3>Chunks</h3>
+  @if (detail.chunks; as chunks) {
+    @switch (chunks.level) {
+      @case ('package') {
+        @if (chunks.packageEntry; as chunkEntry) {
+          <dl class="detail-kv">
+            <div class="kv-row">
+              <dt>bundle</dt>
+              <dd class="mono">{{ chunkEntry.bundleName }}</dd>
+            </div>
+            <div class="kv-row">
+              <dt>chunk files</dt>
+              <dd [title]="'joined from the registry bundle-chunk lists — rule: ' + chunks.rule">
+                {{ chunkEntry.files.length }} · {{ chunkEntry.mappedCount }} mapped ·
+                loaded on demand
+              </dd>
+            </div>
+          </dl>
+          @if (chunkEntry.files.length > 0) {
+            <ul class="chunk-list">
+              @for (file of chunkEntry.files; track file) {
+                <li class="mono">{{ file }}</li>
+              }
+            </ul>
+          } @else {
+            <p class="view-observation">the bundle records no chunk list in this capture</p>
+          }
+          <p class="chunk-link"><a [routerLink]="['/import-map']">open in Import Map</a></p>
+        } @else {
+          <p class="view-observation" [attr.title]="'rule: ' + chunks.rule">
+            {{ chunks.remoteDisplay }} records chunk lists, but none for this package
+          </p>
+        }
+      }
+      @case ('remote') {
+        <p class="view-observation" [attr.title]="'rule: ' + chunks.rule">
+          {{ chunks.note }} ({{ chunks.groupCount }} chunk groups)
+        </p>
+      }
+      @case ('none') {
+        <p class="view-observation" [attr.title]="'rule: ' + chunks.rule">
+          {{ chunks.note }}
+        </p>
+      }
+    }
+  } @else if (detail.chunksUnavailable) {
+    <p class="view-observation">{{ detail.chunksUnavailable }}</p>
+  }
+} @else {
+  <p class="view-observation">Select a package on the left.</p>
+}

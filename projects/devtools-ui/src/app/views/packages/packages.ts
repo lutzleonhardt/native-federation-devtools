@@ -1,12 +1,11 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 
-import { StateBadge } from '../../shared/honest-state/state-badge';
 import { MasterDetail } from '../../shared/kit/master-detail';
 import { ParticipantChip } from '../../shared/kit/participant-chip';
-import { ParticipantRow } from '../../shared/kit/participant-row';
 import { TreeTable, TreeTableRow } from '../../shared/kit/tree-table';
 import { FederationStore } from '../../shared/store/federation-store';
+import { PackageDetail } from './package-detail';
 import {
   PackageRowVm,
   PackagesFilter,
@@ -18,14 +17,14 @@ import {
  * Packages tab — the V2 default view: which version of a package is
  * actually shared, and what happened to every other declaration. Dumb
  * component over the pure `buildPackagesVm` builder; the left list is a
- * flat leaf list (negotiation structure lives in the detail pane), filter
- * and selection are view-owned UI state, never store state. The `select`
- * query param seeds the initial selection (cross-link convention, see
- * `app.routes.ts`).
+ * flat leaf list (negotiation structure lives in the detail pane, rendered
+ * by `nf-package-detail`), filter and selection are view-owned UI state,
+ * never store state. The `select` query param seeds the initial selection
+ * (cross-link convention, see `app.routes.ts`).
  */
 @Component({
   selector: 'nf-packages-view',
-  imports: [TreeTable, MasterDetail, ParticipantChip, ParticipantRow, StateBadge, RouterLink],
+  imports: [TreeTable, MasterDetail, ParticipantChip, PackageDetail],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './packages.html',
   styleUrl: './packages.css',

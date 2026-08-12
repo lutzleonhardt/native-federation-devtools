@@ -1,0 +1,131 @@
+.detail-name {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-family: var(--nf-font-mono);
+}
+
+h3 {
+  margin: 14px 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--nf-color-text-muted);
+}
+
+.mono {
+  font-family: var(--nf-font-mono);
+  font-size: 11px;
+}
+
+/* Tooltip affordance (shell convention): dotted underline + help cursor. */
+.tip {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+}
+
+.detail-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 0;
+  color: var(--nf-color-text-muted);
+}
+
+.detail-strict {
+  color: var(--nf-color-warning-text);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+}
+
+.integrity-line {
+  margin: 2px 0 0 2px;
+  color: var(--nf-color-text-muted);
+}
+
+/* Anchors wrapping a participant chip: the chip IS the link — never an
+ * underline through the chip text (hover accent lives in the chip's css). */
+.chip-link {
+  text-decoration: none !important;
+}
+
+.entry-list,
+.chunk-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.entry-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 1px 0;
+}
+
+.entry-file {
+  font-family: var(--nf-font-mono);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.entry-sri {
+  padding: 0 4px;
+  border: 1px solid var(--nf-color-border);
+  border-radius: 3px;
+  font-size: 10px;
+  color: var(--nf-color-text-muted);
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+}
+
+/* One fact per line: label column + value. */
+.detail-kv {
+  margin: 0;
+}
+
+.kv-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 1px 0;
+}
+
+.kv-row dt {
+  min-width: 80px;
+  color: var(--nf-color-text-muted);
+}
+
+.kv-row dd {
+  margin: 0;
+}
+
+.chunk-list li {
+  padding: 1px 0 1px 88px;
+}
+
+.chunk-link {
+  margin: 4px 0 0;
+}
+
+/* Navigating elements: pointer + hover accent (shell affordance rule). */
+a {
+  color: var(--nf-color-accent);
+  cursor: pointer;
+}
+
+a:not(.tip) {
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}

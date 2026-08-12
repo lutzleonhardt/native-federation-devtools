@@ -297,7 +297,13 @@ function deriveBadges(
   };
 }
 
-/** One conflict indicator per (scope, package), store order. */
+/**
+ * One conflict indicator per (scope, package), store order. The flag keys
+ * on MAPPED multiplicity (share and scope rows): more than one mapped tag
+ * means more than one copy actually exists side by side. Declared-only
+ * multiplicity (a skip row resolving to the elected copy) is the election
+ * succeeding — recorded in `declaredTags`, never flagged.
+ */
 function deriveConflicts(sharedRows: SharedParticipantRow[]): PackageConflict[] {
   const conflicts: PackageConflict[] = [];
   const byPackage = new Map<string, PackageConflict>();
@@ -308,20 +314,24 @@ function deriveConflicts(sharedRows: SharedParticipantRow[]): PackageConflict[] 
       entry = {
         scope: row.scope,
         packageName: row.packageName,
-        tags: [],
+        declaredTags: [],
+        mappedTags: [],
         conflict: false,
         strictExcluded: false,
-        rule: 'version-multiplicity',
+        rule: 'mapped-multiplicity',
       };
       byPackage.set(key, entry);
       conflicts.push(entry);
     }
-    if (!entry.tags.includes(row.tag)) {
-      entry.tags.push(row.tag);
+    if (!entry.declaredTags.includes(row.tag)) {
+      entry.declaredTags.push(row.tag);
+    }
+    if (row.action !== 'skip' && !entry.mappedTags.includes(row.tag)) {
+      entry.mappedTags.push(row.tag);
     }
   }
   for (const entry of conflicts) {
-    const multiple = entry.tags.length > 1;
+    const multiple = entry.mappedTags.length > 1;
     entry.conflict = multiple && entry.scope !== STRICT_SCOPE;
     entry.strictExcluded = multiple && entry.scope === STRICT_SCOPE;
   }
