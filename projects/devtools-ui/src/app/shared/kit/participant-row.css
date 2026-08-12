@@ -45,6 +45,9 @@
 
 .arrow-own {
   color: var(--nf-color-text-muted);
+  /* Callers whose norm is the own-copy claim (transposed Remotes view) can
+   * quiet it via the custom property; exception-only callers keep full tone. */
+  opacity: var(--nf-arrow-own-opacity, 1);
 }
 
 /* Winner-less honest state: reason text, never an invented target. */

@@ -1,0 +1,164 @@
+@if (detail(); as detail) {
+  <h2
+    class="detail-name"
+    [class.tip]="detail.display !== detail.name"
+    [attr.title]="detail.display === detail.name ? null : detail.name"
+  >
+    {{ detail.display }}
+  </h2>
+  <nf-kv-list [items]="detail.identity" />
+
+  <h3>Capabilities</h3>
+  @if (detail.capabilities.length > 0) {
+    <p class="capability-row">
+      @for (capability of detail.capabilities; track capability.label) {
+        <nf-capability-badge [label]="capability.label" [note]="capability.note" />
+      }
+    </p>
+  } @else {
+    <p class="view-observation">no capability evidence recorded in this capture</p>
+  }
+
+  <h3>Exposes</h3>
+  @if (detail.exposes.length > 0) {
+    <ul class="expose-list">
+      @for (expose of detail.exposes; track expose.qualified) {
+        <li class="expose-item">
+          <span
+            class="expose-name mono tip"
+            title="remote-qualified module identity — remote name + expose key (the naive map-join specifier, live maps keep the literal /./ infix)"
+            >{{ expose.qualified }}</span
+          >
+          <span class="expose-file mono">{{ expose.file }}</span>
+          @if (expose.mapTarget) {
+            <a
+              class="expose-mapped"
+              [routerLink]="['/import-map']"
+              [queryParams]="{ select: expose.qualified }"
+              [title]="expose.mapTarget"
+              >mapped</a
+            >
+          } @else {
+            <span class="view-observation">not mapped</span>
+          }
+        </li>
+      }
+    </ul>
+  } @else {
+    <p class="view-observation">no exposes recorded for this remote</p>
+  }
+
+  <h3>Shared dependencies</h3>
+  @if (detail.deps.length > 0) {
+    <p class="deps-note">
+      this remote's own declarations — each package's full negotiation is one click away
+    </p>
+    @for (dep of detail.deps; track dep.packageSelect + dep.action) {
+      <div class="dep-row">
+        <span class="dep-symbol" aria-hidden="true">{{ dep.symbol }}</span>
+        <nf-participant-row
+          [name]="dep.packageName"
+          [declared]="dep.declared"
+          [strict]="dep.strict"
+          [arrow]="dep.arrow"
+          [action]="dep.action"
+          [actionNote]="dep.actionNote"
+        >
+          <span nfParticipant class="dep-name">
+            <a
+              class="pkg-link"
+              [routerLink]="['/packages']"
+              [queryParams]="{ select: dep.packageSelect }"
+              >{{ dep.packageName }}</a
+            >
+            @if (dep.scopeLabel) {
+              <span
+                class="dep-scope"
+                [title]="'share scope — configured via shareScope: ' + dep.scopeLabel"
+                >{{ dep.scopeLabel }}</span
+              >
+            }
+          </span>
+          @if (dep.noElection) {
+            <span nfRowLinks class="dep-no-election tip" [title]="dep.noElection.note"
+              >no single elected version</span
+            >
+          }
+        </nf-participant-row>
+      </div>
+    }
+    <p class="glyph-legend" aria-label="glyph legend">
+      @for (item of legend; track item.action) {
+        <span class="legend-item tip" [title]="item.note"
+          >{{ item.symbol }} {{ item.action }}</span
+        >
+      }
+    </p>
+  } @else {
+    <p class="view-observation">no shared declarations recorded for this remote</p>
+  }
+
+  <h3>Chunks</h3>
+  @switch (detail.chunks.level) {
+    @case ('package') {
+      <p class="chunk-note" [attr.title]="'rule: ' + detail.chunks.rule">
+        {{ detail.chunks.note }}
+      </p>
+      @if (detail.chunks.packages.length > 0) {
+        <ul class="chunk-packages">
+          @for (chunkPackage of detail.chunks.packages; track chunkPackage.packageName) {
+            <li class="chunk-package">
+              <span class="mono">{{ chunkPackage.packageName }}</span>
+              <span class="chunk-bundle mono">{{ chunkPackage.bundleName }}</span>
+              <span class="chunk-count">{{ chunkPackage.fileClaim }}</span>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="view-observation">chunk lists recorded, but no package entries</p>
+      }
+    }
+    @case ('remote') {
+      <p class="chunk-note" [attr.title]="'rule: ' + detail.chunks.rule">
+        {{ detail.chunks.note }}
+      </p>
+      <ul class="chunk-packages">
+        @for (group of detail.chunks.groups; track group.label) {
+          <li class="chunk-package">
+            <span class="mono">{{ group.label }}</span>
+            <span class="chunk-count">{{ group.fileClaim }}</span>
+            @if (group.mapped) {
+              <span
+                class="chunk-mapped tip"
+                title="every file of this group resolves to a target of the effective map"
+                >mapped</span
+              >
+            }
+          </li>
+        }
+      </ul>
+    }
+    @case ('none') {
+      <p class="view-observation" [attr.title]="'rule: ' + detail.chunks.rule">
+        {{ detail.chunks.note }}
+      </p>
+    }
+  }
+
+  @if (detail.scoped.length > 0) {
+    <h3>Scoped externals</h3>
+    <ul class="scoped-list">
+      @for (scopedPackage of detail.scoped; track scopedPackage.packageName) {
+        <li class="scoped-item">
+          <span class="mono">{{ scopedPackage.packageName }}</span>
+          <span class="scoped-tag mono">{{ scopedPackage.tag }}</span>
+          @for (file of scopedPackage.files; track file) {
+            <span class="scoped-file mono">{{ file }}</span>
+          }
+        </li>
+      }
+    </ul>
+  }
+} @else {
+  <p class="view-observation">Select a remote on the left.</p>
+}

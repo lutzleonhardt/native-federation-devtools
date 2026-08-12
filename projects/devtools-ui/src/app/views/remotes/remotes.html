@@ -1,0 +1,32 @@
+<section class="view remotes-view">
+  <h1>Remotes</h1>
+  @if (vm(); as vm) {
+    @if (vm.emptyNote) {
+      <p class="view-observation">{{ vm.emptyNote }}</p>
+      <p class="view-observation boundary-note">{{ vm.boundaryNote }}</p>
+    } @else {
+      <nf-master-detail class="remotes-split">
+        <div nfMaster class="remotes-master">
+          <nf-tree-table
+            label="remotes"
+            [rows]="vm.rows"
+            [selectedId]="selectedName()"
+            (selectRow)="onSelect($event)"
+          >
+            <ng-template let-payload>
+              <nf-participant-chip [name]="payload.name" [host]="payload.host" />
+              <span class="remote-summary">{{ payload.summary }}</span>
+            </ng-template>
+          </nf-tree-table>
+          <p class="view-observation boundary-note">{{ vm.boundaryNote }}</p>
+        </div>
+
+        <div nfDetail class="remote-detail-pane">
+          <nf-remote-detail [detail]="vm.detail" />
+        </div>
+      </nf-master-detail>
+    }
+  } @else {
+    <p class="view-observation">no captured snapshot to render</p>
+  }
+</section>

@@ -14,6 +14,12 @@ import type {
   ParticipantArrow,
 } from '../../shared/kit/participant-row';
 import type { DerivedFederation, SharedRowFacts } from '../../shared/store/derived-model';
+import {
+  ACTION_NOTES,
+  ACTION_SYMBOLS,
+  declaredOf,
+  explicitArrowOf,
+} from '../../shared/view-conventions';
 import { ChunkSectionVm, buildChunkSection } from './packages-chunk-vm';
 import {
   GLOBAL_SCOPE,
@@ -22,6 +28,8 @@ import {
   packageId,
   winnerOf,
 } from './packages-vm-shared';
+
+export { NEGOTIATION_LEGEND } from '../../shared/view-conventions';
 
 /** Winner's provider in the detail pane — all three honest outcomes. */
 export type ProviderVm =
@@ -91,55 +99,14 @@ export interface PackageDetailVm {
 }
 
 /**
- * Action glyphs distinguish by SHAPE, not fill pattern (T10.5): filled =
- * a mapped copy exists, circle = takes part in the election, diamond =
- * isolated outside it, open = no own mapped copy.
- */
-const ACTION_SYMBOLS: Record<string, string> = { share: '●', skip: '○', scope: '◆' };
-
-/** Grounded action vocabulary (rule: registry-election). Verbatim action stays the label. */
-const ACTION_NOTES: Record<string, string> = {
-  share: 'offers this copy to the version election',
-  skip: "this copy is not taken; the participant resolves to the elected copy",
-  scope: 'keeps its own copy, mapped only for its own declarers',
-};
-
-/** Glyph legend of the negotiation section — single source with the symbols/notes above. */
-export const NEGOTIATION_LEGEND: { symbol: string; action: string; note: string }[] = [
-  'share',
-  'scope',
-  'skip',
-].map((action) => ({ symbol: ACTION_SYMBOLS[action], action, note: ACTION_NOTES[action] }));
-
-/**
  * Only the unique elected winner stays quiet — every other row says where
- * it resolves (rule: registry-election): a skip row points at the
- * winner's file (or the honest winner-less state), scope rows and
- * non-elected share copies claim their own copy.
+ * it resolves (rule: registry-election, mapping shared via
+ * `explicitArrowOf`): a skip row points at the winner's file (or the
+ * honest winner-less state), scope rows and non-elected share copies
+ * claim their own copy.
  */
 function toKitArrow(facts: SharedRowFacts, winner: SharedRowFacts | null): ParticipantArrow | null {
-  if (facts === winner) {
-    return null;
-  }
-  const arrow = facts.arrow;
-  if (arrow.kind === 'winner') {
-    if (arrow.providerParticipant === null) {
-      return { kind: 'none', reason: 'no unique winner' };
-    }
-    return {
-      kind: 'winner',
-      target: arrow.file ?? arrow.targetUrl ?? '(no served file recorded)',
-      provider: arrow.providerParticipant === NF_HOST ? 'host' : arrow.providerParticipant,
-    };
-  }
-  return { kind: 'own' };
-}
-
-function toDeclared(facts: SharedRowFacts): DeclaredVersion {
-  // Strict-scope rows are pinned to the exact tag — never a declared range.
-  return facts.strictPinned !== null
-    ? { kind: 'pinned', tag: facts.row.tag }
-    : { kind: 'range', range: facts.row.requiredVersion };
+  return facts === winner ? null : explicitArrowOf(facts);
 }
 
 /** (tag, action) version groups of one package, row order preserved. */
@@ -219,7 +186,7 @@ export function buildDetail(
     participants: versionGroup.facts.map((facts) => ({
       name: facts.row.participant,
       host: facts.row.participant === NF_HOST,
-      declared: toDeclared(facts),
+      declared: declaredOf(facts),
       strict: facts.row.strictVersion,
       arrow: toKitArrow(facts, winner),
       remoteSelect: facts.row.participant,

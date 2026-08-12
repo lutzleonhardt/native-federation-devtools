@@ -1,0 +1,24 @@
+.remotes-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.remotes-split {
+  flex: 1;
+  min-height: 0;
+}
+
+.remote-summary {
+  margin-left: auto;
+  color: var(--nf-color-text-muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+/* Capture-boundary claim under the list — observation styling, not error. */
+.boundary-note {
+  margin: 8px 2px 0;
+  font-size: 10px;
+}
