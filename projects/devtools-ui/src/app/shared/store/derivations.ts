@@ -232,7 +232,7 @@ function deriveChunkAttribution(
     const packages: PackageChunkAttribution[] = [];
     const seen = new Set<string>();
     for (const row of bundleRows) {
-      const key = `${row.packageName} ${row.bundle}`;
+      const key = `${row.packageName}\u0000${row.bundle}`;
       if (seen.has(key)) {
         continue;
       }
@@ -339,7 +339,7 @@ function deriveConflicts(sharedRows: SharedParticipantRow[]): PackageConflict[] 
 }
 
 function packageKey(row: SharedParticipantRow): string {
-  return `${row.scope} ${row.packageName}`;
+  return `${row.scope}\u0000${row.packageName}`;
 }
 
 function collectTargets(effectiveMap: EffectiveMap): Set<string> {
