@@ -283,6 +283,30 @@ describe('PackagesView', () => {
     );
   });
 
+  // T12: each chunk file carries its own "mapped" deep link into the Import
+  // Map (select = the entry's real specifier from the shared chunk-map
+  // join) — the group-level "open in Import Map" link is gone.
+  it('deep-links each chunk file via its mapped evidence', async () => {
+    const fixture = await createView({
+      fixture: 'frankenstein-live',
+      select: '__GLOBAL__|@angular/common',
+    });
+    const el = fixture.nativeElement as HTMLElement;
+
+    const item = el.querySelector<HTMLElement>('.chunk-list .chunk-item')!;
+    expect(item.textContent).toContain('chunk-WW26EZ22.js');
+    const mapped = item.querySelector<HTMLAnchorElement>('a.entry-mapped')!;
+    expect(mapped.textContent).toBe('mapped');
+    expect(decodeURIComponent(mapped.getAttribute('href') ?? '')).toBe(
+      '/import-map?select=@nf-internal/chunk-WW26EZ22',
+    );
+    expect(mapped.title).toBe(
+      'https://lutzleonhardt.de/frankenstein-meeting-room/chunk-WW26EZ22.js',
+    );
+    expect(item.querySelector('.entry-sri')).not.toBeNull();
+    expect(el.textContent).not.toContain('open in Import Map');
+  });
+
   // Winner-less multi-share: the no-winner note renders and every share
   // copy states its own-copy claim (never an interpreted winner).
   it('renders the no-winner note with own-copy arrows for multi-share packages', async () => {

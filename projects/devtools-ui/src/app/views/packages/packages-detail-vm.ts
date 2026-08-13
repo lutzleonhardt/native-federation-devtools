@@ -14,6 +14,7 @@ import type {
   ParticipantArrow,
 } from '../../shared/kit/participant-row';
 import type { DerivedFederation, SharedRowFacts } from '../../shared/store/derived-model';
+import type { FederationModel } from '../../shared/store/federation-model';
 import {
   ACTION_NOTES,
   ACTION_SYMBOLS,
@@ -164,6 +165,7 @@ function toProviderVm(facts: SharedRowFacts): ProviderVm | null {
 
 export function buildDetail(
   groups: PackageGroup[],
+  model: FederationModel,
   derived: DerivedFederation,
   selectedId: string | null,
 ): PackageDetailVm | null {
@@ -233,7 +235,7 @@ export function buildDetail(
     withIntegrity: [...mappedTargets.values()].filter(Boolean).length,
   };
 
-  const { chunks, chunksUnavailable } = buildChunkSection(group, winner, derived);
+  const { chunks, chunksUnavailable } = buildChunkSection(group, winner, model, derived);
 
   return {
     packageId: group.id,

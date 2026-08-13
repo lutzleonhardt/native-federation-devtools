@@ -82,7 +82,7 @@ export function buildPackagesVm(
   const conflictCount = groups.filter((group) => group.conflict.conflict).length;
 
   const rows = buildRows(groups, ui.filter === 'conflicts');
-  const detail = buildDetail(groups, derived, ui.selectedId);
+  const detail = buildDetail(groups, model, derived, ui.selectedId);
 
   let emptyNote: string | null = null;
   if (groups.length === 0) {

@@ -50,9 +50,13 @@ export const NEGOTIATION_LEGEND: { symbol: string; action: string; note: string 
   'skip',
 ].map((action) => ({ symbol: ACTION_SYMBOLS[action], action, note: ACTION_NOTES[action] }));
 
-/** Pluralizing count claim of an observed quantity — `3 files`, `1 chunk file`. */
-export function countClaim(count: number, noun: string): string {
-  return `${count} ${noun}${count === 1 ? '' : 's'}`;
+/**
+ * Pluralizing count claim of an observed quantity — `3 files`,
+ * `1 chunk file`; irregular plurals pass their own form
+ * (`countClaim(2, 'entry', 'entries')`).
+ */
+export function countClaim(count: number, noun: string, plural: string = `${noun}s`): string {
+  return `${count} ${count === 1 ? noun : plural}`;
 }
 
 /**

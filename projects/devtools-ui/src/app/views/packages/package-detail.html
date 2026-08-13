@@ -103,14 +103,31 @@
               </dd>
             </div>
           </dl>
-          @if (chunkEntry.files.length > 0) {
+          @if (chunkEntry.fileRows.length > 0) {
             <ul class="chunk-list">
-              @for (file of chunkEntry.files; track file) {
-                <li class="mono">{{ file }}</li>
+              @for (row of chunkEntry.fileRows; track row.file) {
+                <li class="chunk-item">
+                  <span class="mono">{{ row.file }}</span>
+                  @if (row.mapped; as mapped) {
+                    <a
+                      class="entry-mapped"
+                      [routerLink]="['/import-map']"
+                      [queryParams]="{ select: mapped.select }"
+                      [title]="mapped.targetUrl"
+                      >mapped</a
+                    >
+                    @if (mapped.hasIntegrity) {
+                      <span class="entry-sri" title="the mapped target carries an SRI hash"
+                        >SRI</span
+                      >
+                    }
+                  } @else {
+                    <span class="view-observation">not mapped</span>
+                  }
+                </li>
               }
             </ul>
           }
-          <p class="chunk-link"><a [routerLink]="['/import-map']">open in Import Map</a></p>
         } @else {
           <p class="view-observation" [attr.title]="'rule: ' + chunks.rule">
             {{ chunks.remoteDisplay }} records chunk lists, but none for this package

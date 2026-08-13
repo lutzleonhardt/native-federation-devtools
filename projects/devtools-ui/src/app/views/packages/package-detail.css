@@ -112,8 +112,11 @@ h3 {
   padding: 1px 0 1px 88px;
 }
 
-.chunk-link {
-  margin: 4px 0 0;
+.chunk-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 /* Navigating elements: pointer + hover accent (shell affordance rule). */

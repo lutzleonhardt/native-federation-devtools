@@ -1,0 +1,110 @@
+<section class="view import-map-view">
+  <h1>Import Map</h1>
+  @if (vm(); as vm) {
+    <p class="view-observation caption">{{ vm.caption }}</p>
+    @if (vm.emptyNote) {
+      <p class="view-observation">{{ vm.emptyNote }}</p>
+    } @else {
+      @for (section of vm.sections; track section.label) {
+        <section class="map-section">
+          <h2 class="section-head">
+            <span class="section-label" [class.mono]="section.kind === 'scope'">{{
+              section.label
+            }}</span>
+            <span class="section-count">{{ section.countClaim }}</span>
+            @if (section.owner; as owner) {
+              @if (owner.kind === 'remote') {
+                <span class="section-owner">
+                  scope of
+                  <a
+                    class="chip-link"
+                    [routerLink]="['/remotes']"
+                    [queryParams]="{ select: owner.select }"
+                    [title]="owner.note"
+                    ><nf-participant-chip [name]="owner.remote" [host]="owner.host"
+                  /></a>
+                </span>
+              } @else {
+                <span class="section-owner view-observation" [title]="owner.note">{{
+                  owner.note
+                }}</span>
+              }
+            }
+          </h2>
+          <table class="import-table">
+            <thead>
+              <tr>
+                <th class="cell-spec">specifier</th>
+                <th class="cell-target">target</th>
+                <th class="cell-sri" title="the target carries an SRI hash">SRI</th>
+                <th class="cell-attr">{{ section.trailingLabel }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of section.rows; track row.specifier) {
+                <tr class="map-row" [class.row-selected]="row.selected">
+                  <td class="cell-spec" [title]="row.specifier">
+                    @if (row.packageSelect; as select) {
+                      <a
+                        class="spec-link"
+                        [routerLink]="['/packages']"
+                        [queryParams]="{ select: select }"
+                        >{{ row.specifier }}</a
+                      >
+                    } @else {
+                      {{ row.specifier }}
+                    }
+                  </td>
+                  <td class="cell-target">
+                    <span class="target-text" [title]="row.target">{{ row.targetDisplay }}</span>
+                  </td>
+                  <td class="cell-sri">
+                    @if (row.hasIntegrity) {
+                      <span class="row-sri" [title]="'the target carries an SRI hash'">✓</span>
+                    }
+                  </td>
+                  <td class="cell-attr">
+                    @if (!row.providerQuiet) {
+                      @switch (row.provider.outcome) {
+                        @case ('derived') {
+                          <a
+                            class="chip-link"
+                            [routerLink]="['/remotes']"
+                            [queryParams]="{ select: row.provider.select }"
+                            [title]="row.provider.note"
+                            ><nf-participant-chip
+                              [name]="row.provider.remote"
+                              [host]="row.provider.host"
+                          /></a>
+                        }
+                        @case ('ambiguous') {
+                          <nf-state-badge kind="ambiguous" [note]="row.provider.note" />
+                        }
+                        @case ('unattributable') {
+                          <span class="row-unattributable" [title]="row.provider.note"
+                            >unattributable</span
+                          >
+                        }
+                      }
+                    }
+                    @if (row.chunk; as chunk) {
+                      <a
+                        class="note-link mono"
+                        [routerLink]="['/remotes']"
+                        [queryParams]="{ select: chunk.select }"
+                        [title]="chunk.note"
+                        >{{ chunk.groupLabel }}</a
+                      >
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </section>
+      }
+    }
+  } @else {
+    <p class="view-observation">no captured snapshot to render</p>
+  }
+</section>

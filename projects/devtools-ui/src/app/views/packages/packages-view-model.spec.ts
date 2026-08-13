@@ -28,6 +28,7 @@ import type { DerivedFederation } from '../../shared/store/derived-model';
 import { deriveFederation } from '../../shared/store/derivations';
 import type { FederationModel } from '../../shared/store/federation-model';
 import { ingestSnapshot } from '../../shared/store/ingest';
+import { buildImportMapVm } from '../import-map/import-map-view-model';
 import {
   DetailParticipantVm,
   PackageDetailVm,
@@ -267,11 +268,44 @@ describe('buildPackagesVm — live fixture detail (T10-AC-04)', () => {
       packageEntry: {
         bundleName: 'browser-angular_common',
         files: ['chunk-WW26EZ22.js'],
+        fileRows: [
+          {
+            file: 'chunk-WW26EZ22.js',
+            mapped: {
+              specifier: '@nf-internal/chunk-WW26EZ22',
+              targetUrl:
+                'https://lutzleonhardt.de/frankenstein-meeting-room/chunk-WW26EZ22.js',
+              hasIntegrity: true,
+              select: '@nf-internal/chunk-WW26EZ22',
+            },
+          },
+        ],
         fileClaim: '1 chunk file',
         mappedCount: 1,
       },
       rule: 'bundle-chunk-join',
     });
+  });
+
+  // T12: the chunk file's `select` payload is the entry's REAL specifier
+  // from the shared chunk-map join — the Import Map view selects exactly
+  // that row (cross-view roundtrip; the two views share the join source).
+  it('sends a chunk-file select payload the Import Map view resolves to its row', () => {
+    const vm = build(packageId('__GLOBAL__', '@angular/common'));
+    const chunks = vm.detail!.chunks;
+    if (chunks?.level !== 'package' || chunks.packageEntry === null) {
+      expect.unreachable('expected level-package chunk data');
+    }
+    const mapped = chunks.packageEntry.fileRows[0].mapped!;
+
+    const importMapVm = buildImportMapVm(model, derived, { selected: mapped.select });
+    const selected = importMapVm.sections
+      .flatMap((section) => section.rows)
+      .filter((row) => row.selected);
+    expect(selected).toHaveLength(1);
+    expect(selected[0].specifier).toBe(mapped.specifier);
+    expect(selected[0].target).toBe(mapped.targetUrl);
+    expect(selected[0].chunk?.groupLabel).toBe('browser-angular_common');
   });
 
   // T11.5-AC-01/02: the chunk-file claim is shared wording with the Remotes
