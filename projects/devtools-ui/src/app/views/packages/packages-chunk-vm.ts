@@ -2,9 +2,29 @@
  * Chunk section of the Packages detail pane — strictly gated on the
  * providing remote's attribution ladder (level package / remote / none),
  * with honest unavailability when no unique providing remote exists.
+ *
+ * Per-file map evidence comes from the shared chunk-map join
+ * (`shared/chunk-map-join.ts`) — the same source the Import Map view
+ * annotates from, so the "mapped" link and the chunk-row annotation over
+ * there cannot contradict each other (T12).
  */
+import { ChunkFileMapJoin, joinChunkFilesToMap } from '../../shared/chunk-map-join';
 import type { DerivedFederation, SharedRowFacts } from '../../shared/store/derived-model';
+import type { FederationModel } from '../../shared/store/federation-model';
 import { PackageGroup, chunkFileClaim, participantDisplay } from './packages-vm-shared';
+
+/** One chunk file with its map evidence — the `select` payload is the entry's real specifier. */
+export interface ChunkFileRowVm {
+  file: string;
+  /** Null when the file resolves to no effective-map target (honest). */
+  mapped: {
+    specifier: string;
+    targetUrl: string;
+    hasIntegrity: boolean;
+    /** `select` payload for the /import-map cross-link. */
+    select: string;
+  } | null;
+}
 
 /** Chunk section, strictly gated on the providing remote's attribution ladder. */
 export type ChunkSectionVm =
@@ -17,10 +37,13 @@ export type ChunkSectionVm =
        * Null when the remote records chunk lists but none for this package.
        * `fileClaim` renders the evidence, never a bare count (shared wording
        * with the Remotes detail): an empty file list claims the absence.
+       * `mappedCount` counts `fileRows` with map evidence — the claim line
+       * and the per-file links speak about the same set by construction.
        */
       packageEntry: {
         bundleName: string;
         files: string[];
+        fileRows: ChunkFileRowVm[];
         fileClaim: string;
         mappedCount: number;
       } | null;
@@ -36,10 +59,45 @@ export type ChunkSectionVm =
     }
   | { level: 'none'; remote: string; remoteDisplay: string; note: string; rule: 'no-chunk-evidence' };
 
+/** Per-file rows of one bundle from the shared chunk-map join. */
+function fileRowsOf(
+  files: string[],
+  bundleName: string,
+  remote: string,
+  joins: ChunkFileMapJoin[],
+): ChunkFileRowVm[] {
+  const joinByFile = new Map<string, ChunkFileMapJoin>();
+  for (const join of joins) {
+    if (
+      join.owningRemote === remote &&
+      join.bundleName === bundleName &&
+      !joinByFile.has(join.file)
+    ) {
+      joinByFile.set(join.file, join);
+    }
+  }
+  return files.map((file) => {
+    const entry = joinByFile.get(file)?.entry ?? null;
+    return {
+      file,
+      mapped:
+        entry === null
+          ? null
+          : {
+              specifier: entry.specifier,
+              targetUrl: entry.target,
+              hasIntegrity: entry.hasIntegrity,
+              select: entry.specifier,
+            },
+    };
+  });
+}
+
 /** Chunk section gated on the providing remote's attribution ladder. */
 export function buildChunkSection(
   group: PackageGroup,
   winner: SharedRowFacts | null,
+  model: FederationModel,
   derived: DerivedFederation,
 ): { chunks: ChunkSectionVm | null; chunksUnavailable: string | null } {
   if (winner === null) {
@@ -59,6 +117,10 @@ export function buildChunkSection(
       const entry = attribution.packages.find(
         (candidate) => candidate.packageName === group.packageName,
       );
+      const fileRows =
+        entry === undefined
+          ? []
+          : fileRowsOf(entry.files, entry.bundleName, remote, joinChunkFilesToMap(model));
       return {
         chunks: {
           level: 'package',
@@ -70,15 +132,9 @@ export function buildChunkSection(
               : {
                   bundleName: entry.bundleName,
                   files: entry.files,
+                  fileRows,
                   fileClaim: chunkFileClaim(entry.files),
-                  mappedCount: attribution.groups
-                    .filter(
-                      (chunkGroup) =>
-                        chunkGroup.origin === 'shared-chunks' &&
-                        chunkGroup.bundleName === entry.bundleName &&
-                        chunkGroup.mapped,
-                    )
-                    .reduce((count, chunkGroup) => count + chunkGroup.files.length, 0),
+                  mappedCount: fileRows.filter((row) => row.mapped !== null).length,
                 },
           rule: 'bundle-chunk-join',
         },

@@ -1,0 +1,159 @@
+.caption {
+  margin: 0 0 1rem;
+  max-width: 64ch;
+}
+
+.map-section {
+  margin-bottom: 1.5rem;
+}
+
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--nf-color-text-muted);
+}
+
+.section-label.mono {
+  font-family: var(--nf-font-mono);
+  letter-spacing: 0;
+}
+
+.section-count,
+.section-owner {
+  font-weight: 400;
+  font-size: 0.75rem;
+  color: var(--nf-color-text-muted);
+}
+
+.section-owner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.import-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  /* Fixed layout with identical column widths keeps the section tables
+   * width-synchronized — they read as one aligned grid. */
+  table-layout: fixed;
+}
+
+.import-table th {
+  text-align: left;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--nf-color-text-muted);
+  padding: 0.25rem 0.75rem 0.25rem 0;
+  border-bottom: 1px solid var(--nf-color-border);
+}
+
+.import-table td {
+  padding: 0.28rem 0.75rem 0.28rem 0;
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--nf-color-border) 45%, transparent);
+  vertical-align: baseline;
+}
+
+.import-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.map-row.row-selected td {
+  background: var(--nf-color-surface);
+}
+
+.map-row.row-selected td:first-child {
+  box-shadow: inset 3px 0 0 var(--nf-color-accent);
+  padding-left: 0.5rem;
+}
+
+/* Shared column widths across all section tables (width-synchronized);
+ * the target column absorbs the rest. */
+.cell-spec {
+  width: 34%;
+  font-family: var(--nf-font-mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cell-sri {
+  width: 3rem;
+  white-space: nowrap;
+}
+
+.cell-attr {
+  width: 15rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cell-attr > * + * {
+  margin-left: 0.5rem;
+}
+
+.cell-target {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.target-text {
+  font-family: var(--nf-font-mono);
+  color: var(--nf-color-text-muted);
+}
+
+.cell-sri {
+  text-align: center;
+}
+
+.row-sri {
+  color: var(--nf-color-text-muted);
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+}
+
+.spec-link {
+  color: var(--nf-color-text);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.spec-link:hover {
+  color: var(--nf-color-accent);
+}
+
+.note-link {
+  color: var(--nf-color-text);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.note-link:hover {
+  color: var(--nf-color-accent);
+}
+
+.mono {
+  font-family: var(--nf-font-mono);
+}
+
+.chip-link {
+  text-decoration: none !important;
+}
+
+.row-unattributable {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+}
