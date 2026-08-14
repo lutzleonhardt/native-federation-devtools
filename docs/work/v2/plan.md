@@ -4,21 +4,21 @@ Spec: docs/specs/native-federation-devtools-v2.md
 
 Branch scope: v2
 
-Scope: capture-first inversion of the V2 work. Rounds 1–2 (Tasks 1–3,
-done): serial scenario runner in the playground lab repo, the
-lossless lab + frankenstein-live capture corpus, and the
-shape-validation report (`docs/work/v2/shape-validation.md`).
-Round 3 (Tasks 4–7, done): the corpus-validated data layer —
-collector delta, corpus-derived fixtures, normalized store ingest,
-store derivations. Round 4 (Tasks 8–14, this edit): shell + views —
-one federation store, the V2 tab set with capture status strip, the
-view kit, the four views, and global search; the V1 views are torn
-down in Task 8. Round-4 convention: every view (shell included)
-renders from a dedicated pure view-model builder; templates never
-consume store types (XC-06). Pre-PR gate after Task 14: manual smoke
-of the packaged extension against
-https://lutzleonhardt.de/frankenstein-meeting-room/ (released v4
-line) — deliberately manual, not an AC.
+Scope: capture-first inversion of the V2 work. Tasks 1–7 built the
+lossless corpus and the corpus-validated data layer; Tasks 8–12 built
+the shell, view kit, Packages, Remotes, and Import Map views. Task 12.5
+adds the co-declared same-version witness that reopens the resolution
+model. Every view renders from a dedicated pure view-model builder;
+templates never consume store types (XC-06).
+
+Status checkpoint (2026-08-14): V2 execution pauses after Task 12.5
+for a dedicated resolution-model specification and implementation.
+Task 13 must be re-planned on the corrected model; Tasks 14–15 are
+deferred. Their existing task and acceptance IDs remain as historical
+intent and must not be executed as currently written. This is a V2
+checkpoint, not V2 completion; the pre-PR smoke gate has not been
+reached. Follow-up scope: `feature/resolution-model`, planned spec
+`docs/specs/native-federation-resolution-model.md`.
 
 Deliberate deviation from spec §7 ("one deployment serves a catalog"):
 lab scenarios run serially from checked-in definition folders plus a
@@ -1582,6 +1582,74 @@ Replace the Task-8 placeholder.
   shim map was only a cross-check at ingest — the view renders one
   map, no mode branches.
 
+## Task 12.5: Capture the co-declared shared-version witness
+
+Depends on: Task 5.
+
+### Instructions
+
+Extend the lossless lab corpus with one real orchestrator scenario in
+which two remotes declare the same package at the same version tag. The
+committed registry evidence must preserve one `action: 'share'` version
+row with both declarers in its participant list, while the effective
+import map selects exactly one served URL for the package.
+
+Capture the scenario through the established lossless dump path, add it
+to the manifest-driven corpus, and derive its SnapshotV1 fixture through
+the real collector pipeline. Extend the corpus-vector and fixture-drift
+guards so the new witness participates in the same regeneration and
+schema checks as every existing lab scenario. Record the semantic
+finding in `shape-validation.md`: participant cardinality is not version
+or copy cardinality, and mappedness must be decided from the resolved URL
+rather than a file name that can be identical below multiple remote
+scopes.
+
+This is an evidence task only. Do not change `FederationModel`, store
+derivations, view models, or UI behavior here; those changes belong to
+the dedicated resolution-model follow-up. The broad file count from
+fixture regeneration is expected mechanical output, not additional
+scope.
+
+### Acceptance
+
+- **T12.5-AC-01** — The checked-in `co-declared-share` capture passes
+  the lossless-corpus validator and its manifest provenance/hash entry
+  is consistent with the captured artifact.
+- **T12.5-AC-02** — Fixture derivation through the real collector
+  produces the checked-in `co-declared-share` SnapshotV1 fixture, and a
+  second derivation is byte-identical with no fixture drift.
+- **T12.5-AC-03** — Automated corpus assertions pin one shared version
+  row with two participants, exactly one observed selected target URL,
+  and the fact that identical served file names under different remote
+  scopes do not imply that both copies are mapped.
+- **T12.5-AC-04** — The shape-validation addendum states the observed
+  cardinalities and URL-based mappedness boundary without presenting a
+  model fix or generalizing capture-specific `cached` values into a
+  runtime invariant.
+- Contributes to **XC-01**.
+
+### Key Locations
+
+- `captures/co-declared-share/`, `captures/manifest.json`
+- `scripts/build-lab-manifest.mjs`, `scripts/validate-lab-corpus.mjs`
+- `projects/devtools-bridge/src/lib/fixtures/`
+- `projects/collector/src/lib/corpus-vectors.spec.ts`
+- `projects/collector/src/lib/fixture-drift.spec.ts`
+- `docs/work/v2/shape-validation.md`
+
+### Key Discoveries
+
+- A registry version row groups a `(tag, action)` result and may contain
+  multiple declaring participants; flattening those participants does
+  not create additional version rows or resolved copies.
+- Both participants can report the same served file name below different
+  remote scopes. Only the effective target URL identifies which copy the
+  import map selects.
+- The current store and downstream view models flatten the witness into
+  participant rows and are intentionally left unchanged so the
+  resolution-model follow-up can correct the semantic boundary as one
+  coherent change.
+
 ## Task 13: Diagnostics tab — registry↔map lint
 
 Depends on: Task 8. (Parallel to Tasks 9–12 if useful.)
@@ -1790,7 +1858,7 @@ tasks.
   session-specific state. Live-app captures
   (`captures/frankenstein-live/`, T3) are deployment-dependent by
   nature and exempt; they carry manifest provenance (URL, date,
-  sha256) instead. **Touches:** T1, T2, T3.
+  sha256) instead. **Touches:** T1, T2, T3, T12.5.
 - **XC-02** — Both orchestrator generations flow end to end: a
   released-v4 capture (`file` spelling) and a dev-generation capture
   (`entries` spelling) each travel collector → SnapshotV1 → fixture →
