@@ -21,8 +21,9 @@ describe('corpus-derived fixtures equal fresh pipeline output (T5-AC-01)', () =>
     expect(deriveCaptureSnapshot(capture)).toEqual(FIXTURES[id as keyof typeof FIXTURES]);
   });
 
-  it('covers all ten lab scenarios plus the live capture', () => {
-    expect(derivedIds).toHaveLength(11);
+  it('covers all eleven lab scenarios plus the live capture', () => {
+    expect(derivedIds).toHaveLength(12);
+    expect(derivedIds).toContain('co-declared-share');
     expect(derivedIds).toContain(LIVE_ID);
   });
 });

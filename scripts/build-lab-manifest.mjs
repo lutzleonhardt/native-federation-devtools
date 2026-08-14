@@ -34,7 +34,8 @@ const EXPECTED_SCENARIOS = [
   "dynamic-init-native",
   "dynamic-init-shim",
   "dynamic-override",
-  "self-fill"
+  "self-fill",
+  "co-declared-share"
 ];
 
 const args = process.argv.slice(2);

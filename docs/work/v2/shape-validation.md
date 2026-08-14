@@ -365,9 +365,9 @@ choice is exercised only in the lab corpus (dev generation).
   both rows: `requiredVersion` `"2.0.0"` / `"1.0.0"`). The scope key
   `strict` appeared **without** a `__GLOBAL__` sibling (single shared
   package, all declarations strict).
-- Incumbent wins against newer versions: `cached: true` marks the
-  committed copy (`dynamic-init-*`: `1.0.0 share cached:true` vs
-  `2.0.0 skip cached:false`).
+- Incumbent wins against newer versions: the `dynamic-init-*` captures
+  record `1.0.0 share cached:true` vs `2.0.0 skip cached:false`. This is
+  a scenario observation, not a universal provider rule.
 - Integrity: per-remote `integrity` maps (fileName → sha384) exist on
   `remotes` entries only in the integrity scenario, empty `{}` for the
   bare host (`dynamic-init-shim/…json`, `remotes.mfe1.integrity`); the
@@ -375,6 +375,18 @@ choice is exercised only in the lab corpus (dev generation).
 - `importShim` exists in **both** modes (`present: true`, all captures);
   `importShim.version` is not exposed by the bundled polyfill
   (`null` everywhere).
+- Co-declared same version (corpus addendum 2026-08-13): two remotes
+  declaring the SAME tag produce **one** version row (`action: 'share'`)
+  with both participants in `remotes` — the corpus's only multi-declarer
+  row (`co-declared-share/20260813T151211Z.json`). Exactly one
+  participant carries `cached: true` (`mfe1`; an observed value, not a
+  general provider rule). Both participants produced an **identically
+  named** file, yielding two distinct candidate URLs below their own
+  scopes; the map selects only the `mfe1` URL. Mappedness can therefore
+  be decided only per resolved URL, not per file name. This witness does
+  not establish `cached` or participant order as the universal provider
+  rule; that semantic question is reopened for the resolution-model
+  follow-up.
 
 ## Consequences for round 2
 
