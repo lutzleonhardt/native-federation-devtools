@@ -1,12 +1,12 @@
 {
   "schemaVersion": "lab-lossless-corpus/1",
-  "runId": "20260811T095850Z",
-  "createdAt": "2026-08-11T12:12:51.354Z",
+  "runId": "20260813T151211Z",
+  "createdAt": "2026-08-13T15:14:12.162Z",
   "source": {
     "playground": {
       "repository": "nf/playground",
       "branch": "lab/v2-scenarios",
-      "commit": "ee90a212a6ed222d0175e3d91f80fd748befc238",
+      "commit": "a5ecd32388d0e9b07a1cbd08905d5e8d9ba75b70",
       "runner": "run-scenario.mjs"
     },
     "orchestratorCommit": "8e5e0b3",
@@ -37,7 +37,8 @@
     "dynamic-init-native",
     "dynamic-init-shim",
     "dynamic-override",
-    "self-fill"
+    "self-fill",
+    "co-declared-share"
   ],
   "captures": [
     {
@@ -99,6 +100,12 @@
       "path": "self-fill/20260811T095850Z.json",
       "runstamp": "20260811T095850Z",
       "sha256": "7536378ad45ec27b7662e5758d7f2caa8ab902f344b591691f8e1a9d06739def"
+    },
+    {
+      "scenario": "co-declared-share",
+      "path": "co-declared-share/20260813T151211Z.json",
+      "runstamp": "20260813T151211Z",
+      "sha256": "0a735ac089e06e960cef9ecbc952ad49cae6f3c00a98534e18e498968b0b2d86"
     }
   ],
   "liveCaptures": {

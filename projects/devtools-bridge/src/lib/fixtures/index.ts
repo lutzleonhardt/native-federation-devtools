@@ -1,5 +1,6 @@
 import { SnapshotV1 } from '../snapshot-v1';
 import { cleanSkipFixture } from './clean-skip.fixture';
+import { coDeclaredShareFixture } from './co-declared-share.fixture';
 import { dynamicInitNativeFixture } from './dynamic-init-native.fixture';
 import { dynamicInitShimFixture } from './dynamic-init-shim.fixture';
 import { dynamicOverrideFixture } from './dynamic-override.fixture';
@@ -30,6 +31,7 @@ import { syntheticNotRecognizedFixture } from './synthetic-not-recognized.fixtur
 export const FIXTURES = {
   'frankenstein-live': frankensteinLiveFixture,
   'clean-skip': cleanSkipFixture,
+  'co-declared-share': coDeclaredShareFixture,
   'dynamic-init-native': dynamicInitNativeFixture,
   'dynamic-init-shim': dynamicInitShimFixture,
   'dynamic-override': dynamicOverrideFixture,

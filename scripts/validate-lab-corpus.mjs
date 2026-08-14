@@ -41,7 +41,8 @@ const EXPECTED_SCENARIOS = [
   "dynamic-init-native",
   "dynamic-init-shim",
   "dynamic-override",
-  "self-fill"
+  "self-fill",
+  "co-declared-share"
 ];
 const CHANNELS = ["nativeFederationGlobals", "domImportMaps", "importShim"];
 const SRI = /^sha(256|384|512)-[A-Za-z0-9+/=]+$/;
@@ -137,6 +138,70 @@ const EVIDENCE = {
     const scope = ns["shared-externals"]?.["__GLOBAL__"] ?? {};
     if (!("@nf-lab/conflict-lib" in scope) || !("@nf-lab/conflict-lib/extra" in scope))
       issue(loc, "expected the secondary entry point as its own external beside the primary");
+  },
+  "co-declared-share": (ns, env, loc) => {
+    // The corpus's only multi-declarer row: same version from two remotes
+    // is ONE row (action 'share'), not a negotiation split.
+    const versions = sharedVersions(ns, "__GLOBAL__", "@nf-lab/conflict-lib");
+    if (versions.length !== 1)
+      return issue(loc, `expected ONE co-declared version row, saw ${versions.length}`);
+    const row = versions[0];
+    if (row.action !== "share")
+      issue(loc, `expected action 'share' on the co-declared row, saw '${row.action}'`);
+    const remotes = row.remotes ?? [];
+    if (remotes.length !== 2)
+      issue(loc, `expected TWO declarers in one row, saw ${remotes.length}`);
+    const cachedParticipants = remotes.filter((r) => r.cached === true);
+    if (cachedParticipants.length !== 1)
+      issue(loc, `expected exactly one participant observed cached:true, saw ${cachedParticipants.length}`);
+    const fileNames = new Set(remotes.map((r) => r.entries?.["@nf-lab/conflict-lib"]));
+    if (fileNames.size !== 1)
+      issue(loc, "co-declarers no longer build identical file names — update the shape report");
+
+    // Resolve both same-named files below their own remote scope. `cached`
+    // is deliberately NOT used to elect a provider: only the map target says
+    // which concrete URL is selected in this capture.
+    const candidateUrls = remotes.map((participant) => {
+      const scopeUrl = ns.remotes?.[participant.name]?.scopeUrl;
+      const file = participant.entries?.["@nf-lab/conflict-lib"];
+      if (typeof scopeUrl !== "string" || typeof file !== "string") {
+        issue(loc, `cannot resolve candidate URL for ${participant.name} from ${scopeUrl} + ${file}`);
+        return { name: participant.name, url: null };
+      }
+      try {
+        const resolvedScope = new URL(scopeUrl, env.page?.url).href;
+        return { name: participant.name, url: new URL(file, resolvedScope).href };
+      } catch {
+        issue(loc, `cannot resolve candidate URL for ${participant.name} from ${scopeUrl} + ${file}`);
+        return { name: participant.name, url: null };
+      }
+    });
+    if (new Set(candidateUrls.map(({ url }) => url).filter(Boolean)).size !== 2)
+      issue(loc, `expected two distinct candidate URLs, saw ${JSON.stringify(candidateUrls)}`);
+
+    const targets = (env.channels.domImportMaps.data?.maps ?? []).flatMap((m) =>
+      Object.entries(m.map?.imports ?? {})
+        .filter(([specifier]) => specifier === "@nf-lab/conflict-lib")
+        .flatMap(([, url]) => {
+          if (typeof url !== "string") {
+            issue(loc, `mapped target is not a string: ${JSON.stringify(url)}`);
+            return [];
+          }
+          try {
+            return [new URL(url, env.page?.url).href];
+          } catch {
+            issue(loc, `cannot resolve mapped target ${url}`);
+            return [];
+          }
+        })
+    );
+    if (targets.length !== 1)
+      issue(loc, `expected exactly one selected target URL, saw [${targets.join(",")}]`);
+    const selectedCandidates = candidateUrls.filter(
+      ({ url }) => url !== null && targets.includes(url)
+    );
+    if (selectedCandidates.length !== 1)
+      issue(loc, `expected exactly one candidate URL selected, saw ${JSON.stringify(selectedCandidates)}`);
   }
 };
 

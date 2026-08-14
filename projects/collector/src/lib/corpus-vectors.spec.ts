@@ -18,11 +18,12 @@ const CAPTURED_AT = '2026-08-11T00:00:00Z';
 function captureScenario(
   scenario: string,
   fileName?: string,
-): { snapshot: SnapshotV1; raw: Record<string, any> } {
-  const raw = labNamespace(loadLabCapture(scenario, fileName)) as Record<string, any>;
+): { snapshot: SnapshotV1; raw: Record<string, any>; capture: Record<string, any> } {
+  const capture = loadLabCapture(scenario, fileName);
+  const raw = labNamespace(capture) as Record<string, any>;
   const sandbox = makeBarePage({ __NATIVE_FEDERATION__: structuredClone(raw) });
   const probeResult = evaluateProbe(PASSIVE_PROBE_SOURCE, sandbox);
-  return { snapshot: mapProbeResult(probeResult, null, { capturedAt: CAPTURED_AT }), raw };
+  return { snapshot: mapProbeResult(probeResult, null, { capturedAt: CAPTURED_AT }), raw, capture };
 }
 
 describe('v4.5-generation registries (T4-AC-01)', () => {
@@ -58,6 +59,56 @@ describe('v4.5-generation registries (T4-AC-01)', () => {
       });
     });
     expect(snapshot.runtime!.generation).toBe('v4.5');
+  });
+
+  it('co-declared-share: one row, two candidates, one exact mapped URL (T12.5-AC-03)', () => {
+    const { snapshot, raw, capture } = captureScenario('co-declared-share');
+
+    expect(snapshot.errors).toEqual([]);
+    const external = snapshot.runtime!.sharedExternals['__GLOBAL__']['@nf-lab/conflict-lib'];
+    expect(external.versions).toHaveLength(1);
+    const [version] = external.versions;
+    expect([version.tag, version.action]).toEqual(['1.0.0', 'share']);
+
+    // The corpus's only row with TWO declarers. `cached` is preserved as
+    // observed evidence, not interpreted here as a general provider rule.
+    const rawRemotes =
+      raw['shared-externals']['__GLOBAL__']['@nf-lab/conflict-lib'].versions[0].remotes;
+    expect(version.remotes).toHaveLength(2);
+    expect(version.remotes.filter((participant) => participant.cached)).toHaveLength(1);
+    expect(
+      new Set(version.remotes.map((participant) => participant.entries!['@nf-lab/conflict-lib']))
+        .size,
+    ).toBe(1);
+    version.remotes.forEach((participant, remoteIndex) => {
+      const rawParticipant = rawRemotes[remoteIndex];
+      expect(participant.name).toBe(rawParticipant.name);
+      expect(participant.cached).toBe(rawParticipant.cached);
+      expect(participant.entries).toEqual(rawParticipant.entries);
+    });
+
+    const candidateUrls = version.remotes.map((participant) => {
+      const scopeUrl = snapshot.runtime!.remotes[participant.name].scopeUrl;
+      const resolvedScope = new URL(scopeUrl, capture.page.url);
+      const file = participant.servedFiles.find(
+        ({ entry }) => entry === '@nf-lab/conflict-lib',
+      )!.file;
+      return {
+        name: participant.name,
+        url: new URL(file, resolvedScope).href,
+      };
+    });
+    expect(new Set(candidateUrls.map(({ url }) => url)).size).toBe(2);
+
+    const targets = capture.channels.domImportMaps.data.maps.flatMap(
+      (map: Record<string, any>) =>
+        Object.entries(map.map.imports ?? {})
+          .filter(([specifier]) => specifier === '@nf-lab/conflict-lib')
+          .map(([, target]) => new URL(target as string, capture.page.url).href),
+    );
+    expect(targets).toHaveLength(1);
+    expect(candidateUrls.filter(({ url }) => url === targets[0])).toHaveLength(1);
+    expect(candidateUrls.filter(({ url }) => url !== targets[0])).toHaveLength(1);
   });
 
   it('dynamic-init-shim: per-remote integrity maps keep their SRI values, empty maps included (T4-AC-05)', () => {
