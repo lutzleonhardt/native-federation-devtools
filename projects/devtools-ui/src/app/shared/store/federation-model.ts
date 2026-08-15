@@ -16,6 +16,8 @@ import type {
   SnapshotGenerationV1,
 } from 'devtools-bridge';
 
+import type { CanonicalRegistryEvidence } from './resolution/model';
+
 /** Which loader owns the page's import maps, from observed tag types. */
 export type MapMode = 'native' | 'shim' | 'none';
 
@@ -147,6 +149,8 @@ export interface FederationModel {
   channels: ChannelsV1;
   mapMode: MapMode;
   effectiveMap: EffectiveMap;
+  /** Canonical ordered registry evidence; all new resolution work starts here. */
+  registryEvidence: CanonicalRegistryEvidence;
   /** Sorted (scope, package, semver tag desc, action); participants keep registry order. */
   sharedRows: SharedParticipantRow[];
   scopedPackages: ScopedPackageRow[];

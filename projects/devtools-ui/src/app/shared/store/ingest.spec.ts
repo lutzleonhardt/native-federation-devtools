@@ -73,6 +73,21 @@ function seededParticipant(
   };
 }
 
+describe('ingestSnapshot — canonical registry evidence (T1-AC-06)', () => {
+  it('wires canonical records into the model and projects legacy shared rows one way', () => {
+    const model = ingestSnapshot(FIXTURES['co-declared-share']);
+    const evidence = model.registryEvidence;
+
+    expect(evidence.sharedExternals).toHaveLength(1);
+    expect(evidence.versionRegistrations).toHaveLength(1);
+    expect(evidence.participantDeclarations).toHaveLength(2);
+    expect(evidence.versionRegistrations[0].participantDeclarationIds).toEqual(
+      evidence.participantDeclarations.map((declaration) => declaration.id),
+    );
+    expect(model.sharedRows.map((row) => row.participant)).toEqual(['mfe1', 'mfe2']);
+  });
+});
+
 describe('ingestSnapshot — core relation (T6-AC-01)', () => {
   it('keeps the clean-skip skip row and its participant intact', () => {
     const model = ingestSnapshot(FIXTURES['clean-skip']);
