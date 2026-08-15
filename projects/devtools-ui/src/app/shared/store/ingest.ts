@@ -22,16 +22,15 @@ import { NF_HOST, type SnapshotV1 } from 'devtools-bridge';
 import type {
   ChunkGroup,
   EffectiveMap,
-  EffectiveResolution,
   ExposeJoin,
   FederationModel,
   ImportMapEntryRow,
   RemoteEntity,
   ScopedPackageRow,
-  SharedParticipantRow,
 } from './federation-model';
 import { detectMapMode, mergeDocumentMaps, resolveUrl } from './merge-document-maps';
-import { compareSemver } from './semver-compare';
+import { normalizeRegistryEvidence } from './resolution/normalize-registry-evidence';
+import { projectSharedRows } from './resolution/shared-rows-compat';
 
 /** Stable specifier marker of chunk pseudo-externals in both generations. */
 const CHUNK_PSEUDO_PACKAGE_PREFIX = '@nf-internal/';
@@ -46,7 +45,6 @@ export function ingestSnapshot(snapshot: SnapshotV1): FederationModel {
   const runtime = snapshot.runtime;
   const remotesRepo = runtime?.remotes ?? {};
   const scopedRepo = runtime?.scopedExternals ?? {};
-  const sharedRepo = runtime?.sharedExternals ?? {};
   const chunksRepo = runtime?.sharedChunks ?? {};
 
   const remotes: RemoteEntity[] = Object.entries(remotesRepo).map(([name, remote]) => ({
@@ -66,44 +64,12 @@ export function ingestSnapshot(snapshot: SnapshotV1): FederationModel {
   const scopeUrlByRemote = new Map(
     remotes.map((remote) => [remote.name, remote.resolvedScopeUrl]),
   );
-
-  const sharedRows: SharedParticipantRow[] = [];
-  for (const [scope, packages] of Object.entries(sharedRepo)) {
-    for (const [packageName, external] of Object.entries(packages)) {
-      for (const version of external.versions) {
-        for (const participant of version.remotes) {
-          sharedRows.push({
-            scope,
-            packageName,
-            tag: version.tag,
-            action: version.action,
-            dirty: external.dirty,
-            host: version.host,
-            participant: participant.name,
-            requiredVersion: participant.requiredVersion,
-            strictVersion: participant.strictVersion,
-            bundle: participant.bundle,
-            cached: participant.cached,
-            servedFiles: participant.servedFiles,
-            generation: participant.generation,
-            resolution: resolveRow(
-              packageName,
-              scopeUrlByRemote.get(participant.name) ?? pageUrl,
-              effectiveMap,
-            ),
-          });
-        }
-      }
-    }
-  }
-  sharedRows.sort(
-    (a, b) =>
-      compareText(a.scope, b.scope) ||
-      compareText(a.packageName, b.packageName) ||
-      compareSemver(b.tag, a.tag) ||
-      compareText(a.action, b.action),
-    // Stable sort: participants within (tag, action) keep registry order.
-  );
+  const registryEvidence = normalizeRegistryEvidence(snapshot);
+  const sharedRows = projectSharedRows(registryEvidence, {
+    pageUrl,
+    scopeUrlByRemote,
+    effectiveMap,
+  });
 
   const scopedPackages: ScopedPackageRow[] = [];
   const chunkGroups: ChunkGroup[] = [];
@@ -180,37 +146,13 @@ export function ingestSnapshot(snapshot: SnapshotV1): FederationModel {
     channels: snapshot.channels,
     mapMode,
     effectiveMap,
+    registryEvidence,
     sharedRows,
     scopedPackages,
     remotes,
     chunkGroups,
     importMapEntries,
   };
-}
-
-/**
- * Loader-style lookup of a package specifier from a participant's scope:
- * longest matching scope prefix first, then the top-level imports.
- */
-function resolveRow(
-  specifier: string,
-  importerUrl: string,
-  effectiveMap: EffectiveMap,
-): EffectiveResolution | null {
-  const scopePrefixes = Object.keys(effectiveMap.scopes)
-    .filter((scopeKey) => importerUrl.startsWith(scopeKey))
-    .sort((a, b) => b.length - a.length);
-  for (const scopeKey of scopePrefixes) {
-    const target = readKey(effectiveMap.scopes[scopeKey], specifier);
-    if (target !== undefined) {
-      return { targetUrl: target, hasIntegrity: hasOwn(effectiveMap.integrity, target) };
-    }
-  }
-  const target = readKey(effectiveMap.imports, specifier);
-  if (target !== undefined) {
-    return { targetUrl: target, hasIntegrity: hasOwn(effectiveMap.integrity, target) };
-  }
-  return null;
 }
 
 /** Finds the map target for an expose via the naive `<remote>/<moduleName>` join. */
@@ -258,14 +200,6 @@ function collectTargets(effectiveMap: EffectiveMap): Set<string> {
     }
   }
   return targets;
-}
-
-function compareText(a: string, b: string): number {
-  return a < b ? -1 : a > b ? 1 : 0;
-}
-
-function readKey(record: Record<string, string>, key: string): string | undefined {
-  return hasOwn(record, key) ? record[key] : undefined;
 }
 
 function hasOwn(record: Record<string, unknown>, key: string): boolean {
