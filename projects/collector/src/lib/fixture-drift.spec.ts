@@ -15,16 +15,80 @@ const LIVE_FILE = '20260811T115536Z-01-initial.json';
 
 const derivedIds = Object.keys(FIXTURES).filter((id) => !id.startsWith('synthetic-'));
 
-describe('corpus-derived fixtures equal fresh pipeline output (T5-AC-01)', () => {
+describe('corpus-derived fixtures equal fresh pipeline output (T5-AC-01, T2.1-AC-02)', () => {
   it.each(derivedIds)('%s', (id) => {
     const capture = loadLabCapture(id, id === LIVE_ID ? LIVE_FILE : undefined);
     expect(deriveCaptureSnapshot(capture)).toEqual(FIXTURES[id as keyof typeof FIXTURES]);
   });
 
-  it('covers all eleven lab scenarios plus the live capture', () => {
-    expect(derivedIds).toHaveLength(12);
+  it('covers all twelve lab scenarios plus the live capture', () => {
+    expect(derivedIds).toHaveLength(13);
     expect(derivedIds).toContain('co-declared-share');
+    expect(derivedIds).toContain('pooling-anchor');
     expect(derivedIds).toContain(LIVE_ID);
+  });
+
+  it('preserves the witnessed pooling fields and their independent omission (T2.1-AC-01)', () => {
+    const fixture = JSON.parse(JSON.stringify(FIXTURES['pooling-anchor']));
+    const shared = fixture.runtime.sharedExternals['__GLOBAL__'];
+    const hasOwn = (record: object, key: string) =>
+      Object.prototype.hasOwnProperty.call(record, key);
+    const participant = (pkg: string, tag: string, action: string, name: string) =>
+      shared[pkg].versions
+        .find((version: any) => version.tag === tag && version.action === action)
+        .remotes.find((remote: any) => remote.name === name);
+    const main = '@nf-lab/conflict-lib';
+    const rows = [
+      ['host-main', participant(main, '2.0.0', 'share', '__NF-HOST__')],
+      ['mfe1-main', participant(main, '1.0.0', 'skip', 'mfe1')],
+      ['mfe2-main', participant(main, '1.0.0', 'skip', 'mfe2')],
+      ['mfe1-extra', participant(`${main}/extra`, '1.0.0', 'share', 'mfe1')],
+      ['mfe2-extra', participant(`${main}/extra`, '1.0.0', 'share', 'mfe2')],
+    ].map(([id, remote]) => ({
+      id,
+      poolPresent: hasOwn(remote, 'pool'),
+      pool: hasOwn(remote, 'pool') ? remote.pool : null,
+      servedByPresent: hasOwn(remote, 'servedBy'),
+      servedBy: hasOwn(remote, 'servedBy') ? remote.servedBy : null,
+    }));
+
+    expect(rows).toEqual([
+      {
+        id: 'host-main',
+        poolPresent: false,
+        pool: null,
+        servedByPresent: false,
+        servedBy: null,
+      },
+      {
+        id: 'mfe1-main',
+        poolPresent: true,
+        pool: 'family',
+        servedByPresent: true,
+        servedBy: 'mfe1',
+      },
+      {
+        id: 'mfe2-main',
+        poolPresent: false,
+        pool: null,
+        servedByPresent: true,
+        servedBy: 'mfe1',
+      },
+      {
+        id: 'mfe1-extra',
+        poolPresent: true,
+        pool: 'family',
+        servedByPresent: false,
+        servedBy: null,
+      },
+      {
+        id: 'mfe2-extra',
+        poolPresent: false,
+        pool: null,
+        servedByPresent: false,
+        servedBy: null,
+      },
+    ]);
   });
 });
 

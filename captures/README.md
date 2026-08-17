@@ -104,9 +104,9 @@ bump it:
 | `lab-capture-dump/1` | producer version | `collector.probe` in capture envelopes: which lab probe produced the file | the probe's observable output changes (also re-pins `source.probe.sha256` in the manifest via the builder) |
 | `lab-lossless-capture/1` | envelope id (wire contract) | structure of a capture file under `captures/` (lab and live) | the envelope structure changes — the validator and `scripts/derive-fixtures.mjs` gate on it |
 | `lab-lossless-corpus/1` | envelope id (wire contract) | structure of `captures/manifest.json` | the manifest structure changes |
-| `passive-probe/2` | probe↔mapper contract | result schema of the product's passive probe; the mapper rejects other stamps | the probe/mapper schemas change — probe string and `runtime-schema.ts` are hand-synced and ship in lockstep |
+| `passive-probe/3` | probe↔mapper contract | result schema of the product's passive probe; the mapper rejects other stamps | the probe/mapper schemas change — probe string and `runtime-schema.ts` are hand-synced and ship in lockstep |
 | `shim-map-probe/1` | probe↔mapper contract | result schema of the shim map probe | its result schema changes |
-| `nf-devtools-collector/2` | producer version | `COLLECTOR_VERSION`, recorded as `SnapshotV1.capture.collectorVersion` | projection semantics change (bumped with `passive-probe/*`) |
+| `nf-devtools-collector/3` | producer version | `COLLECTOR_VERSION`, recorded as `SnapshotV1.capture.collectorVersion` | projection semantics change (bumped with `passive-probe/*`) |
 | `SnapshotV1.schemaVersion: 1` | DTO wire contract | snapshot shape consumed by UI, export, and fixtures | only on a breaking DTO change — V2 grew it additively and kept `1` |
 | v4.5 / v4 | observed registry-format generations | registry-format generations in the corpus, named by the release that introduced the format: v4.5 (`entries` map since v4.5.0, commit `a424249`; the lab scenarios run the released v4.6.0, commit `8e5e0b3`) vs. v4 (`file` string; frankenstein-live) | never bumped by us — a newly observed generation means new captures plus shape re-validation |
 
@@ -129,8 +129,8 @@ nf/playground (branch lab/v2-scenarios)          lutzleonhardt.de/frankenstein-m
                      │                     losslessness + live-evidence predicates)
                      ▼
         scripts/derive-fixtures.mjs      → reads manifest + capture envelopes, runs the REAL
-                     │                     collector pipeline (passive-probe/2, shim-map-probe/1,
-                     │                     mapper → nf-devtools-collector/2)
+                     │                     collector pipeline (passive-probe/3, shim-map-probe/1,
+                     │                     mapper → nf-devtools-collector/3)
                      ▼
         projects/devtools-bridge/src/lib/fixtures/<id>.fixture.ts   (SnapshotV1, schemaVersion 1)
                      │

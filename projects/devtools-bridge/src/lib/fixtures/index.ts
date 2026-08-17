@@ -6,6 +6,7 @@ import { dynamicInitShimFixture } from './dynamic-init-shim.fixture';
 import { dynamicOverrideFixture } from './dynamic-override.fixture';
 import { frankensteinLiveFixture } from './frankenstein-live.fixture';
 import { nonDenseFixture } from './non-dense.fixture';
+import { poolingAnchorFixture } from './pooling-anchor.fixture';
 import { scopeIsolationFixture } from './scope-isolation.fixture';
 import { scopedFixture } from './scoped.fixture';
 import { selfFillFixture } from './self-fill.fixture';
@@ -36,6 +37,7 @@ export const FIXTURES = {
   'dynamic-init-shim': dynamicInitShimFixture,
   'dynamic-override': dynamicOverrideFixture,
   'non-dense': nonDenseFixture,
+  'pooling-anchor': poolingAnchorFixture,
   'scope-isolation': scopeIsolationFixture,
   scoped: scopedFixture,
   'self-fill': selfFillFixture,
