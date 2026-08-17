@@ -178,6 +178,165 @@ describe('normalizeRegistryEvidence — corpus-backed declarations', () => {
     }
   });
 
+  it('normalizes witnessed pooling anchors independently without changing registry cardinality', () => {
+    const snapshot = FIXTURES['pooling-anchor'];
+    const runtime = snapshot.runtime;
+    if (runtime === null) {
+      throw new Error('The pooling-anchor fixture must contain runtime evidence.');
+    }
+
+    const anchorCases: Array<{
+      packageName: string;
+      versionIndex: number;
+      participantIndex: number;
+      participant: string;
+      pool: string | null;
+      servedBy: string | null;
+      hasPool: boolean;
+      hasServedBy: boolean;
+    }> = [
+      {
+        packageName: '@nf-lab/conflict-lib',
+        versionIndex: 0,
+        participantIndex: 0,
+        participant: '__NF-HOST__',
+        pool: null,
+        servedBy: null,
+        hasPool: false,
+        hasServedBy: false,
+      },
+      {
+        packageName: '@nf-lab/conflict-lib',
+        versionIndex: 1,
+        participantIndex: 0,
+        participant: 'mfe1',
+        pool: 'family',
+        servedBy: 'mfe1',
+        hasPool: true,
+        hasServedBy: true,
+      },
+      {
+        packageName: '@nf-lab/conflict-lib',
+        versionIndex: 1,
+        participantIndex: 1,
+        participant: 'mfe2',
+        pool: null,
+        servedBy: 'mfe1',
+        hasPool: false,
+        hasServedBy: true,
+      },
+      {
+        packageName: '@nf-lab/conflict-lib/extra',
+        versionIndex: 0,
+        participantIndex: 0,
+        participant: 'mfe1',
+        pool: 'family',
+        servedBy: null,
+        hasPool: true,
+        hasServedBy: false,
+      },
+      {
+        packageName: '@nf-lab/conflict-lib/extra',
+        versionIndex: 0,
+        participantIndex: 1,
+        participant: 'mfe2',
+        pool: null,
+        servedBy: null,
+        hasPool: false,
+        hasServedBy: false,
+      },
+    ];
+    const rawParticipants: ExternalRemoteV1[] = anchorCases.map(
+      ({ packageName, versionIndex, participantIndex }) =>
+        runtime.sharedExternals['__GLOBAL__'][packageName].versions[versionIndex].remotes[
+          participantIndex
+        ],
+    );
+    const rawOwnKeys = () =>
+      rawParticipants.map((raw) => [Object.hasOwn(raw, 'pool'), Object.hasOwn(raw, 'servedBy')]);
+    const rawOwnKeysBefore = rawOwnKeys();
+
+    expect(rawOwnKeysBefore).toEqual(
+      anchorCases.map(({ hasPool, hasServedBy }) => [hasPool, hasServedBy]),
+    );
+    expect(rawParticipants.map(({ name, pool, servedBy }) => [name, pool, servedBy])).toEqual(
+      anchorCases.map(({ participant, pool, servedBy }) => [
+        participant,
+        pool ?? undefined,
+        servedBy ?? undefined,
+      ]),
+    );
+
+    const evidence = normalizeRegistryEvidence(snapshot);
+
+    expect(rawOwnKeys()).toEqual(rawOwnKeysBefore);
+    expect({
+      shared: evidence.sharedExternals.length,
+      versions: evidence.versionRegistrations.length,
+      declarations: evidence.participantDeclarations.length,
+      privateRegistrations: evidence.privateRegistrations.length,
+      candidates: evidence.entrypointCandidates.length,
+      diagnostics: evidence.diagnostics.length,
+    }).toEqual({
+      shared: 2,
+      versions: 3,
+      declarations: 5,
+      privateRegistrations: 0,
+      candidates: 5,
+      diagnostics: 0,
+    });
+    expect(
+      evidence.participantDeclarations.map(
+        ({ participant, pool, servedBy, entrypointCandidateIds }) => ({
+          participant,
+          pool,
+          servedBy,
+          candidateCount: entrypointCandidateIds.length,
+        }),
+      ),
+    ).toEqual(
+      anchorCases.map(({ participant, pool, servedBy }) => ({
+        participant,
+        pool,
+        servedBy,
+        candidateCount: 1,
+      })),
+    );
+    expect(
+      evidence.participantDeclarations.map((declaration) => declaration.entrypointCandidateIds),
+    ).toEqual(evidence.entrypointCandidates.map((candidate) => [candidate.id]));
+
+    for (const [index, anchorCase] of anchorCases.entries()) {
+      const participantPath = [
+        'runtime',
+        'sharedExternals',
+        '__GLOBAL__',
+        anchorCase.packageName,
+        'versions',
+        anchorCase.versionIndex,
+        'remotes',
+        anchorCase.participantIndex,
+      ];
+      expect(evidence.participantDeclarations[index].provenance.evidence).toEqual([
+        {
+          source: 'snapshot',
+          path: participantPath,
+          state: 'present',
+        },
+        {
+          source: 'snapshot',
+          path: [...participantPath, 'pool'],
+          state: anchorCase.hasPool ? 'present' : 'missing',
+        },
+        {
+          source: 'snapshot',
+          path: [...participantPath, 'servedBy'],
+          state: anchorCase.hasServedBy ? 'present' : 'missing',
+        },
+      ]);
+    }
+  });
+
   it('keeps scoped externals as private registrations without shared semantics', () => {
     const evidence = normalizeRegistryEvidence(FIXTURES.scoped);
 
@@ -493,6 +652,47 @@ describe('normalizeRegistryEvidence — lossless identity and diagnostics', () =
     expect(
       new Set(delimiterCollisionEvidence.sharedExternals.map((record) => record.id)).size,
     ).toBe(2);
+  });
+
+  it('treats an explicit undefined anchor as missing in a hand-seeded snapshot', () => {
+    const participant = seededParticipant('owner', {
+      pool: undefined,
+      servedBy: 'owner',
+    });
+    expect(Object.hasOwn(participant, 'pool')).toBe(true);
+
+    const evidence = normalizeRegistryEvidence(
+      seededSnapshot({
+        sharedExternals: sharedRepository('__GLOBAL__', 'pkg', [
+          { tag: '1.0.0', action: 'share', host: false, remotes: [participant] },
+        ]),
+      }),
+    );
+    const declaration = evidence.participantDeclarations[0];
+    const participantPath = [
+      'runtime',
+      'sharedExternals',
+      '__GLOBAL__',
+      'pkg',
+      'versions',
+      0,
+      'remotes',
+      0,
+    ];
+
+    expect(declaration).toMatchObject({ pool: null, servedBy: 'owner' });
+    expect(declaration.provenance.evidence.slice(-2)).toEqual([
+      {
+        source: 'snapshot',
+        path: [...participantPath, 'pool'],
+        state: 'missing',
+      },
+      {
+        source: 'snapshot',
+        path: [...participantPath, 'servedBy'],
+        state: 'present',
+      },
+    ]);
   });
 
   it('retains an unknown raw action, emits its diagnostic, and keeps all evidence explicit', () => {

@@ -77,9 +77,9 @@ export interface ParticipantDeclaration {
   bundle: string | null;
   cached: boolean;
   generation: GenerationV1;
-  /** Nullable until direct snapshot evidence exists; never inferred. */
+  /** Direct snapshot pool label, or null when the raw key is absent; never inferred. */
   pool: string | null;
-  /** Nullable until direct snapshot evidence exists; never inferred. */
+  /** Direct snapshot anchor, or null when the raw key is absent; never inferred. */
   servedBy: string | null;
   entrypointCandidateIds: EntrypointCandidateId[];
   provenance: EvidenceProvenance;
