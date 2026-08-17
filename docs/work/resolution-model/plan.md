@@ -4,11 +4,11 @@ Spec: docs/specs/native-federation-resolution-model.md
 Branch scope: resolution-model (from feature/resolution-model)
 External challenger: /home/lutz/Downloads/DEPENDENCY-GRAPH.md, SHA-256 5977479c34433256c89790a2ab2a3068817a11b24a39a764a480b7d486f693d3.
 
-The work has three milestones: establish one canonical domain model, migrate the four consumers, then enforce and review the cutover. Twelve tasks are intentional because the approved specification spans capture/schema, resolution semantics, four independent views, and acceptance; combining those subsystems would violate SRP.
+The work has three milestones: establish one canonical domain model, migrate the four consumers, then enforce and review the cutover. Tasks stay at independently reviewable boundaries; evidence acquisition, raw snapshot transport, and Store normalization are separate point tasks even though RM-AC-07 treats them as one ordered, traceable schema-gate chain.
 
 YAGNI boundary: no graph UI or pool graph, no network/runtime-use instrumentation, no UI redesign, no general diagnostics rule engine, no new Playwright/Cypress/Storybook setup, and no screenshot goldens. The external challenger informs requirements but is not copied or treated as an oracle.
 
-Task 2 is an evidence gate only for the raw pool/servedBy schema extension. If its real witness cannot be produced, close that task BLOCKED without speculative schema edits; Tasks 3–12 may still use null raw fields and source-backed canonical seeds, while the overall pooling acceptance remains incomplete.
+Tasks 2, 2.1, and 2.2 form the raw `pool`/`servedBy` schema gate. Task 2 produces evidence only; if its real witness cannot be produced, close Task 2 BLOCKED and do not start Tasks 2.1 or 2.2. Tasks 3–12 may still use null raw fields and source-backed canonical seeds, while the overall pooling acceptance remains incomplete.
 
 > The executing agent may adjust scope and ordering based on more
 > up-to-date context discovered during implementation, as long as
@@ -64,27 +64,23 @@ Task 2 is an evidence gate only for the raw pool/servedBy schema extension. If i
 - A participant is neither a registration nor a resolved copy. `co-declared-share` proves that one registration can contain multiple declarations and candidate files.
 - Registry and import-map evidence remain separate layers; normalization must never overwrite either raw layer with a join result.
 
-## Task 2: Preserve witnessed pooling anchors end to end
+## Task 2: Capture a real pooling-anchor witness
 
 **Dependency:** Task 1.
 
 ### Instructions
 
-- Before changing any repository schema, create a real pinned-orchestrator browser scenario in `/home/lutz/projects/nf/playground` that emits both `pool` and `servedBy`. Capture the exact field paths and omission behavior, two consumers of the same tag as separate declarations, at least one explicit anchor, the effective target and comparable anchor candidate, and available bundle/chunk evidence.
-- If the witness cannot be reproduced, document the attempted scenario and evidence in the task log, leave collector/bridge schemas unchanged, close the task BLOCKED, and do not infer fields from the maintainer document or filenames.
-- After a successful witness, land one traceable vertical change containing the capture, manifest/validator updates, both collector schema mirrors, mapper, bridge DTO, derived fixture, fixture index/drift expectations, and focused compatibility/security tests. This is a deliberate cross-layer legacy exception and may exceed ten files because the raw contract must not be partially updated.
-- Add optional raw bounded strings `pool?: string` and `servedBy?: string`; absence stays absent in `SnapshotV1` and becomes `null` only in Store normalization. Non-strings, getters, and over-limit values must not leak into the snapshot.
-- Keep `SnapshotV1.schemaVersion` at 1 after the compatibility audit. Advance collector provenance to `nf-devtools-collector/3` and the injected probe marker to `passive-probe/3`.
-- Preserve passivity, URL/privacy sanitization, hostile-page limits, old snapshot imports, and byte-stable fixture derivation. Preserve `pool` only as participant metadata and `servedBy` only as a per-declaration anchor; derive neither a pool graph nor a provider from a raw pool label.
-- Correct only current misleading documentation such as an unqualified “10 captures” catalog or a final `pool`/`servedBy` drop claim. Do not rewrite historically accurate task logs.
+- Create a real pinned-orchestrator browser scenario in `/home/lutz/projects/nf/playground` that emits both `pool` and `servedBy` before changing any collector, bridge, or Store schema.
+- Capture one canonical snapshot that records the exact field paths and serialized omission behavior, two consumers of the same tag as separate declarations, at least one explicit anchor, the effective target and comparable anchor candidate, and available bundle/chunk evidence.
+- Add the canonical capture to the corpus manifest, validate the witnessed values and omissions, and keep manifest generation byte-stable.
+- If the witness cannot be reproduced, document the attempted scenario and evidence in the task log, leave all product schemas unchanged, close the task BLOCKED, and do not infer fields from maintainer prose or filenames.
+- Stop at the evidence boundary. Do not add Snapshot, Bridge, fixture, Store, pooling-model, or UI behavior in this task.
 
 ### Acceptance
 
-- **T2-AC-01** — A committed real capture proves the raw `pool`/`servedBy` positions, omission behavior, independent same-tag consumers, explicit anchor, effective target, comparable candidate, and available chunk source. **Contributes:** XC-02, XC-04.
-- **T2-AC-02** — Old snapshots without the keys and new snapshots with them both import/export round-trip; raw absence remains absent and Store absence becomes null. **Contributes:** XC-04.
-- **T2-AC-03** — Both collector schema copies, mapper, bridge contract, capture validator, fixtures, and drift checks accept the same bounded optional-string contract; `SnapshotV1.schemaVersion` remains 1 and collector/probe provenance versions advance. **Contributes:** XC-04.
-- **T2-AC-04** — Hostile non-string, throwing-getter, and over-limit inputs are rejected or bounded without breaking passivity, privacy, projection parity, or prior corpus validation. **Contributes:** XC-04.
-- **T2-AC-05** — No canonical pool ID, pool graph, universal provider, or delivery claim is derived from `pool` or `servedBy`. **Contributes:** XC-01, XC-06.
+- **T2-AC-01** — A committed real capture proves the raw `pool`/`servedBy` positions, omission behavior, independent same-tag consumers, explicit anchor, effective target, comparable candidate, and available bundle/chunk evidence, including an honest `source-only` outcome when no matching chunk list exists. **Contributes:** XC-02, XC-04.
+
+T2-AC-02 through T2-AC-05 were retired by the approved task split. Their IDs are intentionally not reused; the remaining requirements are covered by Tasks 2.1 and 2.2.
 
 ### Key Locations
 
@@ -92,18 +88,80 @@ Task 2 is an evidence gate only for the raw pool/servedBy schema extension. If i
 - `captures/` and `captures/manifest.json`
 - `scripts/build-lab-manifest.mjs`
 - `scripts/validate-lab-corpus.mjs`
-- `scripts/derive-fixtures.mjs` and `scripts/derive-fixtures.ts`
-- `projects/collector/src/lib/runtime-schema.ts`
-- `projects/collector/src/lib/passive-probe.ts`
-- `projects/collector/src/lib/snapshot-mapper.ts`
-- `projects/devtools-bridge/src/lib/snapshot-v1.ts`
-- `projects/devtools-bridge/src/lib/fixtures/`
 
 ### Key Discoveries
 
-- The current corpus contains 11 lab captures plus two live phases, but no real `servedBy` witness.
+- Before this task, the corpus contains 11 lab captures plus two live phases and no real `servedBy` witness.
 - Pinned source supports `servedBy` as optional per consumer/member and permits self-anchors and cross-external anchor lookup. Source support is not permission to change the raw schema without a capture.
 - Equal `pool` labels do not prove one connected pool, and different labels can belong to one family. Raw labels are therefore not canonical identities.
+- The witnessed declarations carry `bundle: "browser-shared"`, while `shared-chunks` exposes no matching bundle list. This is positive bundle evidence plus an honest `source-only`/no-chunk-list observation, not a missing or inferred chunk file.
+
+## Task 2.1: Preserve witnessed anchors in the raw snapshot contract
+
+**Dependency:** Task 2.
+
+### Instructions
+
+- Add bounded optional strings `pool?: string` and `servedBy?: string` to the two existing collector schema mirrors, the snapshot mapper, and the Bridge `SnapshotV1` contract. Preserve absent raw keys as absent rather than synthesizing `undefined` or `null`.
+- Keep `SnapshotV1.schemaVersion` at 1. Advance the current collector and injected-probe provenance markers to `/3`; the mapper accepts the matching current `passive-probe/3` contract only. Raw `/2` probe results are not persisted and must not weaken the mismatch guard. Compatibility means that already persisted `/2` `SnapshotV1` values remain readable.
+- Derive the pooling-anchor fixture through the existing fixture pipeline, register it, and regenerate every corpus-derived fixture because collector provenance is part of the byte-stable output. Leave synthetic fixtures unchanged and do not add a special-case fixture generator.
+- Add focused old/new round-trip and hostile-value coverage for the two new keys. One representative persisted `/2` snapshot must round-trip with both own keys absent. Reuse the existing bounded projection machinery to reject non-strings, throwing getters, and over-limit values through both schema paths; do not introduce a generalized validator framework, broad new security suite, or legacy-fixture matrix.
+- Stop at the raw contract boundary. Do not normalize Store values, derive anchors, create pool identities, or add UI behavior in this task.
+
+### Acceptance
+
+- **T2.1-AC-01** — Both collector schema copies, the mapper, and the Bridge contract preserve the same bounded optional-string contract; raw key absence remains absence and `SnapshotV1.schemaVersion` remains 1. **Contributes:** XC-04.
+- **T2.1-AC-02** — All corpus-derived fixtures are byte-stably regenerated with current `/3` provenance, the witnessed fixture is registered, and a representative persisted `/2` snapshot round-trips with `pool` and `servedBy` still absent as own keys. **Contributes:** XC-02, XC-04.
+- **T2.1-AC-03** — Focused tests prove that non-string, throwing-getter, and over-limit inputs cannot leak through either schema path without breaking passivity, privacy, or prior corpus validation. **Contributes:** XC-04.
+
+### Key Locations
+
+- `projects/collector/src/lib/runtime-schema.ts`
+- `projects/collector/src/lib/passive-probe.ts`
+- `projects/collector/src/lib/constants.ts`
+- `projects/collector/src/lib/snapshot-mapper.ts`
+- `projects/devtools-bridge/src/lib/snapshot-v1.ts`
+- `projects/devtools-bridge/src/lib/fixtures/`
+- `projects/collector/src/lib/fixture-drift.spec.ts`
+- `scripts/derive-fixtures.ts`
+- Existing focused probe, mapper, and Bridge snapshot specs
+
+### Key Discoveries
+
+- The existing string projection and limits are the correct enforcement point; the two fields do not require a new validation abstraction.
+- Optional raw fields are backward compatible with `SnapshotV1.schemaVersion === 1`, while `/3` emitter provenance records which collector/probe could produce them.
+- Probe and mapper ship in lockstep and raw probe results are never persisted. Accepting `passive-probe/2` in the new mapper would weaken drift detection; legacy compatibility belongs at the persisted `SnapshotV1` boundary.
+- The current derivation pipeline stamps every corpus-derived fixture with the current collector version, so the `/3` bump causes deliberate mechanical fixture churn. Preserve the byte-level drift guard rather than adding exceptions.
+- A fixture is evidence transport, not permission to infer pooling semantics.
+
+## Task 2.2: Normalize pooling anchors at the Store boundary
+
+**Dependency:** Task 2.1.
+
+### Instructions
+
+- Populate the existing normalized declaration fields from the witnessed raw participant values at the Store boundary. Preserve raw absence in `SnapshotV1`; only normalized Store data converts absence to `null`.
+- Preserve field-level evidence for present and missing values, including independent omission of `pool` and `servedBy`.
+- Add focused normalization tests for present values, independent omissions, and unchanged unrelated registry semantics. Do not add a broad metamorphic test matrix.
+- Keep `pool` as participant metadata and `servedBy` as a per-declaration anchor only. Derive no canonical pool ID, pool graph, universal provider, runtime-use statement, delivery claim, or UI behavior here.
+
+### Acceptance
+
+- **T2.2-AC-01** — Present raw values survive into normalized declarations, raw absence stays absent, and only Store normalization represents missing `pool` or `servedBy` as `null`. **Contributes:** XC-01, XC-04.
+- **T2.2-AC-02** — Present and missing field provenance is retained independently for both keys without changing declaration, registration, candidate, or effective-binding cardinality. **Contributes:** XC-02, XC-03.
+- **T2.2-AC-03** — No canonical pool identity, pool graph, universal provider, runtime-use statement, or delivery claim is derived from either raw value. **Contributes:** XC-01, XC-06.
+
+### Key Locations
+
+- `projects/devtools-ui/src/app/shared/store/resolution/model.ts`
+- `projects/devtools-ui/src/app/shared/store/resolution/normalize-registry-evidence.ts`
+- `projects/devtools-ui/src/app/shared/store/resolution/normalize-registry-evidence.spec.ts`
+
+### Key Discoveries
+
+- Task 1 already reserves nullable normalized `pool` and `servedBy` fields with missing-evidence records; this task only replaces those seeds with witnessed raw values.
+- `pool` and `servedBy` are independently optional, so normalization must not couple their presence.
+- Semantic anchor comparison belongs to Task 4, not to raw normalization.
 
 ## Task 3: Resolve effective consumer bindings
 
@@ -484,9 +542,9 @@ Task 2 is an evidence gate only for the raw pool/servedBy schema extension. If i
 
 ## Cross-Cutting Acceptance
 
-- **XC-01** — Raw normalization, effective lookup, claim/source explanation, copy identity, and chunk attribution each have one canonical owner; views only project Store data and no production consumer uses `sharedRows` after cutover. **Touches:** T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11.
-- **XC-02** — Every derived candidate, claim, resolution, source attribution, comparison, copy, relation, and chunk claim has deterministic collision-safe identity plus complete evidence/rule provenance; unknown and ambiguous evidence remains representable. **Touches:** T1, T2, T3, T4, T5, T6, T8, T9, T10, T11.
-- **XC-03** — Packages, Remotes, Import Map, and Diagnostics share canonical IDs and cardinalities: declarations never become registrations/copies, claims never duplicate bindings, and the four package counts keep their distinct meanings. **Touches:** T1, T3, T4, T5, T6, T7, T8, T9, T10, T11.
-- **XC-04** — Old/new snapshot compatibility, hostile-page safety, privacy/passivity, all 11 lab captures plus two live phases, and byte-stable fixture derivation survive the migration. **Touches:** T2, T3, T11.
+- **XC-01** — Raw normalization, effective lookup, claim/source explanation, copy identity, and chunk attribution each have one canonical owner; views only project Store data and no production consumer uses `sharedRows` after cutover. **Touches:** T1, T2.2, T3, T4, T5, T6, T7, T8, T9, T10, T11.
+- **XC-02** — Every derived candidate, claim, resolution, source attribution, comparison, copy, relation, and chunk claim has deterministic collision-safe identity plus complete evidence/rule provenance; unknown and ambiguous evidence remains representable. **Touches:** T1, T2, T2.1, T2.2, T3, T4, T5, T6, T8, T9, T10, T11.
+- **XC-03** — Packages, Remotes, Import Map, and Diagnostics share canonical IDs and cardinalities: declarations never become registrations/copies, claims never duplicate bindings, and the four package counts keep their distinct meanings. **Touches:** T1, T2.2, T3, T4, T5, T6, T7, T8, T9, T10, T11.
+- **XC-04** — Old/new snapshot compatibility, hostile-page safety, privacy/passivity, all 12 lab captures plus two live phases, and byte-stable fixture derivation survive the migration. **Touches:** T2, T2.1, T2.2, T3, T11.
 - **XC-05** — The resolution phase exports one raw-free canonical projection with consumer-copy relations, selected artifact claims, and filterable completeness; it implements no graph UI and permits no downstream raw-data resolver. **Touches:** T6, T11.
-- **XC-06** — All product text distinguishes declaration/mapping/selection from request, download, execution, cache hit, or wire cost, and the final manual fixture walkthrough confirms the distinction is understandable and visible. **Touches:** T2, T3, T4, T6, T7, T8, T9, T10, T11, T12.
+- **XC-06** — All product text distinguishes declaration/mapping/selection from request, download, execution, cache hit, or wire cost, and the final manual fixture walkthrough confirms the distinction is understandable and visible. **Touches:** T2.2, T3, T4, T6, T7, T8, T9, T10, T11, T12.

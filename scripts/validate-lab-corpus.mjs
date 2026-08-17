@@ -11,10 +11,8 @@
  * deliberately NOT ported — an allowlist schema would reject exactly
  * the fields losslessness exists to keep.
  *
- * The per-scenario evidence predicates encode T2-AC-02 durably: each
- * asserts a field the product allowlist drops (`bundle`, `entries`,
- * `requiredVersion`, per-remote `integrity`, populated shim map) where
- * the scenario is known to produce it.
+ * The per-scenario evidence predicates durably assert the observed facts
+ * each scenario contributes beyond the shared envelope contract.
  *
  * Usage: node scripts/validate-lab-corpus.mjs
  * Exit code 0 = corpus valid, 1 = issues (listed on stderr).
@@ -42,7 +40,8 @@ const EXPECTED_SCENARIOS = [
   "dynamic-init-shim",
   "dynamic-override",
   "self-fill",
-  "co-declared-share"
+  "co-declared-share",
+  "pooling-anchor"
 ];
 const CHANNELS = ["nativeFederationGlobals", "domImportMaps", "importShim"];
 const SRI = /^sha(256|384|512)-[A-Za-z0-9+/=]+$/;
@@ -202,6 +201,77 @@ const EVIDENCE = {
     );
     if (selectedCandidates.length !== 1)
       issue(loc, `expected exactly one candidate URL selected, saw ${JSON.stringify(selectedCandidates)}`);
+  },
+  "pooling-anchor": (ns, env, loc) => {
+    const findParticipant = (pkg, tag, action, name) =>
+      sharedVersions(ns, "__GLOBAL__", pkg)
+        .find((version) => version.tag === tag && version.action === action)
+        ?.remotes?.find((remote) => remote.name === name);
+    const absoluteUrl = (value, base, label) => {
+      if (typeof value !== "string" || typeof base !== "string") {
+        issue(loc, `cannot resolve ${label} from ${base} + ${value}`);
+        return null;
+      }
+      try {
+        return new URL(value, base).href;
+      } catch {
+        issue(loc, `cannot resolve ${label} from ${base} + ${value}`);
+        return null;
+      }
+    };
+    const main = "@nf-lab/conflict-lib";
+    const extra = `${main}/extra`;
+    const expected = [
+      ["host-main", "__NF-HOST__", main, "2.0.0", "share", undefined, undefined],
+      ["mfe1-main", "mfe1", main, "1.0.0", "skip", "family", "mfe1"],
+      ["mfe2-main", "mfe2", main, "1.0.0", "skip", undefined, "mfe1"],
+      ["mfe1-extra", "mfe1", extra, "1.0.0", "share", "family", undefined],
+      ["mfe2-extra", "mfe2", extra, "1.0.0", "share", undefined, undefined]
+    ];
+    const candidates = {};
+    for (const [id, remote, specifier, tag, action, pool, servedBy] of expected) {
+      const participant = findParticipant(specifier, tag, action, remote);
+      if (!participant) {
+        issue(loc, `missing ${id} participant declaration`);
+        candidates[id] = null;
+        continue;
+      }
+      if (participant.pool !== pool || participant.servedBy !== servedBy)
+        issue(loc, `${id} pooling fields differ from the witnessed values`);
+      if (participant.bundle !== "browser-shared")
+        issue(loc, `${id} bundle ${JSON.stringify(participant.bundle)} !== "browser-shared"`);
+      const scope = absoluteUrl(ns.remotes?.[remote]?.scopeUrl, env.page?.url, `${id} scope`);
+      candidates[id] = scope === null
+        ? null
+        : absoluteUrl(participant.entries?.[specifier], scope, `${id} candidate`);
+    }
+    if (candidates["mfe1-main"] !== null && candidates["mfe1-main"] === candidates["mfe2-main"])
+      issue(loc, "expected distinct mfe1 and mfe2 main candidate URLs");
+
+    const maps = env.channels.domImportMaps.data?.maps ?? [];
+    if (maps.length !== 1 || maps[0]?.type !== "importmap" || maps[0]?.parsed !== true)
+      issue(loc, "expected one parsed native import-map tag");
+    const map = maps[0]?.map;
+    const expectedTargets = [
+      ["global main", map?.imports?.[main], candidates["host-main"]],
+      ["global extra", map?.imports?.[extra], candidates["mfe1-extra"]],
+      ["mfe1 main", map?.scopes?.["./mfe1/"]?.[main], candidates["mfe1-main"]],
+      ["mfe2 main", map?.scopes?.["./mfe2/"]?.[main], candidates["mfe1-main"]]
+    ];
+    for (const [label, rawTarget, candidate] of expectedTargets) {
+      const target = absoluteUrl(rawTarget, env.page?.url, `${label} target`);
+      if (target !== candidate)
+        issue(loc, `${label} target ${target} !== expected candidate ${candidate}`);
+    }
+
+    const sharedChunks = ns["shared-chunks"];
+    for (const remote of ["__NF-HOST__", "mfe1", "mfe2"]) {
+      const chunks = sharedChunks?.[remote];
+      if (!Array.isArray(chunks?.["mapping-or-exposed"]) || chunks["mapping-or-exposed"].length !== 0)
+        issue(loc, `${remote} mapping-or-exposed must remain an observed empty list`);
+      if (Object.prototype.hasOwnProperty.call(chunks ?? {}, "browser-shared"))
+        issue(loc, `${remote} unexpectedly records a browser-shared chunk list`);
+    }
   }
 };
 
