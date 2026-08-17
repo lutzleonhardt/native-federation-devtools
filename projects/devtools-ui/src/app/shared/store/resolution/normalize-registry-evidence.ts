@@ -1,4 +1,4 @@
-import type { RemoteV1, SnapshotV1 } from 'devtools-bridge';
+import type { ExternalRemoteV1, RemoteV1, SnapshotV1 } from 'devtools-bridge';
 
 import { nextEqualKeyOrdinal, registryEvidenceId } from './ids';
 import type {
@@ -165,6 +165,9 @@ export function normalizeRegistryEvidence(snapshot: SnapshotV1): CanonicalRegist
             }
           }
 
+          const pool = normalizeParticipantAnchor(participant, 'pool', participantPath);
+          const servedBy = normalizeParticipantAnchor(participant, 'servedBy', participantPath);
+
           participantDeclarations.push({
             id: participantDeclarationId,
             versionRegistrationId,
@@ -175,13 +178,13 @@ export function normalizeRegistryEvidence(snapshot: SnapshotV1): CanonicalRegist
             bundle: participant.bundle,
             cached: participant.cached,
             generation: participant.generation,
-            pool: null,
-            servedBy: null,
+            pool: pool.value,
+            servedBy: servedBy.value,
             entrypointCandidateIds,
             provenance: provenance(
               presentEvidence(participantPath),
-              missingEvidence([...participantPath, 'pool']),
-              missingEvidence([...participantPath, 'servedBy']),
+              pool.evidence,
+              servedBy.evidence,
             ),
           });
           participantDeclarationIds.push(participantDeclarationId);
@@ -295,6 +298,23 @@ function normalizeAction(rawAction: string): RegistrationAction {
   }
 }
 
+function normalizeParticipantAnchor(
+  participant: ExternalRemoteV1,
+  field: 'pool' | 'servedBy',
+  participantPath: EvidencePathSegment[],
+): { value: string | null; evidence: EvidenceRef } {
+  const path = [...participantPath, field];
+  const value = hasOwn(participant, field) ? participant[field] : undefined;
+  if (value === undefined) {
+    return { value: null, evidence: missingEvidence(path) };
+  }
+
+  return {
+    value,
+    evidence: presentEvidence(path),
+  };
+}
+
 function constructCandidateUrl(
   pageUrl: string,
   remotes: Record<string, RemoteV1>,
@@ -352,6 +372,6 @@ function provenance(...evidence: EvidenceRef[]): EvidenceProvenance {
   return { evidence };
 }
 
-function hasOwn(record: Record<string, unknown>, key: string): boolean {
+function hasOwn(record: object, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(record, key);
 }
