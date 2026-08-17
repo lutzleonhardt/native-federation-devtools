@@ -363,7 +363,7 @@ describe('ingestSnapshot — provenance carry', () => {
       schemaVersion: 1,
       pageUrl: 'https://lutzleonhardt.de/frankenstein-meeting-room/',
       capturedAt: '2026-08-11T11:56:25.504Z',
-      collectorVersion: 'nf-devtools-collector/2',
+      collectorVersion: 'nf-devtools-collector/3',
       generation: 'v4',
     });
     expect(model.channels).toEqual(FIXTURES['frankenstein-live'].channels);

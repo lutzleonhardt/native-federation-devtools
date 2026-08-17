@@ -150,7 +150,9 @@ export const PASSIVE_PROBE_SOURCE = `(() => {
       entries: schemas.fileEntries,
       file: schemas.string,
       name: schemas.string,
+      pool: schemas.string,
       requiredVersion: schemas.string,
+      servedBy: schemas.string,
       strictVersion: schemas.boolean
     }
   };
@@ -324,7 +326,7 @@ export const PASSIVE_PROBE_SOURCE = `(() => {
   }
 
   return {
-    schemaVersion: "passive-probe/2",
+    schemaVersion: "passive-probe/3",
     page,
     globals: {
       nativeFederation: nativeSummary,
