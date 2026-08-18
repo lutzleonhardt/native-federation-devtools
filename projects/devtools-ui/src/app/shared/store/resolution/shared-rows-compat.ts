@@ -1,13 +1,16 @@
 import type { ServedFileV1 } from 'devtools-bridge';
 
-import type { EffectiveMap, EffectiveResolution, SharedParticipantRow } from '../federation-model';
+import type { EffectiveResolution, SharedParticipantRow } from '../federation-model';
 import { compareSemver } from '../semver-compare';
-import type { CanonicalRegistryEvidence, EntrypointCandidate, RegistryEvidenceId } from './model';
+import type {
+  CanonicalRegistryEvidence,
+  EffectiveConsumerResolution,
+  EntrypointCandidate,
+  RegistryEvidenceId,
+} from './model';
 
 export interface SharedRowsCompatibilityContext {
-  pageUrl: string;
-  scopeUrlByRemote: ReadonlyMap<string, string>;
-  effectiveMap: EffectiveMap;
+  effectiveConsumerResolutions: readonly EffectiveConsumerResolution[];
 }
 
 /**
@@ -25,6 +28,7 @@ export function projectSharedRows(
   const candidatesById = new Map(
     evidence.entrypointCandidates.map((candidate) => [candidate.id, candidate]),
   );
+  const resolutionsByConsumer = indexResolutionsByConsumer(context.effectiveConsumerResolutions);
 
   const rows = evidence.participantDeclarations.map((declaration): SharedParticipantRow => {
     const registration = requireRecord(
@@ -33,7 +37,11 @@ export function projectSharedRows(
       'version registration',
     );
     const shared = requireRecord(sharedById, registration.sharedExternalId, 'shared external');
-    const importerUrl = context.scopeUrlByRemote.get(declaration.participant) ?? context.pageUrl;
+    const effectiveResolution = requireConsumerResolution(
+      resolutionsByConsumer,
+      declaration.participant,
+      shared.packageName,
+    );
 
     return {
       scope: shared.shareScope,
@@ -51,7 +59,7 @@ export function projectSharedRows(
         toServedFile(requireRecord(candidatesById, candidateId, 'entrypoint candidate')),
       ),
       generation: declaration.generation,
-      resolution: resolveCompatibilityRow(shared.packageName, importerUrl, context.effectiveMap),
+      resolution: projectEffectiveResolution(effectiveResolution),
     };
   });
 
@@ -77,29 +85,53 @@ function toServedFile(candidate: EntrypointCandidate): ServedFileV1 {
   }
 }
 
-/**
- * Existing loader-style lookup retained only for compatibility rows:
- * matching import-map scopes first, then top-level imports.
- */
-function resolveCompatibilityRow(
-  specifier: string,
-  importerUrl: string,
-  effectiveMap: EffectiveMap,
-): EffectiveResolution | null {
-  const scopePrefixes = Object.keys(effectiveMap.scopes)
-    .filter((scopeKey) => importerUrl.startsWith(scopeKey))
-    .sort((a, b) => b.length - a.length);
-  for (const scopeKey of scopePrefixes) {
-    const target = readKey(effectiveMap.scopes[scopeKey], specifier);
-    if (target !== undefined) {
-      return { targetUrl: target, hasIntegrity: hasOwn(effectiveMap.integrity, target) };
+function indexResolutionsByConsumer(
+  resolutions: readonly EffectiveConsumerResolution[],
+): ReadonlyMap<string, ReadonlyMap<string, EffectiveConsumerResolution>> {
+  const byConsumer = new Map<string, Map<string, EffectiveConsumerResolution>>();
+  for (const resolution of resolutions) {
+    for (const consumerRemote of resolution.consumerRemotes) {
+      let bySpecifier = byConsumer.get(consumerRemote);
+      if (bySpecifier === undefined) {
+        bySpecifier = new Map();
+        byConsumer.set(consumerRemote, bySpecifier);
+      }
+      if (bySpecifier.has(resolution.specifier)) {
+        throw new Error(
+          `Multiple effective resolutions for consumer ${consumerRemote} and specifier ${resolution.specifier}`,
+        );
+      }
+      bySpecifier.set(resolution.specifier, resolution);
     }
   }
-  const target = readKey(effectiveMap.imports, specifier);
-  if (target !== undefined) {
-    return { targetUrl: target, hasIntegrity: hasOwn(effectiveMap.integrity, target) };
+  return byConsumer;
+}
+
+function requireConsumerResolution(
+  resolutionsByConsumer: ReadonlyMap<string, ReadonlyMap<string, EffectiveConsumerResolution>>,
+  consumerRemote: string,
+  specifier: string,
+): EffectiveConsumerResolution {
+  const resolution = resolutionsByConsumer.get(consumerRemote)?.get(specifier);
+  if (resolution === undefined) {
+    throw new Error(
+      `Missing effective resolution for consumer ${consumerRemote} and specifier ${specifier}`,
+    );
   }
-  return null;
+  return resolution;
+}
+
+function projectEffectiveResolution(
+  resolution: EffectiveConsumerResolution,
+): EffectiveResolution | null {
+  switch (resolution.status) {
+    case 'mapped':
+      return { targetUrl: resolution.targetUrl, hasIntegrity: resolution.hasIntegrity };
+    case 'unmapped':
+    case 'blocked':
+    case 'unknown':
+      return null;
+  }
 }
 
 function requireRecord<IdKind extends string, RecordType>(
@@ -116,12 +148,4 @@ function requireRecord<IdKind extends string, RecordType>(
 
 function compareText(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;
-}
-
-function readKey(record: Record<string, string>, key: string): string | undefined {
-  return hasOwn(record, key) ? record[key] : undefined;
-}
-
-function hasOwn(record: Record<string, unknown>, key: string): boolean {
-  return Object.prototype.hasOwnProperty.call(record, key);
 }

@@ -135,7 +135,7 @@ The following terms are reserved:
 | **Participant declaration**       | Exactly one `version.remotes[]` element. It records one build's requirements, recorded files, links to derived candidates, and optional pooling metadata.                                                   |
 | **Entrypoint candidate**          | One shared-participant- or private-registration-owned `(specifier, file, candidateUrl)` derived from `entries`, or from `file` plus the registry package name. It is not selected merely because it exists. |
 | **Resolution claim**              | One shared declaration or private registration claiming one specifier for one consumer. Several claims can point at the same effective binding.                                                             |
-| **Effective consumer resolution** | The one deterministically computed import-map binding that would apply to `(normalized importer, specifier)`. It is the atomic resolution fact, not evidence that a runtime lookup or import occurred.      |
+| **Effective consumer resolution** | The one deterministically computed import-map binding at `(normalized consumer scope root, specifier)`. It is not evidence of a concrete importer module, runtime lookup, or import.                        |
 | **Resolved dependency copy**      | A conservative source-oriented grouping of mapped resolution claims that have the same evidenced emitted copy. It is derived, never read directly from a registry action.                                   |
 | **Registry serving slot**         | The first participant of a non-`scope` version registration, preserved as the source-defined basis slot. It is not a universal per-specifier provider.                                                      |
 | **Explicit anchor**               | A participant's optional `servedBy`. It is per consumer and member; absence means only that no explicit anchor was recorded. The effective map can still differ or lack a registry explanation.             |
@@ -240,9 +240,9 @@ changes.
 - `EntrypointCandidateId` MUST include its shared declaration or private
   registration ID plus `(specifier, recordedFile, ordinalWithinEqualKey)`.
 - `EffectiveConsumerResolutionId` MUST include
-  `(normalizedImporterOrMissingKey, specifier)`. A missing-importer key is a
-  deterministic per-consumer sentinel because absent importer evidence cannot
-  prove that two consumer contexts share one binding.
+  `(normalizedConsumerScopeOrMissingKey, specifier)`. A missing-consumer-scope
+  key is a deterministic per-consumer sentinel because absent scope evidence
+  cannot prove that two consumer contexts share one binding.
 - `DeclarationResolutionClaimId` MUST include its resolution subject and
   candidate ID. `SourceComparisonId` MUST include that claim ID and the closed
   comparison kind from §6.4.
@@ -317,22 +317,43 @@ distinguishable from ordinary private packages until the product decision in
 
 Every shared declaration candidate and every private registration candidate
 creates a resolution **claim**. The effective binding itself is computed once
-per normalized importer and specifier. Multiple claims MAY point to that one
-binding; they MUST NOT duplicate it or inflate copy counts.
+per normalized consumer scope context and specifier. Multiple claims MAY point
+to that one binding; they MUST NOT duplicate it or inflate copy counts.
 
-An `EffectiveConsumerResolution` is the binding the captured effective import
-map says would apply if that importer requested that specifier. It is not an
-observation that the browser performed a lookup or that code imported the
-specifier.
+An `EffectiveConsumerResolution` is the import-map-binding outcome at one
+consumer's normalized remote scope root for one specifier. It records whether
+the captured effective map supplies, lacks, blocks, or cannot reliably evaluate
+that binding. The scope root is a lookup context, not an observed importer
+module URL: modules under more specific map scopes or outside the remote scope
+can resolve differently. The record does not model the browser's complete URL
+fallback, nor observe that the browser performed a lookup or that code imported
+the specifier.
 
 ```ts
+type EffectiveConsumerResolutionBlockedReason =
+  | 'invalid-target-url'
+  | 'prefix-target-missing-trailing-slash'
+  | 'invalid-prefix-expansion'
+  | 'prefix-target-backtracking';
+
+interface EffectiveMapEntryProvenance {
+  source: 'effective-import-map';
+  scope: string | null;
+  specifier: string;
+  target: string;
+  match: 'exact' | 'prefix';
+}
+
 interface EffectiveConsumerResolution {
   id: EffectiveConsumerResolutionId;
+  scopeContextKey: string;
   consumerRemotes: string[];
   specifier: string;
-  importerUrl: string | null;
-  status: 'mapped' | 'unmapped' | 'unknown';
+  consumerScopeUrl: string | null;
+  status: 'mapped' | 'unmapped' | 'blocked' | 'unknown';
   effectiveTargetUrl: string | null;
+  mapEntry: EffectiveMapEntryProvenance | null;
+  blockedReason: EffectiveConsumerResolutionBlockedReason | null;
   claimIds: DeclarationResolutionClaimId[];
   sourceMatch: SourceMatch;
   provenance: EvidenceRef[];
@@ -349,7 +370,13 @@ interface DeclarationResolutionClaim {
   ownCandidateUrl: string | null;
   ownCandidateSelected: boolean | null;
   mappingState:
-    'own-selected' | 'not-selected' | 'fallback' | 'self-filled' | 'anchored' | 'unknown';
+    | 'own-selected'
+    | 'not-selected'
+    | 'fallback'
+    | 'self-filled'
+    | 'anchored'
+    | 'blocked'
+    | 'unknown';
   sourceAction: ExternalAction | 'private' | 'unknown';
   copyId: ResolvedDependencyCopyId | null;
   comparisonIds: SourceComparisonId[];
@@ -360,26 +387,34 @@ interface DeclarationResolutionClaim {
 ### 5.1 Effective-map lookup
 
 The existing document-map merge remains the effective-map ground truth. For
-each unique `(normalized importer, specifier)`:
+each unique `(normalized consumer scope context, specifier)`:
 
-1. obtain its resolved remote scope as the importer URL;
+1. obtain the normalized remote scope URL and pass it to the
+   standards-compatible lookup as the importer URL at that scope root;
 2. enumerate every matching import-map scope from longest to shortest;
-3. at each matching scope, attempt standards-compatible exact and valid
-   prefix-key matching; the first successful match wins;
-4. only after all matching scopes miss, attempt top-level imports;
-5. normalize the selected target against the page URL.
+3. at each matching scope, select the most specific standards-compatible exact
+   or valid prefix-key entry;
+4. normalize that entry's target against the page URL: return `mapped` on
+   success or `blocked` with the entry and a closed reason on failure; do not
+   fall through after an entry matched;
+5. only after every matching scope misses, perform the same lookup and target
+   normalization against top-level imports.
 
-If the import-map channel or importer URL is unavailable, the result is
-`unknown`. If both are available but the lookup has no binding, it is
-`unmapped`. An empty shim map in native mode is not an empty effective map.
-Several remote names with the same normalized importer URL share one effective
-resolution record. Their declaration claims and consumer relations remain
-separate, and `consumerRemotes` is their sorted, de-duplicated context list.
+If the import-map channel or consumer scope URL is unavailable, the result is
+`unknown`. If both are available but no applicable import-map binding exists,
+the result is `unmapped`. If an applicable entry terminally prevents a valid
+target, the result is `blocked` and retains that entry's provenance and reason.
+An empty shim map in native mode is not an empty effective map. A URL-like
+specifier without an applicable map entry remains `unmapped` in this model,
+even though the browser can resolve the URL without an import-map binding.
+Several remote names with the same normalized consumer scope URL share one
+effective resolution record. Their declaration claims and consumer relations
+remain separate, and `consumerRemotes` is their sorted, de-duplicated context
+list.
 
-The current corpus proves exact-key lookups only. Before implementation, a
-seeded prefix-key vector MUST pin the standards-compatible rule. Until that
-rule exists, any snapshot whose result depends on a prefix key must be marked
-`unknown` with a diagnostic rather than resolved by exact-key lookup alone.
+The current corpus proves exact-key lookups only. Seeded resolver vectors pin
+the standards-compatible prefix rule, including longest-prefix selection,
+suffix expansion, terminal invalid targets, and path backtracking.
 
 ### 5.2 Mapping-state rules
 
@@ -402,8 +437,10 @@ raw action. The following precedence is normative:
 5. **`not-selected`** — an own candidate exists, the target is different, and
    neither a verified anchor, self-fill, nor fallback explains it. This is the
    non-selected `mfe2` claim in `co-declared-share`.
-6. **`unknown`** — the map, importer, candidate, source match, or explanation is
-   absent or ambiguous.
+6. **`blocked`** — a matching import-map entry terminally prevents a valid
+   target. No candidate is selected and no source or copy is attributed.
+7. **`unknown`** — the map, consumer scope, candidate, source match, or
+   explanation is absent or ambiguous.
 
 The independent `ownCandidateSelected` field MUST remain available because an
 explicit self-anchor or own skip self-fill may also be an exact own-candidate
@@ -418,8 +455,8 @@ Actions stay attached to version registrations:
   registration, one participant, one emitted origin, or one target for every
   entrypoint. A fallback is emitted only when the effective target has a
   uniquely evidenced source.
-- `scope` means the source maps each declaration's own files under its importer
-  scope instead of publishing an ordinary shared union. That original
+- `scope` means the source maps each declaration's own files under its remote
+  URL scope instead of publishing an ordinary shared union. That original
   registration context is isolated, but the same committed build may later be
   selected as an explicit pool anchor. The snapshot still proves mapping rather
   than download. “Strict incompatibility” MUST NOT be presented as the only
@@ -472,7 +509,8 @@ is not a universal semantic of every registration:
   when no override exists), then fills uncovered entries from each consumer's
   own declaration;
 - global `skip` does not publish an ordinary union: after shared winners it
-  fills only still-unmapped specifiers in declaration order;
+  fills only genuinely `unmapped` specifiers in declaration order; a `blocked`
+  binding is terminal and never self-filled;
 - the dynamic global path can use only the narrower already committed surface
   (`basis.ts:76-83`, `update-cache.ts:114-129`).
 
@@ -561,8 +599,8 @@ index used to observe a target source:
 - named-scope `skip`: the selected override union, followed by the consumer's
   own uncovered candidates; when no override exists, use the source-defined
   skip-registration path;
-- global `skip`: only declarations that could have filled that still-unmapped
-  specifier in source order;
+- global `skip`: only declarations that could have filled that genuinely
+  `unmapped` specifier in source order; blocked specifiers are excluded;
 - explicit anchor: declarations for `servedBy` within the same share scope,
   across external records, matching the specifier;
 - `scope` or private registration: that claim's own candidate.
@@ -752,8 +790,8 @@ pretending that a remote name or claim row alone identifies an artifact.
 - A `skip` declaration can contribute an own selected entrypoint through
   self-fill and can supply later skip consumers even when another entrypoint
   falls back.
-- One effective importer/specifier binding can carry several registry claims
-  when external records overlap; it is still one effective resolution.
+- One effective scope-context/specifier binding can carry several registry
+  claims when external records overlap; it is still one effective resolution.
 
 Views MUST name four different measures:
 
@@ -774,8 +812,8 @@ version conflict.
 Share-scope identity is mandatory for registry records, claims, and resolution
 contexts. The same package in two share scopes remains two independent
 registry/claim contexts even when both contexts converge on one normalized
-importer/specifier binding or one source-oriented copy. A share-scope name MUST
-NOT be normalized as an import-map scope URL.
+scope-context/specifier binding or one source-oriented copy. A share-scope name
+MUST NOT be normalized as an import-map scope URL.
 
 Named share scopes are commonly expressed through per-consumer import-map
 scopes rather than root imports. A `share` action therefore MUST NOT imply a
@@ -945,7 +983,7 @@ The following current derivations require replacement or narrowing:
 - chunk joins from every participant row with a bundle.
 
 New derivations MUST accept the canonical model, remain pure and deterministic,
-and return explicit `mapped | unmapped | unknown`,
+and return explicit `mapped | unmapped | blocked | unknown`,
 `match | mismatch | unknown`, and attribution outcomes. They MUST NOT inspect
 the raw snapshot independently.
 
@@ -961,7 +999,7 @@ the raw snapshot independently.
   not call every non-`skip` declaration a provider.
 - **Import Map** remains the raw mapping pivot and annotates entries with exact
   candidate matches, all registry claims, observed target owner, copy IDs, and
-  provenance without duplicating one importer/specifier binding.
+  provenance without duplicating one scope-context/specifier binding.
 - **Diagnostics** compares registry slots, explicit anchors, exact candidates,
   and observed targets. Ambiguity or missing evidence is a result, not an
   exception to hide.
@@ -1004,8 +1042,8 @@ builders, or shared resolver helpers; a test-only extractor may only select
 stable fields from the actual output.
 
 - `co-declared-share`: one registration, two declarations, two distinct
-  importer resolutions, one effective target, one resolved copy, and one exact
-  selected source;
+  consumer-scope resolutions, one effective target, one resolved copy, and one
+  exact selected source;
 - `clean-skip`: two registrations and two distinct declared tags but one
   resolved copy;
 - `strict-split`: three registrations, two declared tags, and two resolved
@@ -1027,7 +1065,8 @@ A cheap parameterized contract then runs over every corpus-derived fixture
   counts;
 - each `(scope, specifier)` entry of the merged effective import map appears
   exactly once with its recorded target;
-- each `(normalized importer, specifier)` has at most one effective resolution;
+- each `(normalized consumer scope context, specifier)` has at most one
+  effective resolution;
 - an unselected candidate is never exposed as a selected copy.
 
 Focused DOM tests only need to prove that the new semantic fields are actually
@@ -1073,13 +1112,19 @@ interface ConsumerCopyRelation {
 interface CompletenessCounts {
   unknownResolutions: number;
   unmappedResolutions: number;
+  blockedResolutions: number;
   ambiguousSourceClaims: number;
 }
 
 interface IncompleteConsumerResolution {
   consumerRemote: RemoteId;
   effectiveResolutionId: EffectiveConsumerResolutionId;
-  issues: ('unknown-resolution' | 'unmapped-resolution' | 'ambiguous-source')[];
+  issues: (
+    | 'unknown-resolution'
+    | 'unmapped-resolution'
+    | 'blocked-resolution'
+    | 'ambiguous-source'
+  )[];
   ambiguousClaimIds: DeclarationResolutionClaimId[];
 }
 
@@ -1119,8 +1164,9 @@ specifier paths MUST NOT collapse through “first edge wins” or one boolean
 fallback flag.
 
 Copy nodes arise only from mapped claims in `ResolvedDependencyCopy[]`;
-candidates are never promoted to copies. If unknown or unmapped results are not
-drawn, the graph MUST surface the projection's total completeness counts. A
+candidates are never promoted to copies. If unknown, unmapped, or blocked
+results are not drawn, the graph MUST surface the projection's total
+completeness counts. A
 consumer-filtered view MUST derive its completeness warning from
 `completeness.byConsumer` and `consumerIssues` for the selected remotes; it MUST
 NOT reuse the global count or inspect raw evidence. Because one effective
@@ -1155,7 +1201,7 @@ implemented and stable against the witness matrix.
 | RM-CL-15 | Chunk evidence follows the selected entrypoint source and is path-dependent.                    | `source-confirmed-unobserved`: orchestrator `generate-import-map.ts:156-208,406-466`; missing losing-bundle witness                                                        | Attribute through source/copy claims; self-fill without chunk registration remains `source-only`.                                                                                    |
 | RM-CL-16 | The graph is a downstream projection, not a second resolver.                                    | `normative-decision`; challenger conflict: external `DEPENDENCY-GRAPH.md:248-342,361-475,847-879`                                                                          | One raw-free canonical projection drives all views and any future graph.                                                                                                             |
 | RM-CL-17 | `dirty` belongs to the `(shareScope, package)` wrapper, not a version row.                      | `capture-confirmed`: `captures/co-declared-share/20260813T151211Z.json:58-63`; `source-confirmed`: orchestrator `external.contract.ts:11-14`                               | Preserve `SharedExternalRecord`; do not denormalize `dirty` as raw version evidence.                                                                                                 |
-| RM-CL-18 | Several declaration claims can converge on one importer/specifier binding.                      | `source-confirmed-unobserved`: orchestrator `generate-import-map.ts:419-440,493-505`                                                                                       | Derive one `EffectiveConsumerResolution` with many claim IDs; never count claims as bindings.                                                                                        |
+| RM-CL-18 | Several declaration claims can converge on one scope-context/specifier binding.                 | `source-confirmed-unobserved`: orchestrator `generate-import-map.ts:419-440,493-505`                                                                                       | Derive one `EffectiveConsumerResolution` with many claim IDs; never count claims as bindings.                                                                                        |
 | RM-CL-19 | Import-map lookup continues through less-specific matching scopes after a key miss.             | existing lookup: `projects/devtools-ui/src/app/shared/store/ingest.ts:188-215`; seeded standard vector required                                                            | Search matching scopes longest-to-shortest before top-level imports; never jump directly from the most-specific miss to top level.                                                   |
 
 ## 13. Witness matrix and open evidence
@@ -1171,7 +1217,7 @@ implemented and stable against the witness matrix.
 | Losing bundle-bearing declaration            | Missing real capture        | A non-selected declaration cannot donate chunk attribution.                                                                                                                                                           | Blocks claiming chunk rewrite fully capture-backed.                         |
 | Same-registration multi-entrypoint providers | Source/E2E only             | A `share` registration's primary and secondary specifiers can come from different declaration-backed copies; action-specific `scope`/`skip` paths remain distinct, and equal tags in other registrations do not join. | Attempt real capture; otherwise retain source-backed seeded test.           |
 | Skip self-fill                               | Source/corpus mechanism gap | One skip source can fill an entrypoint for itself and later skip consumers; cold-global versus named/dynamic chunk evidence differs.                                                                                  | Seeded positive/negative characterization required; real capture preferred. |
-| Overlapping specifier claims                 | Source only                 | Several external/declaration claims converge on one effective importer/specifier binding with deterministic map precedence.                                                                                           | Seeded test required before Store migration.                                |
+| Overlapping specifier claims                 | Source only                 | Several external/declaration claims converge on one effective scope-context/specifier binding with deterministic map precedence.                                                                                      | Seeded test required before Store migration.                                |
 | Import-map prefix key                        | Uncharacterized             | Standards-compatible prefix matching differs from exact-key-only lookup.                                                                                                                                              | Seeded standard vector blocks claiming complete resolution.                 |
 | Nested import-map scope fallback             | Source/seed only            | A key miss in the longest matching scope continues through less-specific matching scopes before top-level imports.                                                                                                    | Seeded positive and negative vector required before Store migration.        |
 | Generation matrix                            | Existing captures + seed    | v4 `file`, v4.5 single/multi-key `entries`, and mixed-generation normalization produce stable candidates without downstream branching.                                                                                | Required migration regression.                                              |
@@ -1214,12 +1260,12 @@ and a real orchestrator run over the mutation may generate a different map.
 ### RM-AC-03 — Candidate and selected-copy cardinality
 
 The same witness produces two distinct candidate URLs, two declaration claims,
-two effective consumer resolutions because its normalized remote importers are
-distinct, one effective target URL, one exact source declaration, and one
+two effective consumer resolutions because its normalized consumer scope URLs
+are distinct, one effective target URL, one exact source declaration, and one
 resolved dependency copy. A seeded alias case in which two remote names share
-one normalized importer produces one effective resolution with two consumer
-contexts. `mfe2` remains a declaration and candidate but is not rendered as an
-own selected copy.
+one normalized consumer scope URL produces one effective resolution with two
+consumer contexts. `mfe2` remains a declaration and candidate but is not
+rendered as an own selected copy.
 
 ### RM-AC-04 — True multi-version distinction
 
@@ -1234,13 +1280,13 @@ fragments alone do not constitute a version conflict.
 
 `clean-skip`, `strict-split`, named scopes, same-registration multi-entrypoint
 coverage, pool anchors, skip self-fill, and private registrations resolve per
-importer/specifier. Multiple overlapping claims share one effective binding.
-`scoped` yields two private registrations, claims, effective resolutions, and
-copies without a fabricated share scope/action. A missing importer scope yields
-`unknown`, never an implicit page-base lookup. Prefix-key behavior is either
-standards-pinned by a seed or explicitly `unknown`. A nested-scope seed proves
-that a miss in the most-specific matching scope can resolve in a less-specific
-matching scope before top-level imports.
+consumer-scope/specifier. Multiple overlapping claims share one effective
+binding. `scoped` yields two private registrations, claims, effective
+resolutions, and copies without a fabricated share scope/action. A missing
+consumer scope yields `unknown`, never an implicit page-base lookup. Prefix-key
+behavior is either standards-pinned by a seed or explicitly `unknown`. A
+nested-scope seed proves that a miss in the most-specific matching scope can
+resolve in a less-specific matching scope before top-level imports.
 
 ### RM-AC-06 — Qualified source claims
 

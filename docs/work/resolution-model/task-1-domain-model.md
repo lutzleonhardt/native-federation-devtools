@@ -4,67 +4,10 @@ This model keeps captured declarations intact before any resolution policy is ap
 
 ## Domain relationships
 
-```mermaid
-classDiagram
-  direction LR
-
-  class SharedExternalRecord {
-    +string shareScope
-    +string packageName
-    +boolean dirty
-  }
-  class VersionRegistration {
-    +string tag
-    +string rawAction
-    +ActionKind action
-    +boolean host
-  }
-  class ParticipantDeclaration {
-    +string participant
-    +string requiredVersion
-    +boolean strictVersion
-    +string? pool
-    +string? servedBy
-  }
-  class PrivateRegistration {
-    +string ownerRemote
-    +string packageName
-    +string tag
-  }
-  class EntrypointCandidate {
-    +string specifier
-    +string file
-    +string? candidateUrl
-    +CandidateUrlState candidateUrlState
-  }
-  class EvidenceRef {
-    +"snapshot" source
-    +PathSegment[] path
-    +EvidenceState state
-  }
-  class Diagnostic {
-    +string code
-    +string message
-    +unknown? rawValue
-  }
-  class SharedParticipantRow {
-    <<compatibility projection>>
-  }
-
-  SharedExternalRecord "1" *-- "0..*" VersionRegistration : versions, ordered
-  VersionRegistration "1" *-- "0..*" ParticipantDeclaration : participants, ordered
-  ParticipantDeclaration "1" *-- "0..*" EntrypointCandidate : entrypoints, ordered
-  PrivateRegistration "1" *-- "0..*" EntrypointCandidate : entrypoints, ordered
-
-  SharedExternalRecord --> "1" EvidenceRef : source
-  VersionRegistration --> "1" EvidenceRef : source
-  ParticipantDeclaration --> "1" EvidenceRef : source
-  PrivateRegistration --> "1" EvidenceRef : source
-  EntrypointCandidate --> "1" EvidenceRef : source
-  Diagnostic "0..*" --> "1..*" EvidenceRef : cites
-
-  ParticipantDeclaration "1" ..> "0..1" SharedParticipantRow : one-way projection with ancestor context
-```
+The complete, current relationship diagrams are maintained together in the
+root [Resolution data model](../../../README.md#resolution-data-model). This
+task document remains the detailed catalog of the registry-evidence subset and
+its invariants; it does not define a separate model view.
 
 Containment collections are ordered sequences, not mathematical sets. Their `0..*` cardinality deliberately permits empty, repeated, and otherwise unusual captured shapes without normalization loss.
 

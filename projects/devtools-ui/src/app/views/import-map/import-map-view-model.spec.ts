@@ -268,7 +268,10 @@ describe('buildImportMapVm — attribution annotations (T12-AC-02)', () => {
 
   it('SEEDED: an alias specifier on the same target carries no package link', () => {
     const vm = seededVm({
-      remotes: { [NF_HOST]: seededRemote('./') },
+      remotes: {
+        [NF_HOST]: seededRemote('./'),
+        'mfe-a': seededRemote('./mfe-a/'),
+      },
       sharedExternals: {
         __GLOBAL__: {
           lib: {

@@ -1,6 +1,7 @@
 import type { GenerationV1 } from 'devtools-bridge';
 
 declare const registryEvidenceIdKind: unique symbol;
+declare const effectiveConsumerResolutionIdKind: unique symbol;
 
 /** A deterministic, structurally encoded identity for one canonical evidence record. */
 export type RegistryEvidenceId<Kind extends string> = string & {
@@ -13,6 +14,11 @@ export type ParticipantDeclarationId = RegistryEvidenceId<'participant-declarati
 export type PrivateRegistrationId = RegistryEvidenceId<'private-registration'>;
 export type EntrypointCandidateId = RegistryEvidenceId<'entrypoint-candidate'>;
 export type RegistryEvidenceDiagnosticId = RegistryEvidenceId<'diagnostic'>;
+
+/** Stable identity of one unique `(scope-context-or-missing-key, specifier)` lookup. */
+export type EffectiveConsumerResolutionId = string & {
+  readonly [effectiveConsumerResolutionIdKind]: 'effective-consumer-resolution';
+};
 
 export type EvidencePathSegment = string | number;
 
@@ -160,3 +166,76 @@ export interface CanonicalRegistryEvidence {
   entrypointCandidates: EntrypointCandidate[];
   diagnostics: RegistryEvidenceDiagnostic[];
 }
+
+/** The exact merged import-map entry that decided a mapped or blocked lookup. */
+export interface EffectiveMapEntryProvenance {
+  source: 'effective-import-map';
+  /** Null identifies the top-level `imports` map. */
+  scope: string | null;
+  specifier: string;
+  target: string;
+  match: 'exact' | 'prefix';
+}
+
+interface EffectiveConsumerResolutionBase {
+  id: EffectiveConsumerResolutionId;
+  /** Structural key for either a normalized consumer scope URL or one missing-scope sentinel. */
+  scopeContextKey: string;
+  /**
+   * Normalized remote scope URL used as the resolution context at the
+   * consumer's scope root. This is not an observed importer-module URL;
+   * modules under more specific scopes or outside this scope can resolve
+   * differently.
+   */
+  consumerScopeUrl: string | null;
+  specifier: string;
+  /** Sorted, de-duplicated consumer aliases represented by this lookup. */
+  consumerRemotes: string[];
+}
+
+export interface MappedEffectiveConsumerResolution extends EffectiveConsumerResolutionBase {
+  status: 'mapped';
+  targetUrl: string;
+  hasIntegrity: boolean;
+  mapEntry: EffectiveMapEntryProvenance;
+}
+
+/** Known map and consumer scope context, but no applicable import-map binding. */
+export interface UnmappedEffectiveConsumerResolution extends EffectiveConsumerResolutionBase {
+  status: 'unmapped';
+  targetUrl: null;
+  mapEntry: null;
+}
+
+/** Why the matching import-map entry cannot produce a valid target. */
+export type EffectiveConsumerResolutionBlockedReason =
+  | 'invalid-target-url'
+  | 'prefix-target-missing-trailing-slash'
+  | 'invalid-prefix-expansion'
+  | 'prefix-target-backtracking';
+
+/** A matching entry terminally prevents a valid target and any further fallback. */
+export interface BlockedEffectiveConsumerResolution extends EffectiveConsumerResolutionBase {
+  status: 'blocked';
+  targetUrl: null;
+  mapEntry: EffectiveMapEntryProvenance;
+  blockedReason: EffectiveConsumerResolutionBlockedReason;
+}
+
+export type EffectiveConsumerResolutionUnknownReason =
+  'missing-map-channel' | 'missing-consumer-scope';
+
+/** The import-map binding cannot be evaluated because required evidence is missing. */
+export interface UnknownEffectiveConsumerResolution extends EffectiveConsumerResolutionBase {
+  status: 'unknown';
+  targetUrl: null;
+  mapEntry: null;
+  unknownReasons: EffectiveConsumerResolutionUnknownReason[];
+}
+
+/** One canonical lookup outcome per unique consumer scope context (or sentinel) and specifier. */
+export type EffectiveConsumerResolution =
+  | MappedEffectiveConsumerResolution
+  | UnmappedEffectiveConsumerResolution
+  | BlockedEffectiveConsumerResolution
+  | UnknownEffectiveConsumerResolution;
