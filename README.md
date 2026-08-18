@@ -57,9 +57,10 @@ API only.
 One captured `SnapshotV1` becomes one `FederationModel`. The Store keeps the
 captured registry declarations, remote scope URLs, and import-map evidence
 separate until `resolveEffectiveConsumerBindings` joins them. The diagrams show
-the resolution-relevant part of that model in three focused views maintained
+the resolution-relevant part of that model in four focused views maintained
 next to each other: captured registry evidence first, effective resolution
-second, declaration-claim explanations third.
+second, declaration-claim explanations third, materialized resolved copies
+fourth.
 
 | Layer                  | Snapshot source                                         | Store representation            |
 | ---------------------- | ------------------------------------------------------- | ------------------------------- |
@@ -68,6 +69,8 @@ second, declaration-claim explanations third.
 | Import-map rules       | `importMaps.documentMaps`                               | `EffectiveMap`                  |
 | Canonical result       | The three inputs above plus `channels.domImportMaps`    | `EffectiveConsumerResolution[]` |
 | Claim explanations     | Registry evidence plus canonical results                | `ResolutionClaimsDerivation`    |
+| Resolved copies        | Mapped canonical results plus their claims              | `ResolvedDependencyCopy[]`      |
+| Package measures       | Registry evidence, claims, and resolved copies          | `PackageResolutionMeasures[]`   |
 | Existing view contract | Registry evidence plus canonical results                | `SharedParticipantRow[]`        |
 
 ### 1. Registry evidence
@@ -295,6 +298,7 @@ classDiagram
     +boolean? ownCandidateSelected
     +ClaimMappingState mappingState
     +SourceAction sourceAction
+    +ResolvedDependencyCopyId? copyId
   }
   class ObservedTargetProvider {
     +string? remote
@@ -352,6 +356,122 @@ collapse the sides — only `slot-vs-observed`, `anchor-vs-observed`, and
 and a mismatch is data, not permission to overwrite either fact. No mapping
 state or attribution outcome proves that anything was requested, downloaded,
 or executed.
+
+### 4. Resolved dependency copies
+
+This view answers _which materially resolved instances of a dependency exist,
+and who uses them?_ Only `mapped` effective resolutions and their claims
+materialize a `ResolvedDependencyCopy` — candidates and participant membership
+alone never do. Sharing success reads as convergence: many registrations,
+declarations, and claims may end in one copy, and one registration can yield
+zero, one, or several copies. The layer is a pure derivation
+(`materializeResolvedCopies`, `aggregatePackageMeasures`) over the views
+above; a later task publishes its output on the store model.
+
+```mermaid
+classDiagram
+  direction LR
+
+  class VersionRegistration {
+    +string tag
+    +RegistrationAction action
+  }
+  class ParticipantDeclaration {
+    +string participant
+  }
+  class PrivateRegistration {
+    +string ownerRemote
+  }
+  class EffectiveConsumerResolution {
+    +ResolutionStatus status
+    +string? targetUrl
+  }
+  class SourceMatch {
+    +SourceMatchOutcome outcome
+    +ResolutionSubject? source
+  }
+  class DeclarationResolutionClaim {
+    +ClaimMappingState mappingState
+    +ResolvedDependencyCopyId? copyId
+  }
+  class ResolvedDependencyCopy {
+    +ResolvedCopySource source
+    +string? sourcePackage
+    +string? resolvedTag
+    +ResolvedCopySourceDisposition sourceDisposition
+    +SourceAction[] sourceActions
+    +ResolvedCopyEffectiveRole[] effectiveRoles
+    +Map entrypoints
+    +SourceRegistrationRef[] sourceRegistrationRefs
+  }
+  class ResolvedCopyResolutionContext {
+    +ResolutionDomain resolutionDomain
+    +string consumerRegistryPackage
+    +ClaimId[] claimIds
+  }
+  class PackageResolutionMeasures {
+    +string packageName
+    +int registrationCount
+    +int distinctDeclaredTagCount
+    +int resolvedCopyCount
+    +int distinctResolvedTagCount
+    +int unknownResolvedTagCopyCount
+  }
+
+  SourceMatch ..> ResolvedDependencyCopy : unique exact subject keys the copy
+  ParticipantDeclaration "1" --> "0..1" ResolvedDependencyCopy : source-record identity
+  PrivateRegistration "1" --> "0..1" ResolvedDependencyCopy : source-record identity
+  VersionRegistration ..> ResolvedDependencyCopy : resolvedTag and sourceDisposition
+  EffectiveConsumerResolution "1..*" --> "0..1" ResolvedDependencyCopy : mapped members only
+  ResolvedDependencyCopy "1" *-- "0..*" ResolvedCopyResolutionContext : consumer uses
+  ResolvedCopyResolutionContext "1" --> "1..*" DeclarationResolutionClaim : claim IDs
+  DeclarationResolutionClaim "0..*" --> "0..1" ResolvedDependencyCopy : copyId
+  ResolvedDependencyCopy "0..*" ..> "1" PackageResolutionMeasures : outcome counts
+```
+
+Copy identity is hierarchical and source-oriented. A resolution whose target
+uniquely and exactly matches one source's candidate takes that source-record
+identity — the shared `ParticipantDeclaration` or `PrivateRegistration` —
+grouping every mapped entrypoint of that source across all consumer contexts.
+Anything else groups by the normalized target URL — the copy ID namespaces
+that identity by snapshot — without claiming a source. Consumer share scope,
+package, and claim IDs live only in `resolutionContexts`; an exact source copy
+is never duplicated or relabeled because another consumer context or external
+record points at one of its URLs. `resolvedTag` comes only from the uniquely
+matched source registration — a URL-identified copy keeps it `null` rather
+than borrowing a consumer's declared tag. After materialization,
+`attachCopyIds` completes the claim contract: a mapped claim references its
+copy through `copyId`, and unmapped, blocked, and unknown claims carry an
+explicit `null`.
+
+Source provenance and effective behavior stay separate axes:
+
+- `sourceDisposition` says where the copy's bytes come from —
+  `share-registration`, `skip-registration`, or `scope-registration` from the
+  unique source's raw action, `private-registration`, `unknown-registration`,
+  `ambiguous-source`, or `target-only` when nothing but the URL is evidenced.
+  Consumer actions never change it.
+- `effectiveRoles` (sorted, coexisting) derive from the attached claim and
+  action evidence, never from consumer counts: a selected `share` surface
+  contributes `ordinary-shared` even with a single consumer, a `scope`
+  declaration's own mapping contributes `isolated-own`, a selected skip
+  self-fill source `self-filled-source`, selection through an explicit
+  `servedBy` `anchor-source`, a private registration's own mapping
+  `private-own`, and a copy no closed rule explains stays `unclassified`.
+- `sourceActions` lists evidenced source actions only, never every consumer
+  claim's action.
+
+`PackageResolutionMeasures` keeps four package-level counts deliberately
+separate — shared version registrations and their distinct declared tags
+describe intent (private registrations are separate canonical records and
+never fold into these), resolved copies and distinct resolved tags (plus
+unknown-tag copies) describe outcome — with declaration and claim counts as
+supporting measures. The aggregation has
+no conflict field: equal-tag copy multiplicity alone is never reported as a
+version conflict; that judgement needs distinct registration and tag evidence
+and belongs to diagnostics. As everywhere in this model, a copy proves what
+the captured map resolves, not that the browser requested, downloaded, or
+executed the target.
 
 ## Install (development build)
 

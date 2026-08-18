@@ -29,9 +29,11 @@ import type {
   ScopedPackageRow,
 } from './federation-model';
 import { detectMapMode, mergeDocumentMaps, resolveUrl } from './merge-document-maps';
-import { normalizeRegistryEvidence } from './resolution/normalize-registry-evidence';
-import { resolveEffectiveConsumerBindings } from './resolution/resolve-effective-consumer-bindings';
-import { projectSharedRows } from './resolution/shared-rows-compat';
+import {
+  normalizeRegistryEvidence,
+  projectSharedRows,
+  resolveEffectiveConsumerBindings,
+} from './resolution';
 
 /** Stable specifier marker of chunk pseudo-externals in both generations. */
 const CHUNK_PSEUDO_PACKAGE_PREFIX = '@nf-internal/';
@@ -53,18 +55,14 @@ export function ingestSnapshot(snapshot: SnapshotV1): FederationModel {
     isHost: name === NF_HOST,
     scopeUrl: remote.scopeUrl,
     resolvedScopeUrl: resolveUrl(remote.scopeUrl, pageUrl),
-    exposes: remote.exposes.map(
-      (expose): ExposeJoin => ({
-        moduleName: expose.moduleName,
-        file: expose.file,
-        mapTarget: joinExpose(name, expose.moduleName, effectiveMap),
-      }),
-    ),
+    exposes: remote.exposes.map((expose): ExposeJoin => ({
+      moduleName: expose.moduleName,
+      file: expose.file,
+      mapTarget: joinExpose(name, expose.moduleName, effectiveMap),
+    })),
     integrity: remote.integrity,
   }));
-  const scopeUrlByRemote = new Map(
-    remotes.map((remote) => [remote.name, remote.resolvedScopeUrl]),
-  );
+  const scopeUrlByRemote = new Map(remotes.map((remote) => [remote.name, remote.resolvedScopeUrl]));
   const registryEvidence = normalizeRegistryEvidence(snapshot);
   const effectiveConsumerResolutions = resolveEffectiveConsumerBindings(registryEvidence, {
     pageUrl,

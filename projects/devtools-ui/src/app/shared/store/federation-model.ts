@@ -10,7 +10,7 @@
  */
 import type { ChannelsV1, GenerationV1, ServedFileV1, SnapshotGenerationV1 } from 'devtools-bridge';
 
-import type { CanonicalRegistryEvidence, EffectiveConsumerResolution } from './resolution/model';
+import type { CanonicalRegistryEvidence, EffectiveConsumerResolution } from './resolution';
 
 /** Which loader owns the page's import maps, from observed tag types. */
 export type MapMode = 'native' | 'shim' | 'none';
