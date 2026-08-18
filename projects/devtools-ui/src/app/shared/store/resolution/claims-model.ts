@@ -1,3 +1,4 @@
+import type { ResolvedDependencyCopyId } from './copies-model';
 import type {
   EffectiveConsumerResolutionId,
   EntrypointCandidateId,
@@ -65,6 +66,12 @@ export interface DeclarationResolutionClaim {
   ownCandidateSelected: boolean | null;
   mappingState: ClaimMappingState;
   sourceAction: RegistrationAction | 'private';
+  /**
+   * The resolved copy this claim's mapped binding materializes; explicit null
+   * for unmapped, blocked, and unknown bindings. `deriveResolutionClaims`
+   * emits null; `attachCopyIds` completes the field after materialization.
+   */
+  copyId: ResolvedDependencyCopyId | null;
   comparisonIds: SourceComparisonId[];
   provenance: EvidenceProvenance;
 }

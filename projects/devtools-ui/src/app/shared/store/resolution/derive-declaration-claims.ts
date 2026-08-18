@@ -198,6 +198,7 @@ export function deriveResolutionClaims(
         ownCandidateSelected: ownCandidateSelected(candidate.candidateUrl, targetUrl),
         mappingState,
         sourceAction: registration.action,
+        copyId: null,
         comparisonIds: comparisons.map((comparison) => comparison.id),
         provenance: {
           evidence: [
@@ -256,6 +257,7 @@ export function deriveResolutionClaims(
         ownCandidateSelected: ownCandidateSelected(candidate.candidateUrl, targetUrl),
         mappingState: privateMappingState(resolution, candidate.candidateUrl),
         sourceAction: 'private',
+        copyId: null,
         comparisonIds: [comparison.id],
         provenance: {
           evidence: [...privateRegistration.provenance.evidence, ...candidate.provenance.evidence],
