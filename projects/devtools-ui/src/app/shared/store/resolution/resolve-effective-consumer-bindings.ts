@@ -49,10 +49,12 @@ interface NormalizedSpecifier {
 }
 
 /**
- * Evaluates the import-map binding for every canonical shared-consumer claim
+ * Evaluates the import-map binding for every canonical resolution claim
  * exactly once per normalized consumer scope context (or per-consumer missing
- * sentinel) and package specifier. Browser URL fallback is deliberately
- * outside this model.
+ * sentinel) and specifier. The resolution domain is the closed claims set:
+ * each shared declaration's registry package plus every candidate specifier,
+ * and every private registration's candidate specifiers. Browser URL fallback
+ * is deliberately outside this model.
  */
 export function resolveEffectiveConsumerBindings(
   evidence: CanonicalRegistryEvidence,
@@ -62,7 +64,28 @@ export function resolveEffectiveConsumerBindings(
   const versionsById = new Map(
     evidence.versionRegistrations.map((registration) => [registration.id, registration]),
   );
+  const candidatesById = new Map(
+    evidence.entrypointCandidates.map((candidate) => [candidate.id, candidate]),
+  );
   const groups = new Map<string, ConsumerClaimGroup>();
+
+  const registerClaim = (consumerRemote: string, specifier: string): void => {
+    const consumerScopeUrl = context.consumerScopeUrlByRemote.get(consumerRemote) ?? null;
+    const scopeContextKey = scopeContextKeyFor(consumerRemote, consumerScopeUrl);
+    const groupKey = encodeRegistryIdTuple([scopeContextKey, specifier]);
+    const existing = groups.get(groupKey);
+
+    if (existing === undefined) {
+      groups.set(groupKey, {
+        scopeContextKey,
+        consumerScopeUrl,
+        specifier,
+        consumerRemotes: new Set([consumerRemote]),
+      });
+    } else {
+      existing.consumerRemotes.add(consumerRemote);
+    }
+  };
 
   for (const declaration of evidence.participantDeclarations) {
     const registration = requireRecord(
@@ -71,20 +94,17 @@ export function resolveEffectiveConsumerBindings(
       'version registration',
     );
     const shared = requireRecord(sharedById, registration.sharedExternalId, 'shared external');
-    const consumerScopeUrl = context.consumerScopeUrlByRemote.get(declaration.participant) ?? null;
-    const scopeContextKey = scopeContextKeyFor(declaration.participant, consumerScopeUrl);
-    const groupKey = encodeRegistryIdTuple([scopeContextKey, shared.packageName]);
-    const existing = groups.get(groupKey);
+    registerClaim(declaration.participant, shared.packageName);
+    for (const candidateId of declaration.entrypointCandidateIds) {
+      const candidate = requireRecord(candidatesById, candidateId, 'entrypoint candidate');
+      registerClaim(declaration.participant, candidate.specifier);
+    }
+  }
 
-    if (existing === undefined) {
-      groups.set(groupKey, {
-        scopeContextKey,
-        consumerScopeUrl,
-        specifier: shared.packageName,
-        consumerRemotes: new Set([declaration.participant]),
-      });
-    } else {
-      existing.consumerRemotes.add(declaration.participant);
+  for (const privateRegistration of evidence.privateRegistrations) {
+    for (const candidateId of privateRegistration.entrypointCandidateIds) {
+      const candidate = requireRecord(candidatesById, candidateId, 'entrypoint candidate');
+      registerClaim(privateRegistration.ownerRemote, candidate.specifier);
     }
   }
 

@@ -561,3 +561,87 @@ describe('resolveEffectiveConsumerBindings — hostile keys (T3-AC-05)', () => {
     expect(new Set(missingResults.map((result) => result.id)).size).toBe(2);
   });
 });
+
+describe('resolveEffectiveConsumerBindings — claims-set domain (T4-AC-02/T4-AC-03)', () => {
+  it('resolves every candidate specifier and private registration in its consumer context', () => {
+    const evidence = evidenceFor([{ consumerRemote: 'consumer', specifier: 'pkg' }]);
+    const declaration = evidence.participantDeclarations[0];
+    const secondaryId = registryEvidenceId(
+      'entrypoint-candidate',
+      [declaration.id, 'pkg/sub', 'sub.js'],
+      0,
+    );
+    evidence.entrypointCandidates.push({
+      id: secondaryId,
+      sourceRecord: { kind: 'participant-entry', participantDeclarationId: declaration.id },
+      ordinal: 0,
+      ownerRemote: 'consumer',
+      specifier: 'pkg/sub',
+      file: 'sub.js',
+      candidateUrl: 'https://seeded.example/app/consumer/sub.js',
+      candidateUrlState: 'available',
+      provenance: EMPTY_PROVENANCE,
+    });
+    declaration.entrypointCandidateIds.push(secondaryId);
+
+    const privateId = registryEvidenceId('private-registration', ['owner', 'private-pkg'], 0);
+    const privateCandidateId = registryEvidenceId(
+      'entrypoint-candidate',
+      [privateId, 'private-pkg', 'p.js'],
+      0,
+    );
+    evidence.privateRegistrations.push({
+      id: privateId,
+      ordinal: 0,
+      ownerRemote: 'owner',
+      packageName: 'private-pkg',
+      tag: '1.0.0',
+      bundle: null,
+      entrypointCandidateIds: [privateCandidateId],
+      provenance: EMPTY_PROVENANCE,
+    });
+    evidence.entrypointCandidates.push({
+      id: privateCandidateId,
+      sourceRecord: { kind: 'private-entry', privateRegistrationId: privateId },
+      ordinal: 0,
+      ownerRemote: 'owner',
+      specifier: 'private-pkg',
+      file: 'p.js',
+      candidateUrl: 'https://seeded.example/app/owner/p.js',
+      candidateUrlState: 'available',
+      provenance: EMPTY_PROVENANCE,
+    });
+
+    const results = resolveEffectiveConsumerBindings(evidence, {
+      pageUrl: PAGE_URL,
+      mapAvailable: true,
+      effectiveMap: seededMap({
+        imports: [
+          ['pkg', './pkg.js'],
+          ['pkg/sub', './sub.js'],
+          ['private-pkg', './p.js'],
+        ],
+      }),
+      consumerScopeUrlByRemote: new Map([
+        ['consumer', 'https://seeded.example/app/consumer/'],
+        ['owner', 'https://seeded.example/app/owner/'],
+      ]),
+    });
+
+    const byKey = (consumerRemote: string, specifier: string) =>
+      results.find(
+        (result) =>
+          result.consumerRemotes.includes(consumerRemote) && result.specifier === specifier,
+      );
+    expect(results).toHaveLength(3);
+    expect(byKey('consumer', 'pkg')).toMatchObject({ status: 'mapped' });
+    expect(byKey('consumer', 'pkg/sub')).toMatchObject({
+      status: 'mapped',
+      targetUrl: 'https://seeded.example/app/sub.js',
+    });
+    expect(byKey('owner', 'private-pkg')).toMatchObject({
+      status: 'mapped',
+      targetUrl: 'https://seeded.example/app/p.js',
+    });
+  });
+});
