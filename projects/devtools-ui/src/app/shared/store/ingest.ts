@@ -30,6 +30,7 @@ import type {
 } from './federation-model';
 import { detectMapMode, mergeDocumentMaps, resolveUrl } from './merge-document-maps';
 import { normalizeRegistryEvidence } from './resolution/normalize-registry-evidence';
+import { resolveEffectiveConsumerBindings } from './resolution/resolve-effective-consumer-bindings';
 import { projectSharedRows } from './resolution/shared-rows-compat';
 
 /** Stable specifier marker of chunk pseudo-externals in both generations. */
@@ -65,10 +66,15 @@ export function ingestSnapshot(snapshot: SnapshotV1): FederationModel {
     remotes.map((remote) => [remote.name, remote.resolvedScopeUrl]),
   );
   const registryEvidence = normalizeRegistryEvidence(snapshot);
-  const sharedRows = projectSharedRows(registryEvidence, {
+  const effectiveConsumerResolutions = resolveEffectiveConsumerBindings(registryEvidence, {
     pageUrl,
-    scopeUrlByRemote,
+    // Document tags are the merge ground truth; the shim map is only a cross-check.
+    mapAvailable: snapshot.channels.domImportMaps.state === 'available',
     effectiveMap,
+    consumerScopeUrlByRemote: scopeUrlByRemote,
+  });
+  const sharedRows = projectSharedRows(registryEvidence, {
+    effectiveConsumerResolutions,
   });
 
   const scopedPackages: ScopedPackageRow[] = [];
@@ -147,6 +153,7 @@ export function ingestSnapshot(snapshot: SnapshotV1): FederationModel {
     mapMode,
     effectiveMap,
     registryEvidence,
+    effectiveConsumerResolutions,
     sharedRows,
     scopedPackages,
     remotes,

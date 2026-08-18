@@ -52,6 +52,200 @@ silently omitted.
 content scripts. The panel talks to the inspected page through the DevTools
 API only.
 
+## Resolution data model
+
+One captured `SnapshotV1` becomes one `FederationModel`. The Store keeps the
+captured registry declarations, remote scope URLs, and import-map evidence
+separate until `resolveEffectiveConsumerBindings` joins them. The diagrams show
+the resolution-relevant part of that model in two focused views maintained next
+to each other: captured registry evidence first, effective resolution second.
+
+| Layer                  | Snapshot source                                         | Store representation            |
+| ---------------------- | ------------------------------------------------------- | ------------------------------- |
+| Registry declarations  | `runtime.sharedExternals` and `runtime.scopedExternals` | `CanonicalRegistryEvidence`     |
+| Consumer scope context | `runtime.remotes`                                       | `RemoteEntity[]`                |
+| Import-map rules       | `importMaps.documentMaps`                               | `EffectiveMap`                  |
+| Canonical result       | The three inputs above plus `channels.domImportMaps`    | `EffectiveConsumerResolution[]` |
+| Existing view contract | Registry evidence plus canonical results                | `SharedParticipantRow[]`        |
+
+### 1. Registry evidence
+
+This view answers _who declared what?_ `CanonicalRegistryEvidence` stores the
+records as flat, ordered arrays. The arrows show their logical parent/child ID
+relationships; no winner or effective file is selected here.
+
+```mermaid
+classDiagram
+  direction LR
+
+  class FederationModel {
+    +CanonicalRegistryEvidence registryEvidence
+  }
+  class CanonicalRegistryEvidence {
+    +SharedExternalRecord[] sharedExternals
+    +VersionRegistration[] versionRegistrations
+    +ParticipantDeclaration[] participantDeclarations
+    +PrivateRegistration[] privateRegistrations
+    +EntrypointCandidate[] entrypointCandidates
+    +RegistryEvidenceDiagnostic[] diagnostics
+  }
+  class SharedExternalRecord {
+    +string shareScope
+    +string packageName
+    +boolean dirty
+  }
+  class VersionRegistration {
+    +string tag
+    +string rawAction
+    +RegistrationAction action
+    +boolean host
+  }
+  class ParticipantDeclaration {
+    +string participant
+    +string requiredVersion
+    +boolean strictVersion
+    +string? pool
+    +string? servedBy
+  }
+  class PrivateRegistration {
+    +string ownerRemote
+    +string packageName
+    +string tag
+  }
+  class EntrypointCandidate {
+    +string specifier
+    +string file
+    +string? candidateUrl
+    +CandidateUrlState candidateUrlState
+  }
+  class RegistryEvidenceDiagnostic {
+    +string code
+    +string message
+    +string rawValue
+  }
+  class EvidenceRef {
+    +"snapshot" source
+    +PathSegment[] path
+    +EvidenceState state
+  }
+
+  FederationModel "1" *-- "1" CanonicalRegistryEvidence : registryEvidence
+  CanonicalRegistryEvidence "1" *-- "0..*" SharedExternalRecord : shared roots
+  CanonicalRegistryEvidence "1" *-- "0..*" PrivateRegistration : private roots
+  CanonicalRegistryEvidence "1" *-- "0..*" RegistryEvidenceDiagnostic : diagnostics
+
+  SharedExternalRecord "1" --> "0..*" VersionRegistration : ordered IDs
+  VersionRegistration "1" --> "0..*" ParticipantDeclaration : ordered IDs
+  ParticipantDeclaration "1" --> "0..*" EntrypointCandidate : ordered IDs
+  PrivateRegistration "1" --> "0..*" EntrypointCandidate : ordered IDs
+
+  CanonicalRegistryEvidence ..> EvidenceRef : every record cites snapshot paths
+```
+
+### 2. Effective consumer resolution
+
+This view answers _where would that declaration resolve at the consumer's
+scope root?_ The package name, consumer, normalized remote scope URL, and
+effective import map meet only in `EffectiveConsumerResolution`. The scope URL
+is a lookup context, not an observed importer-module URL.
+
+```mermaid
+classDiagram
+  direction LR
+
+  class FederationModel {
+    +CanonicalRegistryEvidence registryEvidence
+    +EffectiveMap effectiveMap
+    +RemoteEntity[] remotes
+    +EffectiveConsumerResolution[] effectiveConsumerResolutions
+    +SharedParticipantRow[] sharedRows
+  }
+  class CanonicalRegistryEvidence {
+    +SharedExternalRecord[] sharedExternals
+    +ParticipantDeclaration[] participantDeclarations
+  }
+  class SharedExternalRecord {
+    +string packageName
+  }
+  class ParticipantDeclaration {
+    +string participant
+  }
+  class RemoteEntity {
+    +string name
+    +string resolvedScopeUrl
+  }
+  class EffectiveMap {
+    +Map imports
+    +Map scopes
+    +Map integrity
+  }
+  class EffectiveConsumerResolution {
+    +string id
+    +string scopeContextKey
+    +string? consumerScopeUrl
+    +string specifier
+    +ResolutionStatus status
+    +string[] consumerRemotes
+    +string? targetUrl
+    +boolean? hasIntegrity
+    +EffectiveMapEntryProvenance? mapEntry
+    +BlockedReason? blockedReason
+    +UnknownReason[]? unknownReasons
+  }
+  class EffectiveMapEntryProvenance {
+    +string? scope
+    +string specifier
+    +string target
+    +MatchKind match
+  }
+  class SharedParticipantRow {
+    <<compatibility projection>>
+    +string participant
+    +string packageName
+    +EffectiveResolution? resolution
+  }
+
+  FederationModel "1" *-- "1" CanonicalRegistryEvidence : registryEvidence
+  FederationModel "1" *-- "0..*" EffectiveConsumerResolution : canonical results
+  CanonicalRegistryEvidence "1" --> "0..*" SharedExternalRecord : package claims
+  CanonicalRegistryEvidence "1" --> "0..*" ParticipantDeclaration : consumer claims
+
+  SharedExternalRecord ..> EffectiveConsumerResolution : package specifier
+  ParticipantDeclaration "1..*" --> "1" EffectiveConsumerResolution : consumer claim
+  RemoteEntity --> EffectiveConsumerResolution : consumer scope context
+  EffectiveMap --> EffectiveConsumerResolution : scoped exact / prefix lookup
+  EffectiveConsumerResolution "1" o-- "0..1" EffectiveMapEntryProvenance : mapped or blocked
+
+  ParticipantDeclaration "1" ..> "1" SharedParticipantRow : registry context
+  EffectiveConsumerResolution "1" ..> "1..*" SharedParticipantRow : resolution projection
+```
+
+Read the two views from evidence to result: `normalizeRegistryEvidence` retains
+every captured declaration and its snapshot paths; `mergeDocumentMaps`
+normalizes the document tags into one `EffectiveMap`; remote scope URLs provide
+the scope-root lookup context. The resolver groups claims with the same scope
+context and package and records exactly one honest outcome. Modules under a
+more specific map scope or outside the remote scope can resolve differently:
+
+- `mapped` means a matching, valid import-map binding supplies the normalized
+  target.
+- `unmapped` means the map and consumer scope context are known, but no
+  applicable import-map binding exists.
+- `blocked` means a matching binding exists, but its target is unusable (for
+  example an invalid URL or prefix expansion); the entry and exact reason are
+  retained.
+- `unknown` means the map channel or consumer scope evidence is missing.
+
+`SharedParticipantRow` is only a one-way projection for existing views. It is
+never input to canonical resolution. A mapped result describes what the
+captured map would bind — not the browser's complete URL fallback behavior, nor
+what it requested, downloaded, or executed. In particular, a URL-like
+specifier without a matching map entry remains `unmapped` here even though the
+browser can resolve that URL without an import-map binding. The
+registry-specific rationale and invariants remain in the
+[Task 1 design notes](docs/work/resolution-model/task-1-domain-model.md), without
+another copy of the diagrams.
+
 ## Install (development build)
 
 ```bash

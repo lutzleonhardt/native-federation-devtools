@@ -169,20 +169,21 @@ T2-AC-02 through T2-AC-05 were retired by the approved task split. Their IDs are
 
 ### Instructions
 
-- Add one pure import-map resolver that computes exactly one `EffectiveConsumerResolution` for each unique `(normalizedImporterOrMissingKey, specifier)`.
-- Resolve a consumer remote's importer from its normalized `scopeUrl`. Missing importer evidence uses a deterministic per-consumer sentinel and produces `unknown`; it must never fall back to `capture.pageUrl`.
+- Add one pure import-map resolver that computes exactly one `EffectiveConsumerResolution` for each unique `(normalizedConsumerScopeOrMissingKey, specifier)`.
+- Use a consumer remote's normalized `scopeUrl` as the lookup context at its scope root. It is not an observed importer-module URL, and modules under more specific map scopes or outside the remote scope can resolve differently. Missing consumer-scope evidence uses a deterministic per-consumer sentinel and produces `unknown`; it must never fall back to `capture.pageUrl`.
 - Search every matching import-map scope from longest to shortest. At each scope, apply standards-compatible exact and valid trailing-slash prefix matching; continue to a less-specific matching scope after a key miss, then consult top-level `imports`.
-- Distinguish `mapped`, `unmapped`, and `unknown`: missing map channel or importer is unknown; an available effective map with no matching binding is unmapped. A native-mode empty shim map is not evidence that the effective map is empty.
-- Normalize the chosen target against the page URL and retain the exact contributing scope/import entry as provenance. Keep `mergeDocumentMaps` responsible only for merging; this resolver becomes the sole lookup owner.
-- Remote aliases with the same normalized importer share one effective resolution. Preserve their separate claims later and expose a sorted, de-duplicated `consumerRemotes` context list.
+- Distinguish `mapped`, `unmapped`, `blocked`, and `unknown`: a missing map channel or consumer scope is unknown; a known map and consumer scope context with no applicable import-map binding is unmapped; a matching entry that cannot produce a valid target is terminally blocked. A native-mode empty shim map is not evidence that the effective map is empty.
+- Normalize the chosen target against the page URL. Mapped results retain the contributing entry; blocked results retain the matching entry plus a closed failure reason and never fall through to a less-specific rule. Keep `mergeDocumentMaps` responsible only for merging; this resolver becomes the sole lookup owner.
+- Model only import-map bindings, not the browser's complete module-resolution fallback: a URL-like specifier with no applicable map entry remains `unmapped` even though the browser can resolve that URL without the map.
+- Remote aliases with the same normalized consumer scope URL share one effective resolution. Preserve their separate claims later and expose a sorted, de-duplicated `consumerRemotes` context list.
 - Keep the implementation as small pure functions for scope enumeration, exact/prefix match, target normalization, and resolution assembly. Do not derive actions, sources, copies, or runtime-use statements here.
 
 ### Acceptance
 
-- **T3-AC-01** — Seed vectors pin exact-over-prefix precedence, valid prefix suffixing, non-prefix keys, longest matching scope, less-specific scope fallback, and top-level fallback. **Contributes:** XC-01, XC-02.
-- **T3-AC-02** — A missing map channel or importer produces `unknown`; an available map with no binding produces `unmapped`; no case silently uses the page as an importer. **Contributes:** XC-02, XC-06.
-- **T3-AC-03** — Remote aliases with one normalized importer and specifier produce one effective resolution with both consumer contexts, while distinct importers in `co-declared-share` produce two resolutions. **Contributes:** XC-03.
-- **T3-AC-04** — Each mapped result retains the selected map-entry provenance, and byte-identical maps and registry inputs produce deterministic IDs and ordering. **Contributes:** XC-02.
+- **T3-AC-01** — Seed vectors pin exact-over-prefix precedence, valid prefix suffixing, non-prefix keys, longest matching scope, less-specific scope fallback, top-level fallback, and terminal blocking without fallback for unusable exact/prefix entries. **Contributes:** XC-01, XC-02.
+- **T3-AC-02** — A missing map channel or consumer scope produces `unknown`; a known map/scope context with no applicable import-map binding produces `unmapped`, including a URL-like specifier whose browser fallback is outside this model; a matching unusable entry produces `blocked` with its reason; no case silently uses the page as a scope context. **Contributes:** XC-02, XC-06.
+- **T3-AC-03** — Remote aliases with one normalized consumer scope URL and specifier produce one effective resolution with both consumer contexts, while distinct consumer scope URLs in `co-declared-share` produce two resolutions. **Contributes:** XC-03.
+- **T3-AC-04** — Each mapped or blocked result retains the deciding map-entry provenance, and byte-identical maps and registry inputs produce deterministic IDs and ordering. **Contributes:** XC-02.
 - **T3-AC-05** — Prototype-like and delimiter-bearing scope/specifier keys are resolved without collisions or inherited-property lookup. **Contributes:** XC-02, XC-04.
 
 ### Key Locations
@@ -210,18 +211,18 @@ T2-AC-02 through T2-AC-05 were retired by the approved task split. Their IDs are
   - `share`: first eligible non-anchored declaration per specifier within the selected registration;
   - `scope`: each declaration's own candidates;
   - named-scope `skip`: selected override union, then each consumer's own uncovered candidates;
-  - global `skip`: only still-unmapped specifiers in declaration order;
+  - global `skip`: only genuinely `unmapped` specifiers in declaration order; `blocked` is terminal and must never self-fill;
   - dynamic global paths: only the already committed surface;
   - equal tags in separate registrations never form one union.
 - Attribute mapped targets using one ladder: unique exact candidate, ambiguous exact candidates, unique most-specific non-host scope, equally specific ambiguous scopes, host fallback, then unattributable. Exact equality always outranks scope ownership, and none of these outcomes proves delivery.
 - Treat `servedBy` as an optional per-declaration anchor. Search anchor candidates by anchor remote plus specifier across external records within the share scope. Absence is not self-service; `servedBy === consumerRemote` is a valid self-anchor.
-- Compute claim mapping state with this precedence: `anchored`, `self-filled`, `own-selected`, `fallback`, `not-selected`, `unknown`. Retain `ownCandidateSelected` independently.
+- Compute claim mapping state with this precedence: `anchored`, `self-filled`, `own-selected`, `fallback`, `not-selected`, `blocked`, `unknown`. Retain `ownCandidateSelected` independently. A blocked effective resolution has no target/source attribution and must never be reinterpreted as unmapped.
 - Compare rather than collapse registry slot vs observed source, anchor vs observed source, and own candidate vs effective target. Canonical left/right orientation and IDs are fixed; mismatch and ambiguity remain data.
 - Use direct canonical seeds for source-supported but uncaptured anchor, same-registration multi-entrypoint, skip self-fill, overlapping claim, and dynamic-path branches. Mark them `source-confirmed-unobserved` whenever no real capture supplies that evidence.
 
 ### Acceptance
 
-- **T4-AC-01** — Tests pin the complete mapping-state precedence, including own self-anchor, own skip self-fill, shared fallback, non-selected candidate, and unknown evidence. **Contributes:** XC-01, XC-02.
+- **T4-AC-01** — Tests pin the complete mapping-state precedence, including own self-anchor, own skip self-fill, shared fallback, non-selected candidate, terminal blocked binding, and unknown evidence. **Contributes:** XC-01, XC-02.
 - **T4-AC-02** — Same-registration multi-entrypoint `share`, per-declaration `scope`, named/global `skip`, and dynamic committed-surface seeds follow distinct action paths; equal tags in different registrations never union. **Contributes:** XC-01, XC-03.
 - **T4-AC-03** — Several overlapping declaration claims may converge on one effective binding without duplicating it, and `clean-skip`, `strict-split`, `strict-scope`, and private cases retain their raw action/domain evidence. **Contributes:** XC-03.
 - **T4-AC-04** — Unique exact match, exact ambiguity, unique scope attribution, equal-prefix ambiguity, host fallback, and unattributable target are distinct deterministic outcomes; exact match wins over scope attribution. **Contributes:** XC-02.
@@ -294,7 +295,7 @@ T2-AC-02 through T2-AC-05 were retired by the approved task split. Their IDs are
 - Prevent a non-selected bundle-bearing declaration from donating chunks. Allow a same-registration secondary declaration to contribute its bundle only when it supplies the selected entrypoint.
 - For an identifiable `servedBy` mapping use the anchor source. For skip self-fill, distinguish `mapped-source` from `source-only` and `ambiguous`; named/dynamic paths without registered bundle evidence stay qualified rather than reported as missing or downloaded.
 - Keep equal filenames from different emitter remotes distinct. Keep `mapping-or-exposed` and legacy `@nf-internal/chunk-*` raw provenance separate from dependency chunk attribution.
-- Build a raw-free projection containing remotes, copies with every source disposition/effective role, consumer-copy relations, bundle/chunk claims, and completeness totals/by-consumer/issues for unknown, unmapped, and ambiguous results.
+- Build a raw-free projection containing remotes, copies with every source disposition/effective role, consumer-copy relations, bundle/chunk claims, and completeness totals/by-consumer/issues for unknown, unmapped, blocked, and ambiguous results.
 - A consumer-copy relation is keyed by `(consumerRemote, copyId)` and retains all supporting resolution IDs, claim IDs, and mapping states. Completeness aggregation must de-duplicate shared effective resolutions.
 - Do not implement graph nodes, edges, layout, filtering UI, or a second resolver. The projection must not expose `SnapshotV1`, raw repositories, or compatibility `sharedRows`.
 
@@ -304,7 +305,7 @@ T2-AC-02 through T2-AC-05 were retired by the approved task split. Their IDs are
 - **T6-AC-02** — Cold-global skip self-fill with registered chunks is `mapped-source`; named/dynamic self-fill without registered bundle evidence is `source-only` or otherwise qualified. **Contributes:** XC-02, XC-06.
 - **T6-AC-03** — Equal chunk filenames from different emitters produce distinct IDs and never merge. **Contributes:** XC-02.
 - **T6-AC-04** — The canonical projection contains no raw snapshot/cache types or `sharedRows`, yet retains all copy roles, source dispositions, relation IDs, claims, chunks, and provenance needed by consumers. **Contributes:** XC-01, XC-05.
-- **T6-AC-05** — Global and filtered completeness counts correctly expose unknown, unmapped, and ambiguous results without double-counting a binding shared by several consumer contexts. **Contributes:** XC-03, XC-05.
+- **T6-AC-05** — Global and filtered completeness counts correctly expose unknown, unmapped, blocked, and ambiguous results without double-counting a binding shared by several consumer contexts. **Contributes:** XC-03, XC-05.
 - **T6-AC-06** — No graph UI/model or runtime delivery/cost inference is introduced. **Contributes:** XC-05, XC-06.
 
 ### Key Locations
@@ -410,7 +411,7 @@ T2-AC-02 through T2-AC-05 were retired by the approved task split. Their IDs are
 
 - **T9-AC-01** — `co-declared-share` shows one global package map row with its recorded target, two consumer claims/resolutions, one copy, and exactly one selected exact source. **Contributes:** XC-03, XC-06.
 - **T9-AC-02** — Every effective `(scope, specifier)` entry in every fixture appears once and only once with its recorded target; multiple claims annotate rather than duplicate it. **Contributes:** XC-03.
-- **T9-AC-03** — Alias consumers, private paths, exact/ambiguous source matches, scope ownership, host fallback, CDN/unattributable targets, unknowns, and unmapped claims remain distinguishable. **Contributes:** XC-02, XC-06.
+- **T9-AC-03** — Alias consumers, private paths, exact/ambiguous source matches, scope ownership, host fallback, CDN/unattributable targets, unknown, unmapped, and blocked claims remain distinguishable; a blocked claim annotates its matching map row. **Contributes:** XC-02, XC-06.
 - **T9-AC-04** — Exact candidate attribution outranks scope attribution, and prefix/nested-scope outcomes come from the canonical resolver rather than view-local lookup. **Contributes:** XC-01.
 - **T9-AC-05** — VM and DOM tests prove canonical annotations while preserving order, integrity display, selection, and current layout. **Contributes:** XC-01.
 
@@ -436,7 +437,7 @@ T2-AC-02 through T2-AC-05 were retired by the approved task split. Their IDs are
 
 - Replace the Diagnostics placeholder with a minimal view that only formats canonical resolution status, `SourceComparison`, attribution ambiguity, and existing canonical diagnostics.
 - Present registry slot vs observed source, anchor vs observed source, and candidate vs target as separate `match | mismatch | unknown` comparisons. Do not collapse disagreement or infer an “actual provider”.
-- Surface mapped, unmapped, unknown, ambiguous, and partial-evidence states. Missing registry or map layers must not suppress inspectable evidence.
+- Surface mapped, unmapped, blocked, unknown, ambiguous, and partial-evidence states. Missing registry or map layers must not suppress inspectable evidence.
 - Link facts to Packages, Remotes, and Import Map through the same canonical IDs and established routing/cross-link conventions.
 - Keep classification and severity in canonical data; the view may format but must not reconstruct federation rules. Do not port the deferred V2 lint catalogue or introduce a rule engine.
 - Use small pure VM builders and honest-state components. Keep resolution-honest vocabulary and add only the layout needed to make the canonical comparisons inspectable.
@@ -444,7 +445,7 @@ T2-AC-02 through T2-AC-05 were retired by the approved task split. Their IDs are
 ### Acceptance
 
 - **T10-AC-01** — `co-declared-share` renders the exact selected source and the non-selected claim without false provider, version, conflict, or delivery warnings. **Contributes:** XC-03, XC-06.
-- **T10-AC-02** — Seeded exact ambiguity, scope ambiguity, source mismatch, unknown importer, unmapped resolution, host fallback, and unattributable target remain distinct. **Contributes:** XC-02.
+- **T10-AC-02** — Seeded exact ambiguity, scope ambiguity, source mismatch, missing consumer scope, unmapped resolution, blocked binding, host fallback, and unattributable target remain distinct. **Contributes:** XC-02.
 - **T10-AC-03** — Missing registry or import-map evidence renders a partial/unknown state rather than hiding the record or throwing. **Contributes:** XC-02, XC-06.
 - **T10-AC-04** — Diagnostics cross-links use the same IDs exposed by the other views, and no view-local domain rule changes a comparison or severity. **Contributes:** XC-01, XC-03.
 - **T10-AC-05** — Route/app tests render the real Diagnostics component instead of `ViewPlaceholder`, with focused VM and DOM coverage. **Contributes:** XC-01.
@@ -470,13 +471,13 @@ T2-AC-02 through T2-AC-05 were retired by the approved task split. Their IDs are
 
 - Remove the remaining temporary `SharedParticipantRow`/`sharedRows` compatibility projection and obsolete winner, arrow, provider, conflict, count, and participant-based chunk derivations after all four views use the canonical Store façade. This final deletion should be mechanical because each view task removes its own legacy dependencies.
 - Add a compact hand-authored witness oracle whose expected values are independent of production resolver/builders and cite the validated evidence:
-  - `co-declared-share`: 1 registration, 2 declarations, 2 importer resolutions, 1 target, 1 copy, 1 exact selected source;
+  - `co-declared-share`: 1 registration, 2 declarations, 2 consumer-scope resolutions, 1 target, 1 copy, 1 exact selected source;
   - `clean-skip`: 2 registrations, 2 declared tags, 1 copy;
   - `strict-split`: 3 registrations, 2 declared tags, 2 copies;
   - `strict-scope`: named scope independent, empty `__GLOBAL__` creates no package;
   - `scoped`: 2 private registration → resolution → copy paths;
   - `frankenstein-live`: 3 remotes, 22 global and 7 scoped import-map entries.
-- Run a parameterized semantic contract over every corpus-derived fixture (currently 12): every displayed ID exists canonically; views agree on IDs/counts/targets/relations; declarations do not inflate registrations/resolutions/copies; each map row appears once; each importer/specifier has at most one binding; unselected candidates never become selected copies.
+- Run a parameterized semantic contract over every corpus-derived fixture (currently 12): every displayed ID exists canonically; views agree on IDs/counts/targets/relations; declarations do not inflate registrations/resolutions/copies; each map row appears once; each scope-context/specifier has at most one binding; unselected candidates never become selected copies.
 - Add focused DOM coverage proving the semantic fields render for `co-declared-share`, private `scoped`, and the dense live fixture. Expected values must not be generated from canonical production code or full VM snapshots.
 - Add an architecture guard with a seeded failing case. View models may consume only canonical types/the Store façade and must not import `SnapshotV1`, raw repositories, ingest, resolution algorithms, `SharedParticipantRow`, or `sharedRows`. Guard the affected resolution UI against forbidden delivery/cost vocabulary.
 - Keep the existing capture validator and fixture-drift chain green. Run the full UI, bridge, collector, guard, extension-build, and panel-bundle checks.

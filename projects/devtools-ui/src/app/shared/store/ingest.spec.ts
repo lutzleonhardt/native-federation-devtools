@@ -13,12 +13,15 @@
  *    input order; absent and `{}` repository keys are equivalent.
  *  - T6-AC-06: SEEDED mixed-generation participants and the
  *    neither-spelling row; the `/./` expose join (corpus-backed).
+ *  - T3-AC-02/03: consumer-scoped import-map outcomes, including missing
+ *    consumer scopes and alias de-duplication.
  */
 import { FIXTURES } from 'devtools-bridge';
 import type {
   DocumentImportMapV1,
   ExternalRemoteV1,
   ExternalScopesV1,
+  RemoteV1,
   SnapshotV1,
 } from 'devtools-bridge';
 
@@ -29,6 +32,7 @@ const SEEDED_PAGE = 'https://seeded.example/app/';
 function seededSnapshot(overrides: {
   sharedExternals?: ExternalScopesV1;
   documentMaps?: DocumentImportMapV1[];
+  remotes?: Record<string, RemoteV1>;
 }): SnapshotV1 {
   return {
     schemaVersion: 1,
@@ -44,7 +48,7 @@ function seededSnapshot(overrides: {
       importShim: { state: 'unavailable', reason: 'seeded: no shim' },
     },
     runtime: {
-      remotes: {},
+      remotes: overrides.remotes ?? {},
       scopedExternals: {},
       sharedExternals: overrides.sharedExternals ?? {},
       sharedChunks: {},
@@ -85,6 +89,277 @@ describe('ingestSnapshot — canonical registry evidence (T1-AC-06)', () => {
       evidence.participantDeclarations.map((declaration) => declaration.id),
     );
     expect(model.sharedRows.map((row) => row.participant)).toEqual(['mfe1', 'mfe2']);
+  });
+});
+
+describe('ingestSnapshot — effective consumer resolutions (T3-AC-02, T3-AC-03)', () => {
+  it('resolves a co-declared share independently for the two consumer scope contexts', () => {
+    const resolutions = ingestSnapshot(FIXTURES['co-declared-share']).effectiveConsumerResolutions;
+    const mapped = resolutions.filter((resolution) => resolution.status === 'mapped');
+
+    expect(resolutions).toHaveLength(2);
+    expect(mapped).toHaveLength(2);
+    expect(new Set(mapped.map((resolution) => resolution.id)).size).toBe(2);
+    expect(new Set(mapped.map((resolution) => resolution.scopeContextKey)).size).toBe(2);
+    expect(
+      mapped.map((resolution) => ({
+        consumerScopeUrl: resolution.consumerScopeUrl,
+        specifier: resolution.specifier,
+        consumerRemotes: resolution.consumerRemotes,
+        targetUrl: resolution.targetUrl,
+        hasIntegrity: resolution.hasIntegrity,
+        mapEntry: resolution.mapEntry,
+      })),
+    ).toEqual([
+      {
+        consumerScopeUrl: 'http://localhost:4300/mfe1/',
+        specifier: '@nf-lab/conflict-lib',
+        consumerRemotes: ['mfe1'],
+        targetUrl: 'http://localhost:4300/mfe1/_nf_lab_conflict_lib.JF7uEdSVsN.js',
+        hasIntegrity: false,
+        mapEntry: {
+          source: 'effective-import-map',
+          scope: null,
+          specifier: '@nf-lab/conflict-lib',
+          target: 'http://localhost:4300/mfe1/_nf_lab_conflict_lib.JF7uEdSVsN.js',
+          match: 'exact',
+        },
+      },
+      {
+        consumerScopeUrl: 'http://localhost:4300/mfe2/',
+        specifier: '@nf-lab/conflict-lib',
+        consumerRemotes: ['mfe2'],
+        targetUrl: 'http://localhost:4300/mfe1/_nf_lab_conflict_lib.JF7uEdSVsN.js',
+        hasIntegrity: false,
+        mapEntry: {
+          source: 'effective-import-map',
+          scope: null,
+          specifier: '@nf-lab/conflict-lib',
+          target: 'http://localhost:4300/mfe1/_nf_lab_conflict_lib.JF7uEdSVsN.js',
+          match: 'exact',
+        },
+      },
+    ]);
+  });
+
+  it('SEEDED: collapses remote aliases with the same normalized consumer scope URL', () => {
+    const snapshot = seededSnapshot({
+      remotes: {
+        'z-alias': { scopeUrl: './consumer/', exposes: [], integrity: {} },
+        'a-alias': {
+          scopeUrl: 'https://seeded.example/app/consumer/',
+          exposes: [],
+          integrity: {},
+        },
+      },
+      sharedExternals: {
+        __GLOBAL__: {
+          pkg: {
+            dirty: false,
+            versions: [
+              {
+                tag: '1.0.0',
+                action: 'share',
+                host: false,
+                remotes: [seededParticipant('z-alias'), seededParticipant('a-alias')],
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    const resolutions = ingestSnapshot(snapshot).effectiveConsumerResolutions;
+
+    expect(resolutions).toHaveLength(1);
+    expect(resolutions[0].id.length).toBeGreaterThan(0);
+    expect(resolutions[0].scopeContextKey.length).toBeGreaterThan(0);
+    expect(resolutions[0]).toEqual({
+      id: resolutions[0].id,
+      scopeContextKey: resolutions[0].scopeContextKey,
+      consumerScopeUrl: 'https://seeded.example/app/consumer/',
+      specifier: 'pkg',
+      consumerRemotes: ['a-alias', 'z-alias'],
+      status: 'unmapped',
+      targetUrl: null,
+      mapEntry: null,
+    });
+  });
+
+  it('SEEDED: retains a top-level blocking entry and projects no legacy resolution', () => {
+    const snapshot = seededSnapshot({
+      remotes: {
+        consumer: { scopeUrl: './consumer/', exposes: [], integrity: {} },
+      },
+      sharedExternals: {
+        __GLOBAL__: {
+          pkg: {
+            dirty: false,
+            versions: [
+              {
+                tag: '1.0.0',
+                action: 'share',
+                host: false,
+                remotes: [seededParticipant('consumer')],
+              },
+            ],
+          },
+        },
+      },
+      documentMaps: [
+        {
+          kind: 'importmap',
+          parsed: true,
+          importCount: 1,
+          scopeCount: 0,
+          imports: [{ specifier: 'pkg', target: 'http://[' }],
+          scopes: [],
+          integrity: {},
+        },
+      ],
+    });
+
+    const model = ingestSnapshot(snapshot);
+
+    expect(model.effectiveConsumerResolutions[0]).toMatchObject({
+      status: 'blocked',
+      targetUrl: null,
+      blockedReason: 'invalid-target-url',
+      mapEntry: {
+        source: 'effective-import-map',
+        scope: null,
+        specifier: 'pkg',
+        target: 'http://[',
+        match: 'exact',
+      },
+    });
+    expect(model.sharedRows[0].resolution).toBeNull();
+  });
+
+  it('SEEDED: keeps a missing consumer scope unknown despite a top-level mapping', () => {
+    const snapshot = seededSnapshot({
+      sharedExternals: {
+        __GLOBAL__: {
+          pkg: {
+            dirty: false,
+            versions: [
+              {
+                tag: '1.0.0',
+                action: 'share',
+                host: false,
+                remotes: [seededParticipant('missing-remote')],
+              },
+            ],
+          },
+        },
+      },
+      documentMaps: [
+        {
+          kind: 'importmap',
+          parsed: true,
+          importCount: 1,
+          scopeCount: 0,
+          imports: [{ specifier: 'pkg', target: './mapped.js' }],
+          scopes: [],
+          integrity: {},
+        },
+      ],
+    });
+
+    const model = ingestSnapshot(snapshot);
+    const [resolution] = model.effectiveConsumerResolutions;
+
+    expect(model.effectiveConsumerResolutions).toHaveLength(1);
+    expect(resolution.id.length).toBeGreaterThan(0);
+    expect(resolution.scopeContextKey).not.toBe(SEEDED_PAGE);
+    expect(resolution).toEqual({
+      id: resolution.id,
+      scopeContextKey: resolution.scopeContextKey,
+      consumerScopeUrl: null,
+      specifier: 'pkg',
+      consumerRemotes: ['missing-remote'],
+      status: 'unknown',
+      targetUrl: null,
+      mapEntry: null,
+      unknownReasons: ['missing-consumer-scope'],
+    });
+    expect(model.sharedRows[0].resolution).toBeNull();
+  });
+
+  it('SEEDED: keeps shim-only evidence unknown when document-map collection is unavailable', () => {
+    const snapshot = seededSnapshot({
+      remotes: {
+        consumer: { scopeUrl: './consumer/', exposes: [], integrity: {} },
+      },
+      sharedExternals: {
+        __GLOBAL__: {
+          pkg: {
+            dirty: false,
+            versions: [
+              {
+                tag: '1.0.0',
+                action: 'share',
+                host: false,
+                remotes: [seededParticipant('consumer')],
+              },
+            ],
+          },
+        },
+      },
+    });
+    snapshot.channels.domImportMaps = {
+      state: 'unavailable',
+      reason: 'seeded: document-map collection failed',
+    };
+    snapshot.channels.importShim = { state: 'available' };
+    snapshot.importMaps!.effective = {
+      imports: [{ specifier: 'pkg', target: './shim-only.js' }],
+      scopes: [],
+      integrityFor: [],
+    };
+
+    const model = ingestSnapshot(snapshot);
+
+    expect(model.effectiveMap).toEqual({ imports: {}, scopes: {}, integrity: {} });
+    expect(model.effectiveConsumerResolutions[0]).toMatchObject({
+      status: 'unknown',
+      targetUrl: null,
+      mapEntry: null,
+      unknownReasons: ['missing-map-channel'],
+    });
+    expect(model.sharedRows[0].resolution).toBeNull();
+  });
+
+  it('uses native document maps when the captured shim effective map is empty', () => {
+    const snapshot = FIXTURES['dynamic-init-native'];
+    const model = ingestSnapshot(snapshot);
+
+    expect(snapshot.importMaps?.effective).toEqual({ imports: [], scopes: [], integrityFor: [] });
+    expect(model.mapMode).toBe('native');
+    expect(model.effectiveMap.imports['@nf-lab/conflict-lib']).toBe(
+      'http://localhost:4300/mfe1/_nf_lab_conflict_lib.JF7uEdSVsN.js',
+    );
+    expect(
+      model.effectiveConsumerResolutions.map((resolution) => [
+        resolution.consumerScopeUrl,
+        resolution.consumerRemotes,
+        resolution.status,
+        resolution.targetUrl,
+      ]),
+    ).toEqual([
+      [
+        'http://localhost:4300/mfe1/',
+        ['mfe1'],
+        'mapped',
+        'http://localhost:4300/mfe1/_nf_lab_conflict_lib.JF7uEdSVsN.js',
+      ],
+      [
+        'http://localhost:4300/mfe2/',
+        ['mfe2'],
+        'mapped',
+        'http://localhost:4300/mfe1/_nf_lab_conflict_lib.JF7uEdSVsN.js',
+      ],
+    ]);
   });
 });
 
@@ -130,7 +405,7 @@ describe('ingestSnapshot — core relation (T6-AC-01)', () => {
           { entry: '@nf-lab/conflict-lib', file: '_nf_lab_conflict_lib.JF7uEdSVsN.js' },
         ],
         generation: 'v4.5',
-        // The map serves the winning 2.0.0 copy to every importer — the
+        // The map serves the winning 2.0.0 copy to every scope context — the
         // skip participant's own file has no map entry.
         resolution: {
           targetUrl: 'http://localhost:4300/mfe2/_nf_lab_conflict_lib.jvcc6K1csg.js',
