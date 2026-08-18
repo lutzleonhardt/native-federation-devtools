@@ -57,8 +57,9 @@ API only.
 One captured `SnapshotV1` becomes one `FederationModel`. The Store keeps the
 captured registry declarations, remote scope URLs, and import-map evidence
 separate until `resolveEffectiveConsumerBindings` joins them. The diagrams show
-the resolution-relevant part of that model in two focused views maintained next
-to each other: captured registry evidence first, effective resolution second.
+the resolution-relevant part of that model in three focused views maintained
+next to each other: captured registry evidence first, effective resolution
+second, declaration-claim explanations third.
 
 | Layer                  | Snapshot source                                         | Store representation            |
 | ---------------------- | ------------------------------------------------------- | ------------------------------- |
@@ -66,6 +67,7 @@ to each other: captured registry evidence first, effective resolution second.
 | Consumer scope context | `runtime.remotes`                                       | `RemoteEntity[]`                |
 | Import-map rules       | `importMaps.documentMaps`                               | `EffectiveMap`                  |
 | Canonical result       | The three inputs above plus `channels.domImportMaps`    | `EffectiveConsumerResolution[]` |
+| Claim explanations     | Registry evidence plus canonical results                | `ResolutionClaimsDerivation`    |
 | Existing view contract | Registry evidence plus canonical results                | `SharedParticipantRow[]`        |
 
 ### 1. Registry evidence
@@ -220,12 +222,14 @@ classDiagram
   EffectiveConsumerResolution "1" ..> "1..*" SharedParticipantRow : resolution projection
 ```
 
-Read the two views from evidence to result: `normalizeRegistryEvidence` retains
-every captured declaration and its snapshot paths; `mergeDocumentMaps`
+Read the first two views from evidence to result: `normalizeRegistryEvidence`
+retains every captured declaration and its snapshot paths; `mergeDocumentMaps`
 normalizes the document tags into one `EffectiveMap`; remote scope URLs provide
-the scope-root lookup context. The resolver groups claims with the same scope
-context and package and records exactly one honest outcome. Modules under a
-more specific map scope or outside the remote scope can resolve differently:
+the scope-root lookup context. The resolver evaluates one binding per scope
+context and specifier — every declaration's registry package plus each
+candidate specifier, including private registrations — and records exactly one
+honest outcome. Modules under a more specific map scope or outside the remote
+scope can resolve differently:
 
 - `mapped` means a matching, valid import-map binding supplies the normalized
   target.
@@ -245,6 +249,109 @@ browser can resolve that URL without an import-map binding. The
 registry-specific rationale and invariants remain in the
 [Task 1 design notes](docs/work/resolution-model/task-1-domain-model.md), without
 another copy of the diagrams.
+
+### 3. Declaration resolution claims
+
+This view answers _how does each declaration explain the computed binding?_
+Every shared or private entrypoint candidate creates one
+`DeclarationResolutionClaim` against the already computed
+`EffectiveConsumerResolution`; several claims may point at the same binding
+without duplicating it. The layer is a pure derivation
+(`deriveResolutionClaims`) over the two views above; a later task publishes its
+output on the store model.
+
+```mermaid
+classDiagram
+  direction LR
+
+  class VersionRegistration {
+    +string tag
+    +RegistrationAction action
+  }
+  class ParticipantDeclaration {
+    +string participant
+    +string? servedBy
+  }
+  class PrivateRegistration {
+    +string ownerRemote
+  }
+  class EntrypointCandidate {
+    +string specifier
+    +string? candidateUrl
+  }
+  class EffectiveConsumerResolution {
+    +ResolutionStatus status
+    +string? targetUrl
+  }
+  class RegistryServingSlotClaim {
+    +SlotStatus status
+    +ParticipantDeclarationId? declarationId
+  }
+  class DeclarationResolutionClaim {
+    +string consumerRemote
+    +string consumerRegistryPackage
+    +string specifier
+    +string? ownCandidateUrl
+    +boolean? ownCandidateSelected
+    +ClaimMappingState mappingState
+    +SourceAction sourceAction
+  }
+  class ObservedTargetProvider {
+    +string? remote
+    +SourceMatchOutcome outcome
+    +AttributionRule rule
+  }
+  class SourceMatch {
+    +SourceMatchOutcome outcome
+    +ResolutionSubject? source
+  }
+  class SourceComparison {
+    +SourceComparisonKind kind
+    +QualifiedSourceClaim left
+    +QualifiedSourceClaim right
+    +ComparisonStatus status
+  }
+
+  VersionRegistration "1" --> "1" RegistryServingSlotClaim : stored-order basis slot
+  ParticipantDeclaration "1" --> "0..*" DeclarationResolutionClaim : one per candidate
+  PrivateRegistration "1" --> "0..*" DeclarationResolutionClaim : one per candidate
+  EntrypointCandidate "1" --> "1" DeclarationResolutionClaim : own candidate
+  DeclarationResolutionClaim "1..*" --> "1" EffectiveConsumerResolution : explains binding
+  EffectiveConsumerResolution "1" --> "1" ObservedTargetProvider : attribution ladder
+  EffectiveConsumerResolution "1" --> "1" SourceMatch : observed source
+  DeclarationResolutionClaim "1" *-- "1..3" SourceComparison : slot / anchor / candidate
+  SourceComparison ..> RegistryServingSlotClaim : left registry claim
+  SourceComparison ..> ObservedTargetProvider : right observed source
+```
+
+`mappingState` explains the claim with one normative precedence; the
+independent `ownCandidateSelected` flag records exact own-candidate equality
+separately:
+
+- `anchored` — `servedBy` is present and the target matches an anchor
+  candidate of that remote within the share scope, across external records;
+  `servedBy === consumerRemote` is a valid self-anchor.
+- `self-filled` — a `skip` claim resolves to the unique matching `skip`
+  candidate of the same shared external (its own declaration or the first
+  filler of the entry).
+- `own-selected` — the target exactly equals the claim's own candidate URL.
+- `fallback` — a `skip` claim resolves to the unique matching `share` source
+  of the same shared external; the raw action is retained.
+- `not-selected` — an own candidate exists, the target differs, and no rule
+  above explains it (the visible `mfe2` claim in `co-declared-share`).
+- `blocked` — the binding is terminally blocked: nothing is selected and no
+  source is attributed.
+- `unknown` — map, consumer scope, candidate URL, source match, or
+  explanation is missing or ambiguous.
+
+The observed side stays qualified: exact candidate equality outranks
+scope-prefix ownership, the host never outranks a matching remote, and
+ambiguity retains all candidates instead of choosing one. Comparisons never
+collapse the sides — only `slot-vs-observed`, `anchor-vs-observed`, and
+`candidate-vs-target` exist, with the registry-side claim always on the left —
+and a mismatch is data, not permission to overwrite either fact. No mapping
+state or attribution outcome proves that anything was requested, downloaded,
+or executed.
 
 ## Install (development build)
 
