@@ -1,19 +1,17 @@
 @if (note()) {
   <p class="negotiation-note view-observation">{{ note() }}</p>
 }
-@for (version of versions(); track version.tag + version.action) {
+@for (version of versions(); track version.registrationId) {
   <div class="detail-version">
     <p class="detail-version-head">
       <span class="ver-symbol" aria-hidden="true">{{ version.symbol }}</span>
       <span class="ver-tag">{{ version.tag }}</span>
       <span class="ver-action" [title]="version.actionNote">{{ version.action }}</span>
       @if (version.isolated) {
-        <span class="ver-isolated"
-          >isolated — mapped only for {{ version.isolated.audience }}</span
-        >
+        <span class="ver-isolated">isolated — mapped only for {{ version.isolated.audience }}</span>
       }
     </p>
-    @for (participant of version.participants; track participant.name) {
+    @for (participant of version.participants; track participant.declarationId) {
       <div class="detail-participant">
         <nf-participant-row
           [name]="participant.name"
@@ -27,62 +25,31 @@
             class="chip-link"
             [routerLink]="['/remotes']"
             [queryParams]="{ select: participant.remoteSelect }"
-            ><nf-participant-chip
-              [name]="participant.name"
-              [host]="participant.host"
+            ><nf-participant-chip [name]="participant.name" [host]="participant.host"
           /></a>
+          <span nfRowLinks class="row-state">
+            @if (participant.state; as state) {
+              <span
+                class="state-chip tip"
+                [class.state-selected]="state.label === 'selected'"
+                [title]="state.note"
+                >{{ state.label }}</span
+              >
+            }
+          </span>
         </nf-participant-row>
-        @if (participant.provider; as provider) {
-          <p class="provider-line">
-            @switch (provider.outcome) {
-              @case ('derived') {
-                provider:
-                <a
-                  class="chip-link"
-                  [routerLink]="['/remotes']"
-                  [queryParams]="{ select: provider.remote }"
-                  [title]="
-                    'derived by most-specific scope-prefix matching — rule: ' +
-                    provider.rule
-                  "
-                  ><nf-participant-chip [name]="provider.remote" [host]="provider.host"
-                /></a>
-                @if (provider.hostFallback) {
-                  <span
-                    class="provider-fallback"
-                    title="the host matched only as least-specific fallback — no remote scope prefix matched"
-                    >fallback</span
-                  >
-                }
-              }
-              @case ('ambiguous') {
-                <nf-state-badge
-                  kind="ambiguous"
-                  [note]="'most-specific scope tie: ' + provider.candidates.join(', ')"
-                />
-              }
-              @case ('unattributable') {
-                <span class="view-observation"
-                  >provider unattributable — no scope prefix matches this target</span
-                >
-              }
+        @for (claim of participant.otherClaims; track claim.claimId) {
+          <p class="claim-line">
+            <span class="claim-specifier mono">{{ claim.specifier }}</span>
+            @if (claim.state; as state) {
+              <span class="state-chip tip" [title]="state.note">{{ state.label }}</span>
+            }
+            @if (claim.target) {
+              <span class="claim-target"
+                >resolves to <span class="mono">{{ claim.target }}</span></span
+              >
             }
           </p>
-        }
-        @if (participant.declaredNotMapped; as residual) {
-          @if (residual.count > 0) {
-            <p class="residual-line">
-              {{ residual.count }} declared, not mapped
-              <span
-                class="rule-tag"
-                [title]="
-                  'grounded in orchestrator source reading, not capture evidence: ' +
-                  residual.files.join(', ')
-                "
-                >{{ residual.rule }}</span
-              >
-            </p>
-          }
         }
       </div>
     }
@@ -91,9 +58,7 @@
 @if (versions().length > 0) {
   <p class="glyph-legend" aria-label="glyph legend">
     @for (item of legend; track item.action) {
-      <span class="legend-item tip" [title]="item.note"
-        >{{ item.symbol }} {{ item.action }}</span
-      >
+      <span class="legend-item tip" [title]="item.note">{{ item.symbol }} {{ item.action }}</span>
     }
   </p>
 }

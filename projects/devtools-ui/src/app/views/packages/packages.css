@@ -143,3 +143,11 @@
   font-size: 10px;
   white-space: nowrap;
 }
+
+/* Honest empty state of the versions cell — nothing resolves. */
+.pkg-no-copy {
+  font-size: 10px;
+  font-style: italic;
+  color: var(--nf-color-text-muted);
+  white-space: nowrap;
+}

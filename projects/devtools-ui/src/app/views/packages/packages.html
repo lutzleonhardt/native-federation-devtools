@@ -81,6 +81,12 @@
                   >{{ version.tag }}</span
                 >
               }
+              @if (payload.unknownTagged; as unknown) {
+                <span class="pkg-version pkg-version-muted tip" [title]="unknown.note">?</span>
+              }
+              @if (payload.noCopy; as noCopy) {
+                <span class="pkg-no-copy tip" [title]="noCopy.note">{{ noCopy.label }}</span>
+              }
             </span>
             @if (payload.conflict) {
               <span class="pkg-conflict" [title]="payload.conflict.note">{{
@@ -88,16 +94,16 @@
               }}</span>
             }
             <span class="pkg-tail">
-              @if (payload.providers.length <= 3) {
-                @for (provider of payload.providers; track provider.name) {
-                  <nf-participant-chip [name]="provider.name" [host]="provider.host" />
+              @if (payload.sources.length <= 3) {
+                @for (source of payload.sources; track source.name) {
+                  <nf-participant-chip [name]="source.name" [host]="source.host" />
                 }
               } @else {
-                <span class="pkg-declarers tip" [title]="providerNames(payload)"
-                  >{{ payload.providers.length }} providers</span
+                <span class="pkg-declarers tip" [title]="sourceNames(payload)"
+                  >{{ payload.sources.length }} sources</span
                 >
               }
-              @if (payload.alsoDeclaredBy; as also) {
+              @if (payload.alsoResolvedBy; as also) {
                 <span class="pkg-count tip" [title]="also.tooltip">+{{ also.count }}</span>
               }
             </span>

@@ -7,9 +7,7 @@ import { ParticipantChip } from './participant-chip';
  * strict-scope rows must never present `requiredVersion` as a declared
  * range, so the two shapes are deliberately distinct.
  */
-export type DeclaredVersion =
-  | { kind: 'range'; range: string }
-  | { kind: 'pinned'; tag: string };
+export type DeclaredVersion = { kind: 'range'; range: string } | { kind: 'pinned'; tag: string };
 
 /**
  * Where the participant's request resolves: to the elected winner's served
@@ -79,7 +77,9 @@ export class ParticipantRow {
     const arrow = this.arrow();
     switch (arrow?.kind) {
       case 'winner':
-        return `resolves to ${arrow.target} (provider: ${arrow.provider})`;
+        // "source", not "provider": the named remote is the resolved
+        // target's evidenced source, never a delivery claim (T7 wording).
+        return `resolves to ${arrow.target} (source: ${arrow.provider})`;
       case 'own':
         return 'resolves to own copy';
       case 'none':

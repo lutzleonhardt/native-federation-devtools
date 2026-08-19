@@ -1,168 +1,104 @@
 /**
- * Chunk section of the Packages detail pane — strictly gated on the
- * providing remote's attribution ladder (level package / remote / none),
- * with honest unavailability when no unique providing remote exists.
- *
- * Per-file map evidence comes from the shared chunk-map join
- * (`shared/chunk-map-join.ts`) — the same source the Import Map view
- * annotates from, so the "mapped" link and the chunk-row annotation over
- * there cannot contradict each other (T12).
+ * Chunk section of the Packages detail pane — rendered exclusively from the
+ * canonical `BundleClaim` records of the group's resolved copies (T7-AC-04).
+ * Only a `mapped-source` claim presents registered chunk files without
+ * qualification; `source-only` and `ambiguous` claims surface their
+ * uncertainty instead of implying mapped backing chunks. Files are recorded
+ * registry evidence — available for loading, never proof of requests or
+ * downloads.
  */
-import { ChunkFileMapJoin, joinChunkFilesToMap } from '../../shared/chunk-map-join';
-import type { DerivedFederation, SharedRowFacts } from '../../shared/store/derived-model';
-import type { FederationModel } from '../../shared/store/federation-model';
-import { PackageGroup, chunkFileClaim, participantDisplay } from './packages-vm-shared';
+import type { BundleClaimStatus } from '../../shared/store/resolution';
+import {
+  CanonicalIndexes,
+  PackageGroup,
+  chunkFileClaim,
+  isHostRemote,
+  participantDisplay,
+} from './packages-vm-shared';
 
-/** One chunk file with its map evidence — the `select` payload is the entry's real specifier. */
-export interface ChunkFileRowVm {
-  file: string;
-  /** Null when the file resolves to no effective-map target (honest). */
-  mapped: {
-    specifier: string;
-    targetUrl: string;
-    hasIntegrity: boolean;
-    /** `select` payload for the /import-map cross-link. */
-    select: string;
-  } | null;
+/** One canonical bundle claim of a resolved copy, render-ready. */
+export interface ChunkClaimVm {
+  /** Canonical bundle-claim ID (structural tuple; render tracking key). */
+  claimId: string;
+  bundle: string;
+  status: BundleClaimStatus;
+  /** Grounded qualification of the claim (tooltip). */
+  note: string;
+  /**
+   * Source remote of the claim; under ambiguity the candidate remote —
+   * surfaced, never chosen. Null when no remote is named.
+   */
+  source: { display: string; host: boolean; remoteSelect: string } | null;
+  /** Registered chunk files of the claim's chunk groups, registry order. */
+  files: string[];
+  /** Shared chunk-file wording (`view-conventions.ts`); claims absence explicitly. */
+  fileClaim: string;
 }
 
-/** Chunk section, strictly gated on the providing remote's attribution ladder. */
-export type ChunkSectionVm =
-  | {
-      level: 'package';
-      remote: string;
-      /** Display form of the remote (`__NF-HOST__` reads as 'host'). */
-      remoteDisplay: string;
-      /**
-       * Null when the remote records chunk lists but none for this package.
-       * `fileClaim` renders the evidence, never a bare count (shared wording
-       * with the Remotes detail): an empty file list claims the absence.
-       * `mappedCount` counts `fileRows` with map evidence — the claim line
-       * and the per-file links speak about the same set by construction.
-       */
-      packageEntry: {
-        bundleName: string;
-        files: string[];
-        fileRows: ChunkFileRowVm[];
-        fileClaim: string;
-        mappedCount: number;
-      } | null;
-      rule: 'bundle-chunk-join';
-    }
-  | {
-      level: 'remote';
-      remote: string;
-      remoteDisplay: string;
-      groupCount: number;
-      note: string;
-      rule: 'chunk-pseudo-externals';
-    }
-  | { level: 'none'; remote: string; remoteDisplay: string; note: string; rule: 'no-chunk-evidence' };
+export interface ChunkSectionVm {
+  claims: ChunkClaimVm[];
+  rule: 'bundle-claim';
+}
 
-/** Per-file rows of one bundle from the shared chunk-map join. */
-function fileRowsOf(
-  files: string[],
-  bundleName: string,
-  remote: string,
-  joins: ChunkFileMapJoin[],
-): ChunkFileRowVm[] {
-  const joinByFile = new Map<string, ChunkFileMapJoin>();
-  for (const join of joins) {
-    if (
-      join.owningRemote === remote &&
-      join.bundleName === bundleName &&
-      !joinByFile.has(join.file)
-    ) {
-      joinByFile.set(join.file, join);
-    }
+function claimNote(status: BundleClaimStatus, sourceDisplay: string | null): string {
+  switch (status) {
+    case 'mapped-source':
+      return `registered chunk list of this source's bundle — available for loading, not proof of delivery`;
+    case 'source-only':
+      return 'the source names this bundle, but the capture registers no chunk list for it';
+    case 'ambiguous':
+      return `ambiguous source — ${
+        sourceDisplay ?? 'a candidate'
+      } is one candidate for this bundle; chunks are not attributed`;
   }
-  return files.map((file) => {
-    const entry = joinByFile.get(file)?.entry ?? null;
-    return {
-      file,
-      mapped:
-        entry === null
-          ? null
-          : {
-              specifier: entry.specifier,
-              targetUrl: entry.target,
-              hasIntegrity: entry.hasIntegrity,
-              select: entry.specifier,
-            },
-    };
-  });
 }
 
-/** Chunk section gated on the providing remote's attribution ladder. */
+/** Chunk section from the canonical bundle claims of the group's copies. */
 export function buildChunkSection(
   group: PackageGroup,
-  winner: SharedRowFacts | null,
-  model: FederationModel,
-  derived: DerivedFederation,
+  indexes: CanonicalIndexes,
 ): { chunks: ChunkSectionVm | null; chunksUnavailable: string | null } {
-  if (winner === null) {
-    return { chunks: null, chunksUnavailable: 'no unique providing remote in this share scope' };
-  }
-  const remote = winner.row.participant;
-  const remoteDisplay = participantDisplay(remote);
-  const attribution = derived.chunkAttribution.find((entry) => entry.remote === remote);
-  if (attribution === undefined) {
+  if (group.copies.length === 0) {
     return {
       chunks: null,
-      chunksUnavailable: 'providing remote not present in the captured registry',
+      chunksUnavailable: 'no resolved copies — no bundle evidence to attribute',
     };
   }
-  switch (attribution.level) {
-    case 'package': {
-      const entry = attribution.packages.find(
-        (candidate) => candidate.packageName === group.packageName,
+  const claims: ChunkClaimVm[] = [];
+  for (const copy of group.copies) {
+    for (const claimId of copy.bundleClaimIds) {
+      const claim = indexes.bundleClaimById.get(claimId);
+      if (claim === undefined) {
+        continue;
+      }
+      const files = claim.chunkGroupIds.flatMap(
+        (groupId) => indexes.chunkGroupById.get(groupId)?.files ?? [],
       );
-      const fileRows =
-        entry === undefined
-          ? []
-          : fileRowsOf(entry.files, entry.bundleName, remote, joinChunkFilesToMap(model));
-      return {
-        chunks: {
-          level: 'package',
-          remote,
-          remoteDisplay,
-          packageEntry:
-            entry === undefined
-              ? null
-              : {
-                  bundleName: entry.bundleName,
-                  files: entry.files,
-                  fileRows,
-                  fileClaim: chunkFileClaim(entry.files),
-                  mappedCount: fileRows.filter((row) => row.mapped !== null).length,
-                },
-          rule: 'bundle-chunk-join',
-        },
-        chunksUnavailable: null,
-      };
+      const sourceDisplay =
+        claim.sourceRemote === null ? null : participantDisplay(claim.sourceRemote);
+      claims.push({
+        claimId: claim.id,
+        bundle: claim.bundle,
+        status: claim.status,
+        note: claimNote(claim.status, sourceDisplay),
+        source:
+          claim.sourceRemote === null
+            ? null
+            : {
+                display: sourceDisplay!,
+                host: isHostRemote(claim.sourceRemote),
+                remoteSelect: claim.sourceRemote,
+              },
+        files,
+        fileClaim: chunkFileClaim(files),
+      });
     }
-    case 'remote':
-      return {
-        chunks: {
-          level: 'remote',
-          remote,
-          remoteDisplay,
-          groupCount: attribution.groups.length,
-          note: `chunks belong to ${remoteDisplay}; package attribution not derivable`,
-          rule: 'chunk-pseudo-externals',
-        },
-        chunksUnavailable: null,
-      };
-    case 'none':
-      return {
-        chunks: {
-          level: 'none',
-          remote,
-          remoteDisplay,
-          note: `no chunk evidence recorded for ${remoteDisplay} — the capture shows no chunk lists (dense-chunking capability absent)`,
-          rule: 'no-chunk-evidence',
-        },
-        chunksUnavailable: null,
-      };
   }
+  if (claims.length === 0) {
+    return {
+      chunks: null,
+      chunksUnavailable: 'no bundle claims recorded for this package’s copies',
+    };
+  }
+  return { chunks: { claims, rule: 'bundle-claim' }, chunksUnavailable: null };
 }

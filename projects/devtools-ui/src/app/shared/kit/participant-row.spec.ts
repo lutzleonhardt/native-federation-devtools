@@ -159,7 +159,7 @@ describe('ParticipantRow (view kit)', () => {
     });
 
     expect(el.querySelector('.arrow')?.getAttribute('aria-label')).toBe(
-      'resolves to 19.2.3 (provider: host)',
+      'resolves to 19.2.3 (source: host)',
     );
     expect(el.textContent).not.toContain('uses');
     expect(el.textContent).not.toContain('loaded');
