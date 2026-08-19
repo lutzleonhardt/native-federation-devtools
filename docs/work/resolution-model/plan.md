@@ -6,7 +6,7 @@ External challenger: /home/lutz/Downloads/DEPENDENCY-GRAPH.md, SHA-256 5977479c3
 
 The work has three milestones: establish one canonical domain model, migrate the four consumers, then enforce and review the cutover. Tasks stay at independently reviewable boundaries; evidence acquisition, raw snapshot transport, and Store normalization are separate point tasks even though RM-AC-07 treats them as one ordered, traceable schema-gate chain.
 
-YAGNI boundary: no graph UI or pool graph, no network/runtime-use instrumentation, no UI redesign, no general diagnostics rule engine, no new Playwright/Cypress/Storybook setup, and no screenshot goldens. The external challenger informs requirements but is not copied or treated as an oracle.
+YAGNI boundary: no graph UI or pool graph, no network/runtime-use instrumentation, no UI redesign except the Task 7.5 Packages presentation redesign (frozen mock: `design/packages-view-redesign-mock.md`), no general diagnostics rule engine, no new Playwright/Cypress/Storybook setup, and no screenshot goldens. The external challenger informs requirements but is not copied or treated as an oracle.
 
 Tasks 2, 2.1, and 2.2 form the raw `pool`/`servedBy` schema gate. Task 2 produces evidence only; if its real witness cannot be produced, close Task 2 BLOCKED and do not start Tasks 2.1 or 2.2. Tasks 3–12 may still use null raw fields and source-backed canonical seeds, while the overall pooling acceptance remains incomplete.
 
@@ -359,6 +359,107 @@ T2-AC-02 through T2-AC-05 were retired by the approved task split. Their IDs are
 - Packages currently repeats winner, provider, count, conflict, and chunk semantics across several helpers.
 - Existing structure is reusable; correctness requires changing the model inputs and vocabulary, not inventing a new presentation.
 
+## Task 7.5: Redesign the Packages presentation around resolved copies
+
+**Dependency:** Task 7.
+
+### Instructions
+
+- Presentation-only redesign of the Packages view; the canonical façade
+  consumption, VM purity rules, claim vocabulary, and grounded
+  reason-tooltips from Task 7 stay intact. Layout/wording reference is
+  the frozen mock `docs/work/resolution-model/design/packages-view-redesign-mock.md`.
+- Detail panel: replace the five sections (Resolution counters,
+  Negotiation, Resolved copies, Integrity, Chunks) with one block per
+  resolved copy. Block header: resolved tag · disposition
+  (`shared`/`isolated`, isolated adds "mapped only for X") · source
+  participant chip. File line(s) per entrypoint:
+  `→ <file> mapped · SRI ✓` (or muted `no SRI`). Consumer rows beneath:
+  participant chip + declared range + deviation annotations only
+  (STRICT, `skipped own <tag>`, `kept own copy`, `not selected`,
+  anchored, self-filled). Chunks nest inside their copy's block:
+  `mapped-source` claims list files unqualified; `source-only`/
+  `ambiguous` keep their qualified one-liner.
+- Unresolved bucket: declarations whose claim is not mapped / blocked /
+  unknown render under an `unresolved` heading with state and
+  `offered <tag>`; a package with zero copies shows "no resolved copies
+  in this capture" plus the bucket. A *not selected* declaration that
+  resolves to a copy is a consumer row under that block, never
+  unresolved (co-declared-share: 2 consumer resolutions, 1 copy).
+- Deviation-first: default qualifiers (exact target source,
+  share-registration, ordinary-shared) move into the block-header
+  tooltip; no glyph legend, no glyph+word duplication; each fact
+  renders once. A muted diagnostics footer appears only on divergence
+  (unknown tags, offers without any consumer row).
+- List: rows reduce to package name + resolved version(s); conflict rows
+  show `⚠` (tooltip: resolved-tag-multiplicity rule) plus the versions
+  with the non-elected one muted; honest-empty rows show muted
+  `no copy` with the existing noCopyNote; participant chips leave the
+  rows.
+- Participant filter: single-select chips (click on / off / switch) in
+  the filter zone next to All/Conflicts; both filters combine
+  (Conflicts ∧ participant). VM concept is a `selectedParticipant`
+  input so the widget stays swappable; no multi-select, no combobox.
+- Keep cross-links (source chip → Remotes, mapped file → Import Map,
+  parent/entry links) and canonical-ID render tracking. Shape the
+  copy-block VM around the consumer → copy → chunk spine as a coherent
+  reusable structure, but keep it Packages-scoped; lift to
+  shared/view-conventions only when Remotes actually consumes it.
+- The negotiation sub-component may be absorbed/removed if the copy
+  blocks cover it. Components keep templateUrl/styleUrl with separate
+  .html/.css files.
+
+### Acceptance
+
+- **T7.5-AC-01** — frankenstein-live `/primitives/signals` renders
+  exactly one copy block (21.2.12, source host, mapped file with SRI,
+  consumer row `^21.2.0` STRICT, 5 listed chunk files) and none of the
+  removed sections; default qualifiers appear only in tooltips.
+  **Contributes:** XC-06.
+- **T7.5-AC-02** — clean-skip renders one block whose mfe1 row carries
+  `skipped own 1.0.0` with a grounded tooltip and no separate skip
+  section; co-declared-share renders mfe2 as a consumer row of the
+  single block with a `not selected` state chip. **Contributes:**
+  XC-03, XC-06.
+- **T7.5-AC-03** — strict-split renders two copy blocks (2.0.0
+  shared/host with the mfe1 skip row; 1.0.0 isolated/mfe3 "mapped only
+  for mfe3" with STRICT + `kept own copy`) under a `⚠ 2 resolved
+  versions` header. **Contributes:** XC-03.
+- **T7.5-AC-04** — synthetic-multi-version renders zero copy blocks,
+  "no resolved copies in this capture", and an `unresolved` bucket
+  with not-mapped states and offered tags. **Contributes:** XC-06.
+- **T7.5-AC-05** — list rows render name + version(s) only (conflict:
+  `⚠` + versions; honest-empty: muted `no copy`; no participant chips);
+  the single-select participant filter narrows the list to packages the
+  participant is involved in and combines with the Conflicts filter.
+- **T7.5-AC-06** — templates stay VM-only with canonical-ID tracking;
+  every annotation keeps a grounded tooltip; source→Remotes and
+  mapped→Import-Map cross-links survive the restructuring.
+  **Contributes:** XC-01.
+
+### Key Locations
+
+- `projects/devtools-ui/src/app/views/packages/package-detail.{ts,html,css}`
+- `projects/devtools-ui/src/app/views/packages/package-negotiation.{ts,html,css}` (absorb or remove)
+- `projects/devtools-ui/src/app/views/packages/packages-detail-vm.ts`, `packages-row-vm.ts`, `packages-chunk-vm.ts`, `packages-view-model.ts`, `packages-vm-shared.ts`
+- `projects/devtools-ui/src/app/views/packages/packages.{ts,html,css}` + both spec files
+- `docs/work/resolution-model/design/packages-view-redesign-mock.md` (reference, read-only)
+
+### Key Discoveries
+
+- All data already exists post-Task-7: copy blocks come from
+  `DetailCopyVm` + consumer relations (`effectiveConsumerResolutions`),
+  chunks per copy via `copy.bundleClaimIds`, states/tooltips from
+  `packages-detail-vm.ts` — this task re-groups, it derives nothing new.
+- Deviation-first is the governing principle: the happy path renders
+  almost nothing; chips are reserved for deviations.
+- The consumer → copy → chunk spine is the shared shape for Remotes
+  (Task 8 pivots it on the consumer) and a later graph view — design
+  the VM types so that reuse is a lift, not a rewrite.
+- Deliberately deferred (do not build): consumer-row collapse for
+  ~50-remote captures, participant combobox, group-by-source list
+  toggle, consumer counts in list rows, multi-select filter.
+
 ## Task 8: Migrate Remotes to canonical resolutions
 
 **Dependency:** Task 6.
@@ -543,9 +644,9 @@ T2-AC-02 through T2-AC-05 were retired by the approved task split. Their IDs are
 
 ## Cross-Cutting Acceptance
 
-- **XC-01** — Raw normalization, effective lookup, claim/source explanation, copy identity, and chunk attribution each have one canonical owner; views only project Store data and no production consumer uses `sharedRows` after cutover. **Touches:** T1, T2.2, T3, T4, T5, T6, T7, T8, T9, T10, T11.
+- **XC-01** — Raw normalization, effective lookup, claim/source explanation, copy identity, and chunk attribution each have one canonical owner; views only project Store data and no production consumer uses `sharedRows` after cutover. **Touches:** T1, T2.2, T3, T4, T5, T6, T7, T7.5, T8, T9, T10, T11.
 - **XC-02** — Every derived candidate, claim, resolution, source attribution, comparison, copy, relation, and chunk claim has deterministic collision-safe identity plus complete evidence/rule provenance; unknown and ambiguous evidence remains representable. **Touches:** T1, T2, T2.1, T2.2, T3, T4, T5, T6, T8, T9, T10, T11.
-- **XC-03** — Packages, Remotes, Import Map, and Diagnostics share canonical IDs and cardinalities: declarations never become registrations/copies, claims never duplicate bindings, and the four package counts keep their distinct meanings. **Touches:** T1, T2.2, T3, T4, T5, T6, T7, T8, T9, T10, T11.
+- **XC-03** — Packages, Remotes, Import Map, and Diagnostics share canonical IDs and cardinalities: declarations never become registrations/copies, claims never duplicate bindings, and the four package counts keep their distinct meanings. **Touches:** T1, T2.2, T3, T4, T5, T6, T7, T7.5, T8, T9, T10, T11.
 - **XC-04** — Old/new snapshot compatibility, hostile-page safety, privacy/passivity, all 12 lab captures plus two live phases, and byte-stable fixture derivation survive the migration. **Touches:** T2, T2.1, T2.2, T3, T11.
 - **XC-05** — The resolution phase exports one raw-free canonical projection with consumer-copy relations, selected artifact claims, and filterable completeness; it implements no graph UI and permits no downstream raw-data resolver. **Touches:** T6, T11.
-- **XC-06** — All product text distinguishes declaration/mapping/selection from request, download, execution, cache hit, or wire cost, and the final manual fixture walkthrough confirms the distinction is understandable and visible. **Touches:** T2.2, T3, T4, T6, T7, T8, T9, T10, T11, T12.
+- **XC-06** — All product text distinguishes declaration/mapping/selection from request, download, execution, cache hit, or wire cost, and the final manual fixture walkthrough confirms the distinction is understandable and visible. **Touches:** T2.2, T3, T4, T6, T7, T7.5, T8, T9, T10, T11, T12.
