@@ -25,6 +25,7 @@ import type {
   ChunkGroupProjection,
   ConsumerCopyRelation,
   DeclarationResolutionClaim,
+  DeclarationResolutionClaimId,
   EffectiveConsumerResolution,
   EffectiveConsumerResolutionId,
   ParticipantDeclaration,
@@ -34,6 +35,7 @@ import type {
   ResolvedDependencyCopy,
   ResolvedDependencyCopyId,
   SharedExternalId,
+  SharedExternalRecord,
   VersionRegistration,
   VersionRegistrationId,
 } from '../../shared/store/resolution';
@@ -84,11 +86,14 @@ export interface PackageGroup {
 
 /** ID-keyed lookups over the canonical read surface; built once per vm. */
 export interface CanonicalIndexes {
+  sharedExternalById: Map<SharedExternalId, SharedExternalRecord>;
   declarationById: Map<ParticipantDeclarationId, ParticipantDeclaration>;
   registrationById: Map<VersionRegistrationId, VersionRegistration>;
   privateRegistrationById: Map<PrivateRegistrationId, PrivateRegistration>;
   resolutionById: Map<EffectiveConsumerResolutionId, EffectiveConsumerResolution>;
   claimsByDeclaration: Map<ParticipantDeclarationId, DeclarationResolutionClaim[]>;
+  /** Every attached claim (shared and private subjects), by canonical ID. */
+  claimById: Map<DeclarationResolutionClaimId, DeclarationResolutionClaim>;
   copyById: Map<ResolvedDependencyCopyId, ResolvedDependencyCopy>;
   relationsByCopy: Map<ResolvedDependencyCopyId, ConsumerCopyRelation[]>;
   bundleClaimById: Map<BundleClaimId, BundleClaim>;
@@ -116,6 +121,9 @@ export function buildCanonicalIndexes(model: FederationModel): CanonicalIndexes 
     ]);
   }
   return {
+    sharedExternalById: new Map(
+      model.registryEvidence.sharedExternals.map((record) => [record.id, record]),
+    ),
     declarationById: new Map(
       model.registryEvidence.participantDeclarations.map((record) => [record.id, record]),
     ),
@@ -129,6 +137,7 @@ export function buildCanonicalIndexes(model: FederationModel): CanonicalIndexes 
       model.effectiveConsumerResolutions.map((resolution) => [resolution.id, resolution]),
     ),
     claimsByDeclaration,
+    claimById: new Map(projection.declarationResolutionClaims.map((claim) => [claim.id, claim])),
     copyById: new Map(projection.copies.map((copy) => [copy.id, copy])),
     relationsByCopy,
     bundleClaimById: new Map(projection.bundleClaims.map((claim) => [claim.id, claim])),
@@ -222,6 +231,34 @@ export function noCopyNoteOf(group: PackageGroup, indexes: CanonicalIndexes): st
   return groupHasMappedClaim(group, indexes)
     ? 'no source copy is attributed to this package — its bindings resolve to copies of other packages'
     : 'declared, but no import-map binding resolves this package in this capture';
+}
+
+/**
+ * Participants involved in one group — its declarers, the evidenced sources
+ * of its copies, and every consumer whose binding resolves to one of them.
+ * This is the participant-filter membership rule (T7.5): raw names, the
+ * host sentinel included verbatim.
+ */
+export function involvedParticipantsOf(
+  group: PackageGroup,
+  indexes: CanonicalIndexes,
+): Set<string> {
+  const names = new Set<string>();
+  for (const { declarations } of group.registrations) {
+    for (const declaration of declarations) {
+      names.add(declaration.participant);
+    }
+  }
+  for (const copy of group.copies) {
+    const source = copySourceRemote(copy, indexes);
+    if (source !== null) {
+      names.add(source);
+    }
+    for (const relation of indexes.relationsByCopy.get(copy.id) ?? []) {
+      names.add(relation.consumerRemote);
+    }
+  }
+  return names;
 }
 
 /** Display file name of a target URL — its last path segment (query/hash stripped). */

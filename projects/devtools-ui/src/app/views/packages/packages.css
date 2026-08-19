@@ -23,6 +23,26 @@
   color: var(--nf-color-accent);
 }
 
+/* Single-select participant filter: chips wrapped in toggle buttons. */
+.participant-filter {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.participant-toggle {
+  padding: 1px 2px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+}
+
+.participant-toggle.active {
+  border-color: var(--nf-color-accent);
+}
+
 .scopes-summary {
   display: flex;
   gap: 12px;
@@ -120,28 +140,6 @@
   text-decoration: underline dotted;
   text-underline-offset: 2px;
   cursor: help;
-}
-
-/* Provider chip + declarer count sit at the row's right edge. */
-.pkg-tail {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 4px;
-  margin-left: auto;
-  padding-left: 12px;
-}
-
-.pkg-declarers {
-  color: var(--nf-color-text-muted);
-  white-space: nowrap;
-}
-
-/* Skip-only declarer count — quiet, details in the tooltip. */
-.pkg-count {
-  color: var(--nf-color-text-muted);
-  font-family: var(--nf-font-mono);
-  font-size: 10px;
-  white-space: nowrap;
 }
 
 /* Honest empty state of the versions cell — nothing resolves. */

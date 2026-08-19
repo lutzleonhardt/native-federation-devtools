@@ -3,19 +3,18 @@ import { RouterLink } from '@angular/router';
 
 import { StateBadge } from '../../shared/honest-state/state-badge';
 import { ParticipantChip } from '../../shared/kit/participant-chip';
-import { PackageNegotiation } from './package-negotiation';
 import { PackageDetailVm } from './packages-view-model';
 
 /**
- * Detail pane of the Packages view — meta line, canonical resolution
- * measures, negotiation (via `nf-package-negotiation`), resolved copies
- * with qualified sources, integrity, and the bundle-claim chunk section.
- * Dumb over `PackageDetailVm`; renders the selection prompt while `detail`
- * is null.
+ * Detail pane of the Packages view — meta line, then one block per resolved
+ * copy (header, mapped file lines with SRI, consumer rows with deviation
+ * annotations, nested chunk claims), the `unresolved` bucket, and the muted
+ * diagnostics footer (T7.5). Dumb over `PackageDetailVm`; renders the
+ * selection prompt while `detail` is null.
  */
 @Component({
   selector: 'nf-package-detail',
-  imports: [PackageNegotiation, ParticipantChip, RouterLink, StateBadge],
+  imports: [ParticipantChip, RouterLink, StateBadge],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './package-detail.html',
   styleUrl: './package-detail.css',
