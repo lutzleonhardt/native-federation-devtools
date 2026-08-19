@@ -1,28 +1,29 @@
 /**
- * Detail half of the Packages vm builder — canonical resolution measures,
- * negotiation (version registrations with per-declaration claim states and
- * arrows), resolved copies with qualified sources, integrity, and the
- * bundle-claim chunk section (via `packages-chunk-vm.ts`).
+ * Detail half of the Packages vm builder — one block per resolved copy
+ * (T7.5): block header with resolved tag, disposition, and qualified source;
+ * mapped file lines with per-entrypoint SRI; consumer rows carrying only
+ * deviation annotations; the copy's bundle-claim chunks nested inside the
+ * block. Declarations whose claims resolve nowhere render under the
+ * `unresolved` bucket; residual divergences (unknown tags, offers without a
+ * consumer row, claims resolving to other packages' copies) surface in the
+ * muted diagnostics footer.
  *
- * Claim doctrine (T7): every declaration stays visible with its canonical
- * mapping state — selected, not selected, anchored, self-filled, blocked,
- * not mapped, unknown — and the arrow says where the consumer binding
- * resolves. Source wording is qualified (registry slot, explicit anchor,
- * exact/observed target source, unknown); reasons ride along as tooltips.
- * Nothing here implies requests, downloads, or execution.
+ * Claim doctrine (T7, unchanged): every declaration stays visible with its
+ * canonical mapping state; deviation-first presentation means the happy path
+ * renders almost nothing — default qualifiers (exact target source,
+ * share-registration, ordinary-shared) live in tooltips only, and every
+ * annotation keeps its grounded reason. Nothing here implies requests,
+ * downloads, or execution.
  */
-import type { DeclaredVersion, ParticipantArrow } from '../../shared/kit/participant-row';
 import type {
   DeclarationResolutionClaim,
-  EffectiveConsumerResolution,
   ParticipantDeclaration,
   ResolvedCopyEffectiveRole,
   ResolvedCopySourceDisposition,
   ResolvedDependencyCopy,
   VersionRegistration,
 } from '../../shared/store/resolution';
-import { ACTION_NOTES, ACTION_SYMBOLS } from '../../shared/view-conventions';
-import { ChunkSectionVm, buildChunkSection } from './packages-chunk-vm';
+import { ChunkClaimVm, buildCopyChunkClaims } from './packages-chunk-vm';
 import {
   CanonicalIndexes,
   GLOBAL_SCOPE,
@@ -30,85 +31,50 @@ import {
   STRICT_SCOPE,
   copySourceRemote,
   isHostRemote,
-  mainClaimOf,
   noCopyNoteOf,
   parentOf,
   participantDisplay,
   targetFileName,
 } from './packages-vm-shared';
 
-export { NEGOTIATION_LEGEND } from '../../shared/view-conventions';
-
-/** Canonical four-count measures plus the honest residuals (named facts). */
-export interface ResolutionMeasuresVm {
-  registrations: number;
-  declaredTags: number;
-  resolvedCopies: number;
-  resolvedTags: number;
-  /** Copies without a uniquely evidenced source tag; 0 renders nothing. */
-  unknownTagCopies: number;
-  /** Supporting measure — a declaration count, nothing more. */
-  declarations: number;
-}
-
-/** Canonical claim state of one declaration, with its grounded reason. */
-export interface ParticipantStateVm {
-  label:
-    | 'selected'
-    | 'not selected'
-    | 'anchored'
-    | 'self-filled'
-    | 'blocked'
-    | 'not mapped'
-    | 'unknown'
-    | 'declared';
+/** One annotated fact — deviation chip, bucket state, or diagnostics line. */
+export interface AnnotationVm {
+  label: string;
+  /** Grounded reason (tooltip); every annotation carries one. */
   note: string;
 }
 
-/**
- * One further specifier claim of a multi-entrypoint declaration — every
- * claim stays visible, no state is collapsed into the main specifier.
- */
-export interface DetailClaimVm {
-  /** Canonical claim ID (render tracking key). */
-  claimId: string;
-  specifier: string;
-  state: ParticipantStateVm | null;
-  /** Resolved target file of the claim's binding; null when not mapped. */
-  target: string | null;
+/** What the consumer declares, display-ready (strict scope pins the tag). */
+export interface DeclaredVm {
+  text: string;
+  /** True in the strict share scope — the exact tag, never a range. */
+  pinned: boolean;
 }
 
-export interface DetailParticipantVm {
+/** One consumer whose binding resolves to the block's copy. */
+export interface ConsumerRowVm {
   /** Canonical declaration ID (render tracking key — names can repeat). */
   declarationId: string;
   name: string;
   host: boolean;
-  declared: DeclaredVersion;
+  declared: DeclaredVm;
   strict: boolean;
-  /** Canonical claim state; null only for the quiet fallback arrow rows. */
-  state: ParticipantStateVm | null;
-  /** Where the consumer binding resolves; null = quiet selected norm. */
-  arrow: ParticipantArrow | null;
-  /** Claims of the declaration's OTHER specifiers (multi-entrypoint). */
-  otherClaims: DetailClaimVm[];
+  /** Deviation annotations only; the happy path renders none. */
+  deviations: AnnotationVm[];
+  /**
+   * Specifiers of this row's claims when none of them names the package
+   * itself (secondary-entrypoint-only resolution); empty otherwise.
+   */
+  viaSpecifiers: string[];
   /** `select` payload for the /remotes cross-link. */
   remoteSelect: string;
 }
 
-export interface DetailVersionVm {
-  /** Canonical registration ID (render tracking key — `(tag, action)` can repeat). */
-  registrationId: string;
-  symbol: string;
-  tag: string;
-  action: string;
-  actionNote: string;
-  isolated: { audience: string } | null;
-  participants: DetailParticipantVm[];
-}
-
-/** One mapped entrypoint of a resolved copy (specifier → effective target). */
-export interface CopyEntrypointVm {
+/** One mapped entrypoint file line of a copy block. */
+export interface CopyFileVm {
   specifier: string;
+  /** True when the specifier is not the package name itself. */
+  showSpecifier: boolean;
   /** Display file name of the target (last URL segment). */
   file: string;
   targetUrl: string;
@@ -134,18 +100,52 @@ export interface CopySourceVm {
   note: string;
 }
 
-/** One resolved dependency copy of the package (canonical projection). */
-export interface DetailCopyVm {
-  /** Canonical copy ID (structural tuple; tooltip/debug data). */
+/** Header disposition of a copy block (`shared`/`isolated`, else verbatim). */
+export interface CopyDispositionVm {
+  label: string;
+  /**
+   * Audience wording of an isolated copy — "mapped only for X" while every
+   * consumer is an own declarer; the "only" drops as soon as external
+   * consumers (e.g. anchored ones) resolve to the copy too.
+   */
+  audience: AnnotationVm | null;
+  /** Grounded disposition note plus the notes of the folded default roles. */
+  note: string;
+}
+
+/** One resolved copy of the package with its consumers and chunks (T7.5). */
+export interface CopyBlockVm {
+  /** Canonical copy ID (render tracking key). */
   copyId: string;
   /** Tag of the uniquely matched source registration; null stays honest. */
   resolvedTag: string | null;
+  /** Why the tag is unknown; null while `resolvedTag` exists. */
+  unknownTagNote: string | null;
   source: CopySourceVm;
-  /** Canonical source disposition, verbatim, with its grounded note. */
-  disposition: { label: string; note: string };
-  /** Canonical effective roles, verbatim, with grounded notes. */
-  roles: { label: string; note: string }[];
-  entrypoints: CopyEntrypointVm[];
+  disposition: CopyDispositionVm;
+  /** Copy-level deviations no other element renders (e.g. unclassified). */
+  deviations: AnnotationVm[];
+  files: CopyFileVm[];
+  consumers: ConsumerRowVm[];
+  /** The copy's canonical bundle claims; empty renders nothing. */
+  chunks: ChunkClaimVm[];
+}
+
+/** One declaration claim that resolves nowhere — the `unresolved` bucket. */
+export interface UnresolvedRowVm {
+  /** Canonical claim ID, or the declaration ID for claim-less declarations. */
+  key: string;
+  name: string;
+  host: boolean;
+  declared: DeclaredVm;
+  strict: boolean;
+  /** Claimed specifier when it is not the package name itself; null otherwise. */
+  specifier: string | null;
+  state: AnnotationVm;
+  /** Tag of the consumer's own registration — offered, never resolved. */
+  offered: AnnotationVm | null;
+  /** `select` payload for the /remotes cross-link. */
+  remoteSelect: string;
 }
 
 export interface PackageDetailVm {
@@ -157,17 +157,14 @@ export interface PackageDetailVm {
   scopeLabel: string | null;
   strictScope: boolean;
   parent: { packageName: string; packageId: string; rule: 'name-derived' } | null;
-  /** Canonical resolution counts of THIS (share scope, package) group. */
-  measures: ResolutionMeasuresVm;
-  /** Honest no-copy state: declared, but nothing resolves; null otherwise. */
-  resolutionNote: string | null;
-  negotiation: DetailVersionVm[];
-  copies: DetailCopyVm[];
-  /** Over the distinct resolved target URLs of this package's copies. */
-  integrity: { withIntegrity: number; mappedTargets: number };
-  chunks: ChunkSectionVm | null;
-  /** Why the chunk section is absent when `chunks` is null. */
-  chunksUnavailable: string | null;
+  /** Resolved-tag multiplicity header; null without a conflict. */
+  conflict: AnnotationVm | null;
+  /** Honest zero-copy line; null while blocks exist. */
+  noCopies: AnnotationVm | null;
+  blocks: CopyBlockVm[];
+  unresolved: UnresolvedRowVm[];
+  /** Muted divergence footer; empty renders nothing. */
+  diagnostics: AnnotationVm[];
 }
 
 const DISPOSITION_NOTES: Record<ResolvedCopySourceDisposition, string> = {
@@ -189,6 +186,8 @@ const ROLE_NOTES: Record<ResolvedCopyEffectiveRole, string> = {
   'private-own': 'a private registration’s own mapping',
   unclassified: 'no closed rule explains this copy',
 };
+
+const UNKNOWN_TAG_NOTE = 'no uniquely evidenced source tag for this copy';
 
 /**
  * Qualified source wording of one copy: explicit anchor when the copy
@@ -281,130 +280,70 @@ function copySourceVmOf(copy: ResolvedDependencyCopy, indexes: CanonicalIndexes)
   return vm;
 }
 
-/** State + arrow of one declaration from its canonical main claim. */
-function participantResolution(
-  declaration: ParticipantDeclaration,
-  registration: VersionRegistration,
-  claim: DeclarationResolutionClaim | null,
+/**
+ * Header disposition: `share-registration` reads as `shared`,
+ * `scope-registration` as `isolated` with its declarer audience; every other
+ * disposition stays a verbatim, visibly qualified deviation. Default roles
+ * fold into the note — they are rendered by other elements (`shared`/
+ * `isolated` themselves, the explicit-anchor qualifier, the consumers'
+ * self-filled chips) and must not render twice.
+ */
+function dispositionVmOf(
+  copy: ResolvedDependencyCopy,
+  group: PackageGroup,
   indexes: CanonicalIndexes,
-): { state: ParticipantStateVm | null; arrow: ParticipantArrow | null } {
-  if (claim === null) {
-    return {
-      state: {
-        label: 'declared',
-        note: 'declaration without entrypoint candidates — no resolution claim derivable',
-      },
-      arrow: null,
-    };
+  consumers: ConsumerRowVm[],
+): CopyDispositionVm {
+  const roleClauses = copy.effectiveRoles
+    .filter((role) => role !== 'unclassified')
+    .map((role) => `; ${role}: ${ROLE_NOTES[role]}`)
+    .join('');
+  const note = `${DISPOSITION_NOTES[copy.sourceDisposition]}${roleClauses}`;
+  if (copy.sourceDisposition === 'share-registration') {
+    return { label: 'shared', audience: null, note };
   }
-  const resolution: EffectiveConsumerResolution | undefined = indexes.resolutionById.get(
-    claim.effectiveResolutionId,
-  );
-  const copy = claim.copyId === null ? undefined : indexes.copyById.get(claim.copyId);
-  const targetFile = resolution?.status === 'mapped' ? targetFileName(resolution.targetUrl) : null;
-  const sourceRemote = copy === undefined ? null : copySourceRemote(copy, indexes);
+  if (copy.sourceDisposition === 'scope-registration') {
+    return { label: 'isolated', audience: audienceOf(copy, group, indexes, consumers), note };
+  }
+  return { label: copy.sourceDisposition, audience: null, note };
+}
 
-  switch (claim.mappingState) {
-    case 'own-selected':
-      return {
-        state: {
-          label: 'selected',
-          note: 'this declaration’s own candidate URL is the effective target of its consumer binding',
-        },
-        arrow: registration.action === 'scope' ? { kind: 'own' } : null,
-      };
-    case 'anchored': {
-      const anchor = declaration.servedBy;
-      const anchorDisplay = anchor === null ? 'unknown' : participantDisplay(anchor);
-      const self = anchor !== null && anchor === declaration.participant;
-      return {
-        state: {
-          label: 'anchored',
-          note: `explicit servedBy anchor: ${anchorDisplay} — the binding resolves through the anchor's copy`,
-        },
-        arrow: self
-          ? { kind: 'own' }
-          : targetFile === null
-            ? { kind: 'none', reason: 'anchored binding without a mapped target' }
-            : { kind: 'winner', target: targetFile, provider: anchorDisplay },
-      };
-    }
-    case 'self-filled':
-      return {
-        state: {
-          label: 'self-filled',
-          note: 'no applicable shared source — the consumer’s own copy fills the binding',
-        },
-        arrow: { kind: 'own' },
-      };
-    case 'fallback':
-      return {
-        state: null,
-        arrow:
-          targetFile === null
-            ? { kind: 'none', reason: 'binding without a mapped target' }
-            : {
-                kind: 'winner',
-                target: targetFile,
-                provider:
-                  sourceRemote === null ? 'unknown source' : participantDisplay(sourceRemote),
-              },
-      };
-    case 'not-selected':
-      return {
-        state: {
-          label: 'not selected',
-          note: 'declared, but the consumer binding resolves to another copy',
-        },
-        arrow:
-          targetFile === null
-            ? { kind: 'none', reason: 'binding without a mapped target' }
-            : {
-                kind: 'winner',
-                target: targetFile,
-                provider:
-                  sourceRemote === null ? 'unknown source' : participantDisplay(sourceRemote),
-              },
-      };
-    case 'blocked': {
-      const reason =
-        resolution?.status === 'blocked' ? resolution.blockedReason : 'blocked import-map entry';
-      return {
-        state: {
-          label: 'blocked',
-          note: `the matching import-map entry terminally blocks this binding (${reason})`,
-        },
-        arrow: { kind: 'none', reason: `blocked import-map entry (${reason})` },
-      };
-    }
-    case 'unknown': {
-      if (resolution?.status === 'unmapped') {
-        return {
-          state: {
-            label: 'not mapped',
-            note: 'no applicable import-map binding for this specifier in this capture',
-          },
-          arrow: { kind: 'none', reason: 'no import-map binding' },
-        };
-      }
-      if (resolution?.status === 'unknown') {
-        return {
-          state: {
-            label: 'unknown',
-            note: `required evidence missing: ${resolution.unknownReasons.join(', ')}`,
-          },
-          arrow: { kind: 'none', reason: 'required evidence missing' },
-        };
-      }
-      return {
-        state: {
-          label: 'unknown',
-          note: 'mapping state not derivable from the captured evidence',
-        },
-        arrow: null,
-      };
-    }
+/**
+ * Audience of an isolated copy: the scope registration's own declarers,
+ * checked against the block's ACTUAL consumer rows. Canonical copies can be
+ * `isolated-own` and `anchor-source` at once — as soon as a consumer beyond
+ * the declarers resolves to the copy, claiming "mapped only for X" would be
+ * false, so the "only" drops and the note says why.
+ */
+function audienceOf(
+  copy: ResolvedDependencyCopy,
+  group: PackageGroup,
+  indexes: CanonicalIndexes,
+  consumers: ConsumerRowVm[],
+): AnnotationVm | null {
+  if (copy.source.kind !== 'shared-declaration') {
+    return null;
   }
+  const declaration = indexes.declarationById.get(copy.source.declarationId);
+  if (declaration === undefined) {
+    return null;
+  }
+  const registration = group.registrations.find(
+    ({ registration: candidate }) => candidate.id === declaration.versionRegistrationId,
+  );
+  const declarers = registration?.declarations ?? [declaration];
+  const declarerNames = new Set(declarers.map((declarer) => declarer.participant));
+  const audience = declarers.map((declarer) => participantDisplay(declarer.participant)).join(', ');
+  const external = consumers.some((consumer) => !declarerNames.has(consumer.remoteSelect));
+  return external
+    ? {
+        label: `mapped for ${audience}`,
+        note: 'the scope registration’s own declarers — consumers beyond them also resolve to this copy in this capture',
+      }
+    : {
+        label: `mapped only for ${audience}`,
+        note: 'the scope registration’s own declarers — the isolated copy is mapped for them alone',
+      };
 }
 
 /** Kit declared-version — strict-scope rows render the exact tag, never a range. */
@@ -412,64 +351,218 @@ function declaredOf(
   declaration: ParticipantDeclaration,
   registration: VersionRegistration,
   scope: string,
-): DeclaredVersion {
+): DeclaredVm {
   return scope === STRICT_SCOPE
-    ? { kind: 'pinned', tag: registration.tag }
-    : { kind: 'range', range: declaration.requiredVersion };
+    ? { text: registration.tag, pinned: true }
+    : { text: declaration.requiredVersion, pinned: false };
 }
 
-function negotiationOf(group: PackageGroup, indexes: CanonicalIndexes): DetailVersionVm[] {
-  return group.registrations.map(({ registration, declarations }) => ({
-    registrationId: registration.id,
-    symbol: ACTION_SYMBOLS[registration.action] ?? '·',
-    tag: registration.tag,
-    action: registration.action,
-    actionNote:
-      ACTION_NOTES[registration.action] ??
-      `registry action recorded verbatim: ${registration.rawAction}`,
-    isolated:
-      registration.action === 'scope'
-        ? {
-            audience: declarations
-              .map((declaration) => participantDisplay(declaration.participant))
-              .join(', '),
-          }
-        : null,
-    participants: declarations.map((declaration) => {
-      const claims = indexes.claimsByDeclaration.get(declaration.id) ?? [];
-      const claim = mainClaimOf(declaration, group.packageName, indexes);
-      const { state, arrow } = participantResolution(declaration, registration, claim, indexes);
-      // Every further specifier claim of the declaration stays visible with
-      // its own state — a blocked or unmapped secondary entrypoint must not
-      // vanish behind the main specifier's claim.
-      const otherClaims = claims
-        .filter((candidate) => candidate !== claim)
-        .map((candidate) => {
-          const line = participantResolution(declaration, registration, candidate, indexes);
-          return {
-            claimId: candidate.id,
-            specifier: candidate.specifier,
-            state: line.state,
-            target: line.arrow?.kind === 'winner' ? line.arrow.target : null,
-          };
-        });
-      return {
+/**
+ * Deviation annotations of one consumer row from its claims' mapping states
+ * and the consumer's own registration action. The happy path (selected share
+ * declaration) contributes nothing; skip consumers say what they skipped,
+ * scope consumers that they kept their own copy.
+ */
+function consumerDeviationsOf(
+  declaration: ParticipantDeclaration,
+  registration: VersionRegistration,
+  claims: DeclarationResolutionClaim[],
+): AnnotationVm[] {
+  const states = new Set(claims.map((claim) => claim.mappingState));
+  const deviations: AnnotationVm[] = [];
+  if (states.has('anchored')) {
+    const anchor = declaration.servedBy;
+    const anchorDisplay = anchor === null ? 'unknown' : participantDisplay(anchor);
+    deviations.push({
+      label: 'anchored',
+      note: `explicit servedBy anchor: ${anchorDisplay} — the binding resolves through the anchor's copy`,
+    });
+  }
+  if (states.has('self-filled')) {
+    deviations.push({
+      label: 'self-filled',
+      note: 'no applicable shared source — the consumer’s own copy fills the binding',
+    });
+  }
+  if (states.has('own-selected') && registration.action === 'scope') {
+    deviations.push({
+      label: 'kept own copy',
+      note: 'registered with action scope — keeps its own copy, mapped only for its own declarers',
+    });
+  }
+  if (registration.action === 'skip' && (states.has('fallback') || states.has('not-selected'))) {
+    deviations.push({
+      label: `skipped own ${registration.tag}`,
+      note: `own copy ${registration.tag} is registered with action skip — the consumer resolves to the elected copy`,
+    });
+  } else if (states.has('not-selected')) {
+    deviations.push({
+      label: 'not selected',
+      note: 'the consumer’s own candidate is not the effective target — its binding resolves to this copy',
+    });
+  }
+  return deviations;
+}
+
+/** Bucket state of one claim that resolves nowhere (grounded, honest). */
+function unresolvedStateOf(
+  claim: DeclarationResolutionClaim,
+  indexes: CanonicalIndexes,
+): AnnotationVm {
+  const resolution = indexes.resolutionById.get(claim.effectiveResolutionId);
+  if (resolution?.status === 'unmapped') {
+    return {
+      label: 'not mapped',
+      note: 'no applicable import-map binding for this specifier in this capture',
+    };
+  }
+  if (resolution?.status === 'blocked') {
+    return {
+      label: 'blocked',
+      note: `the matching import-map entry terminally blocks this binding (${resolution.blockedReason})`,
+    };
+  }
+  if (resolution?.status === 'unknown') {
+    return {
+      label: 'unknown',
+      note: `required evidence missing: ${resolution.unknownReasons.join(', ')}`,
+    };
+  }
+  return {
+    label: 'unknown',
+    note: 'mapping state not derivable from the captured evidence',
+  };
+}
+
+/**
+ * Offered tag of one unresolved entry. The note is scoped to THAT entry —
+ * the same registration's tag can legitimately resolve through another
+ * claim (multi-entrypoint declarations), so it never claims capture-wide
+ * absence.
+ */
+function offeredOf(registration: VersionRegistration, note: string): AnnotationVm {
+  return { label: `offered ${registration.tag}`, note };
+}
+
+interface GroupedClaims {
+  registration: VersionRegistration;
+  declaration: ParticipantDeclaration;
+  claims: DeclarationResolutionClaim[];
+}
+
+/**
+ * Consumer rows of one copy: this group's declarations whose claims resolve
+ * to it, reconciled against the canonical `ConsumerCopyRelation`s — a
+ * consumer declaring under ANOTHER registry package (cross-package
+ * convergence) still resolves to the copy, counts as involvement, and must
+ * not disappear from the block. Such rows carry a `declared under X`
+ * annotation instead of silently posing as local declarers.
+ */
+function consumersOf(
+  copy: ResolvedDependencyCopy,
+  group: PackageGroup,
+  rows: GroupedClaims[],
+  indexes: CanonicalIndexes,
+): ConsumerRowVm[] {
+  const consumers: ConsumerRowVm[] = [];
+  const groupDeclarationIds = new Set(rows.map((row) => row.declaration.id));
+  for (const { registration, declaration, claims } of rows) {
+    const copyClaims = claims.filter((claim) => claim.copyId === copy.id);
+    if (copyClaims.length === 0) {
+      continue;
+    }
+    const specifiers = copyClaims.map((claim) => claim.specifier);
+    consumers.push({
+      declarationId: declaration.id,
+      name: participantDisplay(declaration.participant),
+      host: isHostRemote(declaration.participant),
+      declared: declaredOf(declaration, registration, group.scope),
+      strict: declaration.strictVersion,
+      deviations: consumerDeviationsOf(declaration, registration, copyClaims),
+      viaSpecifiers: specifiers.includes(group.packageName) ? [] : specifiers,
+      remoteSelect: declaration.participant,
+    });
+  }
+
+  // Claims of the copy's relations whose subject is NOT one of this group's
+  // declarations, grouped per subject record (one row per foreign subject).
+  const foreignBySubject = new Map<string, DeclarationResolutionClaim[]>();
+  for (const relation of indexes.relationsByCopy.get(copy.id) ?? []) {
+    for (const claimId of relation.claimIds) {
+      const claim = indexes.claimById.get(claimId);
+      if (claim === undefined) {
+        continue;
+      }
+      if (
+        claim.subject.kind === 'shared' &&
+        groupDeclarationIds.has(claim.subject.participantDeclarationId)
+      ) {
+        continue;
+      }
+      const subjectId: string =
+        claim.subject.kind === 'shared'
+          ? claim.subject.participantDeclarationId
+          : claim.subject.privateRegistrationId;
+      foreignBySubject.set(subjectId, [...(foreignBySubject.get(subjectId) ?? []), claim]);
+    }
+  }
+  for (const claims of foreignBySubject.values()) {
+    const subject = claims[0].subject;
+    const declaredUnder: AnnotationVm = {
+      label: `declared under ${claims[0].consumerRegistryPackage}`,
+      note:
+        subject.kind === 'shared'
+          ? 'this consumer declares the specifier under another registry package — its binding still resolves to this copy'
+          : 'this consumer’s private (scoped) registration resolves to this copy',
+    };
+    if (subject.kind === 'shared') {
+      const declaration = indexes.declarationById.get(subject.participantDeclarationId);
+      const registration =
+        declaration === undefined
+          ? undefined
+          : indexes.registrationById.get(declaration.versionRegistrationId);
+      if (declaration === undefined || registration === undefined) {
+        continue;
+      }
+      const scope =
+        indexes.sharedExternalById.get(registration.sharedExternalId)?.shareScope ?? group.scope;
+      consumers.push({
         declarationId: declaration.id,
-        name: declaration.participant,
+        name: participantDisplay(declaration.participant),
         host: isHostRemote(declaration.participant),
-        declared: declaredOf(declaration, registration, group.scope),
+        declared: declaredOf(declaration, registration, scope),
         strict: declaration.strictVersion,
-        state,
-        arrow,
-        otherClaims,
+        deviations: [declaredUnder, ...consumerDeviationsOf(declaration, registration, claims)],
+        viaSpecifiers: [],
         remoteSelect: declaration.participant,
-      };
-    }),
-  }));
+      });
+    } else {
+      const registration = indexes.privateRegistrationById.get(subject.privateRegistrationId);
+      if (registration === undefined) {
+        continue;
+      }
+      consumers.push({
+        declarationId: registration.id,
+        name: participantDisplay(registration.ownerRemote),
+        host: isHostRemote(registration.ownerRemote),
+        declared: { text: registration.tag, pinned: false },
+        strict: false,
+        deviations: [declaredUnder],
+        viaSpecifiers: [],
+        remoteSelect: registration.ownerRemote,
+      });
+    }
+  }
+  return consumers;
 }
 
-function copiesOf(group: PackageGroup, indexes: CanonicalIndexes): DetailCopyVm[] {
-  return group.copies.map((copy) => {
+/** Blocks in elected-first order: shared-elected copies lead, store order within. */
+function blocksOf(
+  group: PackageGroup,
+  indexes: CanonicalIndexes,
+  rows: GroupedClaims[],
+): CopyBlockVm[] {
+  const blockOf = (copy: ResolvedDependencyCopy): CopyBlockVm => {
     const integrityByTarget = new Map<string, boolean>();
     for (const resolutionId of copy.effectiveResolutionIds) {
       const resolution = indexes.resolutionById.get(resolutionId);
@@ -477,24 +570,32 @@ function copiesOf(group: PackageGroup, indexes: CanonicalIndexes): DetailCopyVm[
         integrityByTarget.set(resolution.targetUrl, resolution.hasIntegrity);
       }
     }
+    const source = copySourceVmOf(copy, indexes);
+    const consumers = consumersOf(copy, group, rows, indexes);
     return {
       copyId: copy.id,
       resolvedTag: copy.resolvedTag,
-      source: copySourceVmOf(copy, indexes),
-      disposition: {
-        label: copy.sourceDisposition,
-        note: DISPOSITION_NOTES[copy.sourceDisposition],
-      },
-      roles: copy.effectiveRoles.map((role) => ({ label: role, note: ROLE_NOTES[role] })),
-      entrypoints: Object.entries(copy.entrypoints).map(([specifier, targetUrl]) => ({
+      unknownTagNote: copy.resolvedTag === null ? UNKNOWN_TAG_NOTE : null,
+      source,
+      disposition: dispositionVmOf(copy, group, indexes, consumers),
+      deviations: copy.effectiveRoles
+        .filter((role) => role === 'unclassified')
+        .map((role) => ({ label: role, note: ROLE_NOTES[role] })),
+      files: Object.entries(copy.entrypoints).map(([specifier, targetUrl]) => ({
         specifier,
+        showSpecifier: specifier !== group.packageName,
         file: targetFileName(targetUrl),
         targetUrl,
         hasIntegrity: integrityByTarget.get(targetUrl) ?? false,
         importMapSelect: specifier,
       })),
+      consumers,
+      chunks: buildCopyChunkClaims(copy, indexes, source.remoteSelect),
     };
-  });
+  };
+  const elected = group.copies.filter((copy) => copy.effectiveRoles.includes('ordinary-shared'));
+  const others = group.copies.filter((copy) => !elected.includes(copy));
+  return [...elected, ...others].map(blockOf);
 }
 
 export function buildDetail(
@@ -508,41 +609,89 @@ export function buildDetail(
   }
   const byId = new Map(groups.map((g) => [g.id, g]));
   const parent = parentOf(group, byId);
-  const declarationCount = group.registrations.reduce(
-    (sum, { declarations }) => sum + declarations.length,
-    0,
-  );
-  // The four counts are SCOPE-specific: they count this group's canonical
-  // records (the group already applies the `packageMeasures` attribution
-  // rules), so a package name registered in several share scopes never
-  // shows another scope's sums.
-  const measures: ResolutionMeasuresVm = {
-    registrations: group.registrations.length,
-    declaredTags: new Set(group.registrations.map(({ registration }) => registration.tag)).size,
-    resolvedCopies: group.copies.length,
-    resolvedTags: group.resolvedTags.length,
-    unknownTagCopies: group.unknownTagCopyCount,
-    declarations: declarationCount,
-  };
-  const resolutionNote =
-    group.copies.length === 0 && declarationCount > 0 ? noCopyNoteOf(group, indexes) : null;
 
-  const copies = copiesOf(group, indexes);
-  const targets = new Map<string, boolean>();
-  for (const copy of copies) {
-    for (const entrypoint of copy.entrypoints) {
-      targets.set(
-        entrypoint.targetUrl,
-        (targets.get(entrypoint.targetUrl) ?? false) || entrypoint.hasIntegrity,
-      );
+  // Every (registration, declaration) with its claims, registry order — the
+  // one spine consumer rows, the bucket, and the diagnostics all read from.
+  const rows: GroupedClaims[] = group.registrations.flatMap(({ registration, declarations }) =>
+    declarations.map((declaration) => ({
+      registration,
+      declaration,
+      claims: indexes.claimsByDeclaration.get(declaration.id) ?? [],
+    })),
+  );
+  const groupCopyIds = new Set(group.copies.map((copy) => copy.id));
+
+  const unresolved: UnresolvedRowVm[] = [];
+  const diagnostics: AnnotationVm[] = [];
+  for (const { registration, declaration, claims } of rows) {
+    const base = {
+      name: participantDisplay(declaration.participant),
+      host: isHostRemote(declaration.participant),
+      declared: declaredOf(declaration, registration, group.scope),
+      strict: declaration.strictVersion,
+      remoteSelect: declaration.participant,
+    };
+    if (claims.length === 0) {
+      unresolved.push({
+        ...base,
+        key: declaration.id,
+        specifier: null,
+        state: {
+          label: 'declared',
+          note: 'declaration without entrypoint candidates — no resolution claim derivable',
+        },
+        offered: offeredOf(
+          registration,
+          'the tag of the consumer’s own version registration — no resolution claim is derivable for this declaration',
+        ),
+      });
+      continue;
+    }
+    for (const claim of claims) {
+      if (claim.copyId === null) {
+        unresolved.push({
+          ...base,
+          key: claim.id,
+          specifier: claim.specifier === group.packageName ? null : claim.specifier,
+          state: unresolvedStateOf(claim, indexes),
+          offered: offeredOf(
+            registration,
+            'the tag of the consumer’s own version registration — this claim’s binding does not resolve in this capture',
+          ),
+        });
+      } else if (!groupCopyIds.has(claim.copyId)) {
+        // Mapped, but to another package's copy — a divergence, not an
+        // unresolved claim: the footer says so instead of the bucket lying.
+        const copy = indexes.copyById.get(claim.copyId);
+        const resolution = indexes.resolutionById.get(claim.effectiveResolutionId);
+        const target =
+          resolution?.status === 'mapped' ? targetFileName(resolution.targetUrl) : 'a target';
+        diagnostics.push({
+          label: `${base.name} resolves ${claim.specifier} to a copy of another package`,
+          note: `the claim's mapped binding materializes ${target} attributed to ${
+            copy?.sourcePackage ?? 'no evidenced source package'
+          } — no copy of this package is involved`,
+        });
+      }
     }
   }
-  const integrity = {
-    mappedTargets: targets.size,
-    withIntegrity: [...targets.values()].filter(Boolean).length,
-  };
 
-  const { chunks, chunksUnavailable } = buildChunkSection(group, indexes);
+  if (group.unknownTagCopyCount > 0) {
+    diagnostics.push({
+      label: `unknown tags: ${group.unknownTagCopyCount}`,
+      note: `${group.unknownTagCopyCount} ${
+        group.unknownTagCopyCount === 1 ? 'copy' : 'copies'
+      } without a uniquely evidenced source tag`,
+    });
+  }
+  for (const { registration, declarations } of group.registrations) {
+    if (declarations.length === 0) {
+      diagnostics.push({
+        label: `offered ${registration.tag} — no participant declarations recorded`,
+        note: 'this version registration lists no participants; nothing can consume it in this capture',
+      });
+    }
+  }
 
   return {
     packageId: group.id,
@@ -559,12 +708,18 @@ export function buildDetail(
             packageId: parent.id,
             rule: 'name-derived',
           },
-    measures,
-    resolutionNote,
-    negotiation: negotiationOf(group, indexes),
-    copies,
-    integrity,
-    chunks,
-    chunksUnavailable,
+    conflict: group.multiVersion
+      ? {
+          label: `⚠ ${group.resolvedTags.length} resolved versions`,
+          note: 'more than one distinct version resolves in this share scope (rule: resolved-tag-multiplicity)',
+        }
+      : null,
+    noCopies:
+      group.copies.length === 0 && rows.length > 0
+        ? { label: 'no resolved copies in this capture', note: noCopyNoteOf(group, indexes) }
+        : null,
+    blocks: blocksOf(group, indexes, rows),
+    unresolved,
+    diagnostics,
   };
 }

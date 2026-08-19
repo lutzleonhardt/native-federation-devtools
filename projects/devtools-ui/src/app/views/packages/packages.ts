@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 
 import { MasterDetail } from '../../shared/kit/master-detail';
@@ -12,11 +13,11 @@ import { PackageRowVm, PackagesFilter, PackagesVm, buildPackagesVm } from './pac
  * Packages tab — the V2 default view: which copies a package actually
  * resolves to, and what every declaration's claim says about it. Dumb
  * component over the pure `buildPackagesVm` builder reading the canonical
- * Store façade; the left list is a flat leaf list (negotiation structure
- * lives in the detail pane, rendered by `nf-package-detail`), filter and
- * selection are view-owned UI state, never store state. The `select` query
- * param seeds the initial selection (cross-link convention, see
- * `app.routes.ts`).
+ * Store façade; the left list is a flat leaf list (the copy blocks live in
+ * the detail pane, rendered by `nf-package-detail`), the two combinable
+ * filters (All/Conflicts × single-select participant) and the selection are
+ * view-owned UI state, never store state. The `select` query param seeds
+ * the initial selection (cross-link convention, see `app.routes.ts`).
  */
 @Component({
   selector: 'nf-packages-view',
@@ -27,11 +28,25 @@ import { PackageRowVm, PackagesFilter, PackagesVm, buildPackagesVm } from './pac
 })
 export class PackagesView {
   private readonly store = inject(FederationStore);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly filter = signal<PackagesFilter>('all');
+  protected readonly selectedParticipant = signal<string | null>(null);
   protected readonly selectedId = signal<string | null>(
-    inject(ActivatedRoute).snapshot.queryParamMap.get('select'),
+    this.route.snapshot.queryParamMap.get('select'),
   );
+
+  constructor() {
+    // The parent cross-link navigates WITHIN /packages, where the router
+    // reuses this component — the selection must follow later query-param
+    // emissions, not only the creation snapshot.
+    this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
+      const select = params.get('select');
+      if (select !== null) {
+        this.selectedId.set(select);
+      }
+    });
+  }
 
   protected readonly vm = computed<PackagesVm | null>(() => {
     const model = this.store.model();
@@ -40,6 +55,7 @@ export class PackagesView {
     }
     return buildPackagesVm(model, {
       filter: this.filter(),
+      selectedParticipant: this.selectedParticipant(),
       selectedId: this.selectedId(),
     });
   });
@@ -48,9 +64,9 @@ export class PackagesView {
     this.filter.set(filter);
   }
 
-  /** Tooltip for the collapsed source count (>3 sources). */
-  protected sourceNames(row: PackageRowVm): string {
-    return row.sources.map((source) => (source.host ? 'host' : source.name)).join(', ');
+  /** Single-select participant chip: click = on, again = off, other = switch. */
+  protected toggleParticipant(name: string): void {
+    this.selectedParticipant.update((current) => (current === name ? null : name));
   }
 
   protected onSelect(row: TreeTableRow): void {

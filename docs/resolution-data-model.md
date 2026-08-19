@@ -1,8 +1,9 @@
 # Resolution data model
 
 This is the maintained model documentation of the DevTools resolution
-pipeline: first the big picture, then the five detailed class-diagram views
-of the store model. The normative contract behind it is
+pipeline: first the big picture and the view-model boundary beneath it, then
+the five detailed class-diagram views of the store model. The normative
+contract behind it is
 [the resolution-model specification](specs/native-federation-resolution-model.md);
 this document describes what the code implements today.
 
@@ -60,6 +61,35 @@ flowchart LR
 One boundary holds everywhere: the model proves what the captured import map
 **resolves** — never that the browser requested, downloaded, cached, or
 executed anything.
+
+## The view-model boundary
+
+The projection is the model's publication format, not a render format: flat,
+normalized collections that reference each other only by canonical ID, and
+deliberately pivot-neutral. Each view therefore keeps one thin, pure
+view-model builder (for example `buildPackagesVm`) between the projection and
+its template. That layer exists for exactly two jobs:
+
+- **Joining and pivoting.** Templates cannot join by ID. The builder indexes
+  the three read surfaces once (`resolutionProjection`,
+  `effectiveConsumerResolutions`, `registryEvidence`) and folds them into the
+  view's shape: Packages pivots the consumer → copy → chunk spine on the
+  package, Remotes pivots it on the consumer, Import Map on the map entries,
+  a future graph on all edges. Because several presentations read the one
+  truth, the projection must stay pivot-neutral — baking any render shape
+  into it would color canonical evidence with UI decisions.
+- **Presentation judgements.** Display vocabulary and wording
+  (`skipped own 1.0.0`, `mapped only for X`), deviation-first choices (what
+  is a chip, what is a tooltip), ordering (elected copy first), and view-level
+  indicators such as the resolved-tag-multiplicity glyph are view decisions,
+  not domain facts — the actual conflict judgement belongs to diagnostics.
+
+The boundary rule is strict in both directions and testable: a view-model
+builder **groups and labels precomputed knowledge — it derives nothing new**.
+It never computes winners, copy counts, roles, or chunk ownership; every
+field it emits chains to a canonical ID, and the builders are pure functions
+pinned by tests without a DOM. If a builder needs a fact the projection does
+not state, the fact belongs in the model — not in the view.
 
 ## The model in five views
 

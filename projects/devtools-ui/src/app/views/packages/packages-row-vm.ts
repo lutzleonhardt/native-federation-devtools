@@ -1,15 +1,15 @@
 /**
  * Row half of the Packages vm builder — the FLAT leaf list: one row per
  * (share scope, package), linked subpath packages indented one level under
- * their parent (no expansion; negotiation structure lives in the detail
- * pane).
+ * their parent (no expansion; the copy blocks live in the detail pane).
  *
- * Version doctrine (T7): the row lists the RESOLVED tags of the group's
- * canonical copies — requested (declared) versions never mix in. A tag whose
- * copies carry the `ordinary-shared` role leads; other resolved tags render
- * muted with their own-copy claim. The multiplicity indicator counts the
- * same set (distinct resolved tags), so row and indicator can never
- * diverge; copy multiplicity with one resolved tag is never flagged.
+ * Version doctrine (T7, presentation reduced by T7.5): the row is package
+ * name plus RESOLVED tags only — requested (declared) versions never mix in,
+ * participant chips live in the filter, not on rows. A tag whose copies
+ * carry the `ordinary-shared` role leads; other resolved tags render muted
+ * with their own-copy claim. The conflict glyph counts the same set
+ * (distinct resolved tags), so row and indicator can never diverge; copy
+ * multiplicity with one resolved tag is never flagged.
  */
 import type { TreeTableRow } from '../../shared/kit/tree-table';
 import type { ResolvedDependencyCopy } from '../../shared/store/resolution';
@@ -18,7 +18,6 @@ import {
   GLOBAL_SCOPE,
   PackageGroup,
   copySourceRemote,
-  isHostRemote,
   noCopyNoteOf,
   parentOf,
   participantDisplay,
@@ -53,17 +52,10 @@ export interface PackageRowVm {
   unknownTagged: { count: number; note: string } | null;
   /** Honest empty state of the versions cell; null while copies exist. */
   noCopy: { label: string; note: string } | null;
+  /** Resolved-tag multiplicity glyph; the rule stays in the tooltip. */
   conflict: { label: string; note: string } | null;
   /** Present on subpath rows rendered under their parent package (tooltip data). */
   linked: { parentPackage: string; rule: 'name-derived' } | null;
-  /** Remotes whose evidenced source records the group's copies materialize. */
-  sources: { name: string; host: boolean }[];
-  /**
-   * Consumers whose bindings resolve to the group's copies without sourcing
-   * one — rendered as "+n" with names and claim mapping states in the
-   * tooltip. Null when every consumer sources a copy.
-   */
-  alsoResolvedBy: { count: number; tooltip: string } | null;
 }
 
 /** Own-copy claim of one muted resolved tag, from its copies' sources. */
@@ -110,39 +102,6 @@ function packageRowOf(
   indexes: CanonicalIndexes,
   linked: { parentPackage: string } | null,
 ): PackageRowVm {
-  // Sources = remotes whose evidenced records materialize the group's
-  // copies; consumers that only resolve here collapse to "+n".
-  const sources: { name: string; host: boolean }[] = [];
-  const sourceNames = new Set<string>();
-  for (const copy of group.copies) {
-    const source = copySourceRemote(copy, indexes);
-    if (source !== null && !sourceNames.has(source)) {
-      sourceNames.add(source);
-      sources.push({ name: source, host: isHostRemote(source) });
-    }
-  }
-  const consumerStates = new Map<string, Set<string>>();
-  for (const copy of group.copies) {
-    for (const relation of indexes.relationsByCopy.get(copy.id) ?? []) {
-      if (sourceNames.has(relation.consumerRemote)) {
-        continue;
-      }
-      const states = consumerStates.get(relation.consumerRemote) ?? new Set<string>();
-      for (const state of relation.mappingStates) {
-        states.add(state);
-      }
-      consumerStates.set(relation.consumerRemote, states);
-    }
-  }
-  const alsoResolvedBy =
-    consumerStates.size > 0
-      ? {
-          count: consumerStates.size,
-          tooltip: `also resolves here: ${[...consumerStates.entries()]
-            .map(([name, states]) => `${participantDisplay(name)} (${[...states].join('/')})`)
-            .join(', ')}`,
-        }
-      : null;
   return {
     kind: 'package',
     packageId: group.id,
@@ -161,18 +120,14 @@ function packageRowOf(
           }
         : null,
     noCopy:
-      group.copies.length === 0
-        ? { label: 'no resolved copies', note: noCopyNoteOf(group, indexes) }
-        : null,
+      group.copies.length === 0 ? { label: 'no copy', note: noCopyNoteOf(group, indexes) } : null,
     conflict: group.multiVersion
       ? {
-          label: `⚠ ${group.resolvedTags.length} resolved versions`,
-          note: 'more than one distinct version resolves in this share scope (rule: resolved-tag-multiplicity)',
+          label: '⚠',
+          note: `${group.resolvedTags.length} resolved versions — rule: resolved-tag-multiplicity`,
         }
       : null,
     linked: linked ? { parentPackage: linked.parentPackage, rule: 'name-derived' } : null,
-    sources,
-    alsoResolvedBy,
   };
 }
 

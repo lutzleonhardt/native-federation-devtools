@@ -22,6 +22,22 @@
           Conflicts ({{ vm.conflictCount }})
         </button>
       </div>
+      @if (vm.participants.length > 0) {
+        <div class="participant-filter" role="group" aria-label="filter by participant">
+          @for (participant of vm.participants; track participant.name) {
+            <button
+              type="button"
+              class="participant-toggle"
+              [class.active]="selectedParticipant() === participant.name"
+              [attr.aria-pressed]="selectedParticipant() === participant.name"
+              title="show only packages this participant is involved in — combines with the status filter"
+              (click)="toggleParticipant(participant.name)"
+            >
+              <nf-participant-chip [name]="participant.name" [host]="participant.host" />
+            </button>
+          }
+        </div>
+      }
       <ul class="scopes-summary" aria-label="share scopes">
         @for (scope of vm.scopes; track scope.scope) {
           <li class="scope-item">
@@ -71,6 +87,11 @@
                 >{{ payload.scopeLabel }}</span
               >
             }
+            @if (payload.conflict) {
+              <span class="pkg-conflict tip" [title]="payload.conflict.note">{{
+                payload.conflict.label
+              }}</span>
+            }
             <span class="pkg-versions">
               @for (version of payload.versions; track version.tag) {
                 <span
@@ -86,25 +107,6 @@
               }
               @if (payload.noCopy; as noCopy) {
                 <span class="pkg-no-copy tip" [title]="noCopy.note">{{ noCopy.label }}</span>
-              }
-            </span>
-            @if (payload.conflict) {
-              <span class="pkg-conflict" [title]="payload.conflict.note">{{
-                payload.conflict.label
-              }}</span>
-            }
-            <span class="pkg-tail">
-              @if (payload.sources.length <= 3) {
-                @for (source of payload.sources; track source.name) {
-                  <nf-participant-chip [name]="source.name" [host]="source.host" />
-                }
-              } @else {
-                <span class="pkg-declarers tip" [title]="sourceNames(payload)"
-                  >{{ payload.sources.length }} sources</span
-                >
-              }
-              @if (payload.alsoResolvedBy; as also) {
-                <span class="pkg-count tip" [title]="also.tooltip">+{{ also.count }}</span>
               }
             </span>
           </ng-template>

@@ -5,26 +5,20 @@
  * caller-owned UI state; the output is render-ready only: templates consume
  * these rows, never store types (T7-AC-05).
  *
- * This file is the FACADE: grouping, scopes summary, and the public
- * surface. The two halves live beside it — `packages-row-vm.ts` (flat leaf
- * list, resolved-tag versions, multiplicity indicator) and
- * `packages-detail-vm.ts` (measures, negotiation, resolved copies, chunks
- * via `packages-chunk-vm.ts`); shared internals in `packages-vm-shared.ts`.
- * Views import from here only.
+ * This file is the FACADE: grouping, scopes summary, the two combinable
+ * filters (status × participant), and the public surface. The halves live
+ * beside it — `packages-row-vm.ts` (flat leaf list, resolved-tag versions,
+ * conflict glyph) and `packages-detail-vm.ts` (copy blocks, unresolved
+ * bucket, diagnostics footer; chunks via `packages-chunk-vm.ts`); shared
+ * internals in `packages-vm-shared.ts`. Views import from here only.
  *
- * Presentation doctrine (T10.5 flat list, model inputs recast by T7):
- * - The left list is FLAT: one leaf row per (share scope, package),
- *   secondaries indented under their parent; negotiation structure lives in
- *   the detail pane.
- * - Row versions are the RESOLVED tags of the group's canonical copies;
- *   requested (declared) versions render separately in the negotiation.
- *   The multiplicity indicator counts the same set — distinct resolved
- *   tags — so row and indicator can never diverge; copy multiplicity with
- *   one resolved tag is never flagged.
- * - Every claim is qualified: selected/not-selected/anchored states stay
- *   visible, source wording is qualified (registry slot, explicit anchor,
- *   exact/observed target source, unknown), and reasons ride along as
- *   tooltip data.
+ * Presentation doctrine (T7.5 redesign over the T7 model):
+ * - The left list is FLAT and minimal: package name + resolved tags;
+ *   participant chips live in the filter, the copy blocks in the detail.
+ * - The participant filter is single-select (`selectedParticipant`) and
+ *   combines with the Conflicts filter (Conflicts ∧ participant).
+ * - Deviation-first: every claim stays visible and grounded, but the happy
+ *   path renders almost nothing.
  *
  * The builder groups and flattens precomputed knowledge — it derives
  * nothing new.
@@ -40,27 +34,34 @@ import {
   PackageGroup,
   buildCanonicalIndexes,
   copyGroupIds,
+  involvedParticipantsOf,
+  isHostRemote,
   multiVersionOf,
   packageId,
+  participantDisplay,
 } from './packages-vm-shared';
 
 export { packageId } from './packages-vm-shared';
-export { NEGOTIATION_LEGEND } from './packages-detail-vm';
 export type { PackageRowVm, RowVersionVm } from './packages-row-vm';
 export type {
-  DetailCopyVm,
-  DetailParticipantVm,
-  DetailVersionVm,
+  AnnotationVm,
+  ConsumerRowVm,
+  CopyBlockVm,
+  CopyFileVm,
+  CopySourceVm,
+  DeclaredVm,
   PackageDetailVm,
-  ResolutionMeasuresVm,
+  UnresolvedRowVm,
 } from './packages-detail-vm';
-export type { ChunkClaimVm, ChunkSectionVm } from './packages-chunk-vm';
+export type { ChunkClaimVm } from './packages-chunk-vm';
 
 export type PackagesFilter = 'all' | 'conflicts';
 
-/** Caller-owned UI state — filter and selection live in the view. */
+/** Caller-owned UI state — filters and selection live in the view. */
 export interface PackagesUiState {
   filter: PackagesFilter;
+  /** Raw participant name; null shows every package (single-select chips). */
+  selectedParticipant: string | null;
   /** Package id, seeded from the `select` query param (`<scope>|<pkg>`). */
   selectedId: string | null;
 }
@@ -73,10 +74,19 @@ export interface ScopeSummaryVm {
   packageCount: number;
 }
 
+/** One participant-filter chip; `name` is the raw select value. */
+export interface ParticipantChipVm {
+  name: string;
+  host: boolean;
+}
+
 export interface PackagesVm {
   scopes: ScopeSummaryVm[];
+  /** Packages within the current participant selection. */
   packageCount: number;
   conflictCount: number;
+  /** Every participant involved anywhere in the capture — host first. */
+  participants: ParticipantChipVm[];
   rows: TreeTableRow<PackageRowVm>[];
   detail: PackageDetailVm | null;
   /** Honest empty note; null while the tree has rows. */
@@ -87,19 +97,61 @@ export function buildPackagesVm(model: FederationModel, ui: PackagesUiState): Pa
   const indexes = buildCanonicalIndexes(model);
   const groups = groupPackages(model, indexes);
   const scopes = summarizeScopes(groups);
-  const conflictCount = groups.filter((group) => group.multiVersion).length;
 
-  const rows = buildRows(groups, indexes, ui.filter === 'conflicts');
+  const involvement = new Map(
+    groups.map((group) => [group.id, involvedParticipantsOf(group, indexes)]),
+  );
+  const participants = participantChips(groups, involvement);
+  const selected = ui.selectedParticipant;
+  const visibleGroups =
+    selected === null ? groups : groups.filter((group) => involvement.get(group.id)!.has(selected));
+  const conflictCount = visibleGroups.filter((group) => group.multiVersion).length;
+
+  const rows = buildRows(visibleGroups, indexes, ui.filter === 'conflicts');
   const detail = buildDetail(groups, indexes, ui.selectedId);
 
   let emptyNote: string | null = null;
   if (groups.length === 0) {
     emptyNote = 'no shared packages in this capture';
   } else if (rows.length === 0) {
-    emptyNote = 'no version conflicts in this capture';
+    const who = selected === null ? null : participantDisplay(selected);
+    if (ui.filter === 'conflicts') {
+      emptyNote =
+        who === null
+          ? 'no version conflicts in this capture'
+          : `no version conflicts involve ${who} in this capture`;
+    } else {
+      emptyNote = `no packages involve ${who} in this capture`;
+    }
   }
 
-  return { scopes, packageCount: groups.length, conflictCount, rows, detail, emptyNote };
+  return {
+    scopes,
+    packageCount: visibleGroups.length,
+    conflictCount,
+    participants,
+    rows,
+    detail,
+    emptyNote,
+  };
+}
+
+/** Distinct involved participants over all groups — host first, then first seen. */
+function participantChips(
+  groups: PackageGroup[],
+  involvement: ReadonlyMap<string, ReadonlySet<string>>,
+): ParticipantChipVm[] {
+  const seen = new Set<string>();
+  const chips: ParticipantChipVm[] = [];
+  for (const group of groups) {
+    for (const name of involvement.get(group.id) ?? []) {
+      if (!seen.has(name)) {
+        seen.add(name);
+        chips.push({ name, host: isHostRemote(name) });
+      }
+    }
+  }
+  return [...chips.filter((chip) => chip.host), ...chips.filter((chip) => !chip.host)];
 }
 
 /**

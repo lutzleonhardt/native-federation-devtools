@@ -1,12 +1,14 @@
 /**
- * Packages view specs — the component half of T7-AC-05 (templates render vm
- * rows only; UI state wiring; canonical IDs seed the selection through the
- * Store façade) plus DOM-level checks of the canonical claim wording:
- * selected / not selected / anchored states, resolved-tag versions,
- * qualified chunk claims, and cross-link hrefs.
+ * Packages view specs — the component half of the T7.5 redesign: templates
+ * render vm rows only, UI state wiring (status × participant filter),
+ * canonical IDs seed the selection through the Store façade, plus DOM-level
+ * checks of the copy-block presentation: deviation-only annotations with
+ * grounded tooltips, default qualifiers as tooltip data, per-file SRI, the
+ * unresolved bucket, and cross-link hrefs.
  */
 import { TestBed } from '@angular/core/testing';
-import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
+import { ActivatedRoute, ParamMap, convertToParamMap, provideRouter } from '@angular/router';
+import { BehaviorSubject } from 'rxjs';
 import {
   FIXTURES,
   FixtureId,
@@ -35,6 +37,11 @@ async function settle(fixture: { whenStable(): Promise<unknown>; detectChanges()
 }
 
 async function createView(options: { fixture: FixtureId | null; select?: string }) {
+  // Live query params: within-/packages navigation reuses the component and
+  // only emits on this observable — the stub must model that.
+  const queryParams = new BehaviorSubject<ParamMap>(
+    convertToParamMap(options.select === undefined ? {} : { select: options.select }),
+  );
   await TestBed.configureTestingModule({
     imports: [PackagesView],
     providers: [
@@ -43,11 +50,8 @@ async function createView(options: { fixture: FixtureId | null; select?: string 
       {
         provide: ActivatedRoute,
         useValue: {
-          snapshot: {
-            queryParamMap: convertToParamMap(
-              options.select === undefined ? {} : { select: options.select },
-            ),
-          },
+          snapshot: { queryParamMap: queryParams.value },
+          queryParamMap: queryParams.asObservable(),
         },
       },
     ],
@@ -55,12 +59,12 @@ async function createView(options: { fixture: FixtureId | null; select?: string 
   const fixture = TestBed.createComponent(PackagesView);
   fixture.detectChanges();
   await settle(fixture);
-  return fixture;
+  return { fixture, queryParams };
 }
 
 const CONFLICT_LIB = '__GLOBAL__|@nf-lab/conflict-lib';
 
-/** Rendered state-chip labels of the negotiation, DOM order. */
+/** Rendered state-chip labels of the detail pane, DOM order. */
 function stateChipsOf(el: HTMLElement): string[] {
   return Array.from(el.querySelectorAll<HTMLElement>('.pkg-detail .state-chip')).map((chip) =>
     chip.textContent!.trim(),
@@ -68,88 +72,137 @@ function stateChipsOf(el: HTMLElement): string[] {
 }
 
 describe('PackagesView', () => {
-  // Flat leaf list preserved: every package is one row, nothing expands
-  // (negotiation lives in the detail pane).
-  it('renders one flat leaf row per (scope, package) of the live fixture', async () => {
-    const fixture = await createView({ fixture: 'frankenstein-live' });
+  // Flat leaf list, reduced to name + resolved versions: no participant
+  // chips on rows — the participant axis lives in the filter zone.
+  it('renders one minimal flat leaf row per (scope, package) of the live fixture', async () => {
+    const { fixture } = await createView({ fixture: 'frankenstein-live' });
     const el = fixture.nativeElement as HTMLElement;
 
     expect(el.querySelectorAll('.tree-row')).toHaveLength(20);
     expect(el.querySelectorAll('.twisty')).toHaveLength(0);
+    // Rows carry no participant chips anymore (T7.5-AC-05).
+    expect(el.querySelectorAll('.tree-row .chip')).toHaveLength(0);
     // The __GLOBAL__ sentinel reads as 'global'; verbatim stays in the tooltip.
     const scopeName = el.querySelector<HTMLElement>('.scope-name')!;
     expect(scopeName.textContent).toBe('global');
     expect(scopeName.title).toBe('__GLOBAL__');
     expect(el.textContent).not.toContain('__GLOBAL__');
-    // Host-sourced packages carry the quiet host chip, sentinel as tooltip.
-    const hostChips = el.querySelectorAll<HTMLElement>('.tree-row .chip-host');
-    expect(hostChips.length).toBeGreaterThan(0);
-    expect(hostChips[0].textContent).toBe('host');
-    expect(hostChips[0].title).toBe('__NF-HOST__');
     // Linked secondaries render the glyph, no visible rule chip.
     expect(el.querySelectorAll('.linked-glyph').length).toBeGreaterThan(0);
     expect(el.textContent).not.toContain('name-derived');
   });
 
-  // T7-AC-01 (DOM half): selected and not-selected declarations stay
-  // visible as canonical state chips; the not-selected arrow names the
-  // copy's evidenced source, and the row tail claims one source only.
-  it('renders selected and not-selected state chips for the co-declared share', async () => {
-    const fixture = await createView({ fixture: 'co-declared-share', select: CONFLICT_LIB });
+  // T7.5-AC-05: the participant filter renders every involved participant
+  // as a single-select chip toggle and combines with the status filter.
+  it('filters by participant via single-select chips (on / off / switch)', async () => {
+    const { fixture } = await createView({ fixture: 'pooling-anchor' });
     const el = fixture.nativeElement as HTMLElement;
 
-    expect(stateChipsOf(el)).toEqual(['selected', 'not selected']);
-    // No conflict badge and exactly one resolved version chip.
-    expect(el.querySelector('.pkg-conflict')).toBeNull();
-    expect(
-      Array.from(el.querySelectorAll<HTMLElement>('.pkg-versions .pkg-version')).map(
-        (version) => version.textContent,
-      ),
-    ).toEqual(['1.0.0']);
-    // The row tail: mfe1 sources the copy; mfe2 collapses to "+1" with its
-    // claim state in the tooltip — never a second provider chip.
-    const tailChips = Array.from(el.querySelectorAll('.tree-row .pkg-tail .chip'));
-    expect(tailChips.map((chip) => chip.textContent)).toEqual(['mfe1']);
-    const count = el.querySelector<HTMLElement>('.pkg-count')!;
-    expect(count.textContent).toBe('+1');
-    expect(count.title).toBe('also resolves here: mfe2 (not-selected)');
-    // The not-selected arrow points at the resolved target of the binding
-    // and names its evidenced SOURCE — never a provider claim.
-    const arrows = el.querySelectorAll('.pkg-detail .arrow');
-    expect(arrows).toHaveLength(1);
-    expect(arrows[0].textContent).toContain('_nf_lab_conflict_lib.JF7uEdSVsN.js');
-    expect(arrows[0].querySelector('.arrow-provider')?.textContent).toBe('mfe1');
-    expect(arrows[0].getAttribute('aria-label')).toBe(
-      'resolves to _nf_lab_conflict_lib.JF7uEdSVsN.js (source: mfe1)',
-    );
+    const toggles = Array.from(el.querySelectorAll<HTMLButtonElement>('.participant-toggle'));
+    expect(toggles.map((toggle) => toggle.textContent!.trim())).toEqual(['host', 'mfe1', 'mfe2']);
+    const hostToggle = toggles[0];
+    expect(hostToggle.querySelector<HTMLElement>('.chip-host')?.title).toBe('__NF-HOST__');
+    expect(el.querySelectorAll('.tree-row')).toHaveLength(2);
+
+    // on: narrow to the packages the host is involved in
+    hostToggle.click();
+    fixture.detectChanges();
+    expect(hostToggle.getAttribute('aria-pressed')).toBe('true');
+    expect(el.querySelectorAll('.tree-row')).toHaveLength(1);
+
+    // switch: another chip replaces the selection
+    toggles[2].click();
+    fixture.detectChanges();
+    expect(hostToggle.getAttribute('aria-pressed')).toBe('false');
+    expect(el.querySelectorAll('.tree-row')).toHaveLength(2);
+
+    // off: clicking the active chip clears the filter
+    toggles[2].click();
+    fixture.detectChanges();
+    expect(toggles[2].getAttribute('aria-pressed')).toBe('false');
+    expect(el.querySelectorAll('.tree-row')).toHaveLength(2);
   });
 
-  // T7-AC-02 (DOM half): the canonical four counts render as named facts.
-  it('renders the canonical resolution counts as named facts', async () => {
-    const fixture = await createView({ fixture: 'strict-split', select: CONFLICT_LIB });
+  // T7.5-AC-01 (DOM half): one copy block, none of the removed sections,
+  // default qualifiers only in tooltips, per-file SRI, nested chunk files.
+  it('renders the signals package as one copy block without the legacy sections', async () => {
+    const { fixture } = await createView({
+      fixture: 'frankenstein-live',
+      select: '__GLOBAL__|@angular/core/primitives/signals',
+    });
     const el = fixture.nativeElement as HTMLElement;
 
-    const facts = new Map(
-      Array.from(el.querySelectorAll('.detail-kv .kv-row')).map((row) => [
-        row.querySelector('dt')!.textContent!.trim(),
-        row.querySelector('dd')!.textContent!.trim(),
-      ]),
+    expect(el.querySelectorAll('.copy-block')).toHaveLength(1);
+    // The five legacy sections are gone — no headings render at all here.
+    expect(el.querySelectorAll('.pkg-detail h3')).toHaveLength(0);
+    for (const heading of ['Resolution', 'Negotiation', 'Resolved copies', 'Integrity']) {
+      expect(el.querySelector('.pkg-detail')!.textContent).not.toContain(heading);
+    }
+    // Header: tag · shared · source [host]; default qualifiers as tooltips.
+    const head = el.querySelector<HTMLElement>('.copy-head')!;
+    expect(head.querySelector('.copy-tag')?.textContent).toBe('21.2.12');
+    expect(head.querySelector('.copy-disposition')?.textContent).toBe('shared');
+    expect(head.querySelector<HTMLElement>('.copy-disposition')?.title).toContain(
+      'ordinary-shared',
     );
-    expect(facts.get('registrations')).toBe('3');
-    expect(facts.get('declared tags')).toBe('2');
-    expect(facts.get('resolved copies')).toBe('2');
-    expect(facts.get('resolved tags')).toBe('2');
-    expect(facts.get('declarations')).toBe('3');
-    expect(facts.has('unknown tags')).toBe(false);
+    expect(head.querySelector<HTMLElement>('.source-word')?.title).toContain('exact target source');
+    expect(el.querySelector('.pkg-detail')!.textContent).not.toContain('exact target source');
+    expect(el.querySelector('.pkg-detail')!.textContent).not.toContain('ordinary-shared');
+    // File line: name, mapped cross-link, SRI marker.
+    const fileLine = el.querySelector<HTMLElement>('.file-line')!;
+    expect(fileLine.querySelector('.file-name')?.textContent).toBe(
+      '_angular_core_primitives_signals.ePwPWbaXlE.js',
+    );
+    expect(fileLine.querySelector('.file-sri')?.textContent).toBe('SRI ✓');
+    // Consumer row: chip + range + STRICT, no state chips (happy path).
+    const consumer = el.querySelector<HTMLElement>('.consumer-row')!;
+    expect(consumer.querySelector('.chip')?.textContent).toBe('host');
+    expect(consumer.querySelector('.consumer-declared')?.textContent).toBe('^21.2.0');
+    expect(consumer.querySelector('.consumer-strict')?.textContent).toBe('STRICT');
+    expect(stateChipsOf(el)).toEqual([]);
+    // Chunks nest inside the block: five files, unqualified (mapped-source).
+    expect(el.querySelectorAll('.copy-block .chunk-item')).toHaveLength(5);
+    expect(el.querySelector('.chunk-status')).toBeNull();
+    expect(el.querySelector<HTMLElement>('.chunk-list')?.title).toContain('available for loading');
   });
 
-  // T7-AC-03 (DOM half): resolved-tag multiplicity flags; the isolated
-  // second copy renders muted with its own-copy claim.
-  it('flags resolved multiplicity with the badge and the muted own copy', async () => {
-    const fixture = await createView({ fixture: 'strict-split' });
+  // T7.5-AC-02 (DOM half): skip renders as a grounded row annotation; the
+  // absent SRI stays a quiet, visible observation.
+  it('renders the clean-skip block with the skipped-own annotation and no skip section', async () => {
+    const { fixture } = await createView({ fixture: 'clean-skip', select: CONFLICT_LIB });
     const el = fixture.nativeElement as HTMLElement;
 
-    expect(el.querySelector('.pkg-conflict')?.textContent).toBe('⚠ 2 resolved versions');
+    expect(el.querySelectorAll('.copy-block')).toHaveLength(1);
+    expect(stateChipsOf(el)).toEqual(['skipped own 1.0.0']);
+    const skipChip = el.querySelector<HTMLElement>('.pkg-detail .state-chip')!;
+    expect(skipChip.title).toContain('registered with action skip');
+    expect(el.querySelector('.file-sri-missing')?.textContent).toBe('no SRI');
+    // No glyph legend, no action glyphs — the annotation is the trace.
+    expect(el.querySelector('.glyph-legend')).toBeNull();
+    expect(el.textContent).not.toContain('●');
+    expect(el.querySelector('.unresolved-heading')).toBeNull();
+  });
+
+  // T7.5-AC-03 (DOM half): two blocks under the multiplicity header; the
+  // row compresses to the ⚠ glyph with the rule in its tooltip.
+  it('renders strict-split as two blocks under the ⚠ 2 resolved versions header', async () => {
+    const { fixture } = await createView({ fixture: 'strict-split', select: CONFLICT_LIB });
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(el.querySelector('.detail-conflict')?.textContent).toBe('⚠ 2 resolved versions');
+    const blocks = Array.from(el.querySelectorAll<HTMLElement>('.copy-block'));
+    expect(blocks).toHaveLength(2);
+    expect(blocks[0].querySelector('.copy-tag')?.textContent).toBe('2.0.0');
+    expect(blocks[0].querySelector('.copy-disposition')?.textContent).toBe('shared');
+    expect(blocks[1].querySelector('.copy-tag')?.textContent).toBe('1.0.0');
+    expect(blocks[1].querySelector('.copy-disposition')?.textContent).toBe('isolated');
+    expect(blocks[1].querySelector('.copy-audience')?.textContent).toBe('mapped only for mfe3');
+    expect(stateChipsOf(el)).toEqual(['skipped own 1.0.0', 'kept own copy']);
+
+    // Row: ⚠ glyph with the rule tooltip, non-elected version muted.
+    const conflict = el.querySelector<HTMLElement>('.pkg-conflict')!;
+    expect(conflict.textContent).toBe('⚠');
+    expect(conflict.title).toBe('2 resolved versions — rule: resolved-tag-multiplicity');
     const versions = Array.from(el.querySelectorAll<HTMLElement>('.pkg-versions .pkg-version'));
     expect(versions.map((version) => version.textContent)).toEqual(['2.0.0', '1.0.0']);
     expect(versions[0].classList.contains('pkg-version-muted')).toBe(false);
@@ -166,7 +219,7 @@ describe('PackagesView', () => {
   });
 
   it('narrows the clean self-fill capture to the empty note under Conflicts', async () => {
-    const fixture = await createView({ fixture: 'self-fill' });
+    const { fixture } = await createView({ fixture: 'self-fill' });
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelectorAll('.tree-row')).toHaveLength(2);
 
@@ -183,7 +236,7 @@ describe('PackagesView', () => {
 
   // Linked sibling carries its association as a tooltip on the name.
   it('renders the linked sibling with a name tooltip instead of a chip', async () => {
-    const fixture = await createView({ fixture: 'self-fill' });
+    const { fixture } = await createView({ fixture: 'self-fill' });
     const el = fixture.nativeElement as HTMLElement;
 
     const names = Array.from(el.querySelectorAll<HTMLElement>('.pkg-name'));
@@ -193,12 +246,12 @@ describe('PackagesView', () => {
   });
 
   // Cross-link convention: the select query param seeds the selection;
-  // participant, source, and entrypoint links carry select payloads.
+  // source chips, consumer chips, and file lines carry select payloads.
   it('seeds the selection from the select param and renders cross-links', async () => {
-    const fixture = await createView({ fixture: 'clean-skip', select: CONFLICT_LIB });
+    const { fixture } = await createView({ fixture: 'clean-skip', select: CONFLICT_LIB });
     const el = fixture.nativeElement as HTMLElement;
 
-    expect(el.querySelector('.detail-name')?.textContent).toBe('@nf-lab/conflict-lib');
+    expect(el.querySelector('.detail-name')?.textContent).toContain('@nf-lab/conflict-lib');
 
     const hrefs = Array.from(el.querySelectorAll<HTMLAnchorElement>('.pkg-detail a')).map(
       (anchor) => decodeURIComponent(anchor.getAttribute('href') ?? ''),
@@ -213,7 +266,7 @@ describe('PackagesView', () => {
   });
 
   it('names the config origin of scopes and the strict marker in tooltips', async () => {
-    const strictFixture = await createView({
+    const { fixture: strictFixture } = await createView({
       fixture: 'strict-scope',
       select: 'strict|@nf-lab/conflict-lib',
     });
@@ -230,7 +283,7 @@ describe('PackagesView', () => {
   });
 
   it('marks the global scope as the unconfigured default in the detail tooltip', async () => {
-    const fixture = await createView({ fixture: 'clean-skip', select: CONFLICT_LIB });
+    const { fixture } = await createView({ fixture: 'clean-skip', select: CONFLICT_LIB });
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector<HTMLElement>('.detail-scope .mono')?.title).toBe(
       '__GLOBAL__ — the default share scope (no shareScope configured)',
@@ -238,56 +291,51 @@ describe('PackagesView', () => {
   });
 
   it('selects a package on row click', async () => {
-    const fixture = await createView({ fixture: 'clean-skip' });
+    const { fixture } = await createView({ fixture: 'clean-skip' });
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('.detail-name')).toBeNull();
 
     el.querySelector<HTMLElement>('.tree-row')!.click();
     fixture.detectChanges();
-    expect(el.querySelector('.detail-name')?.textContent).toBe('@nf-lab/conflict-lib');
+    expect(el.querySelector('.detail-name')?.textContent).toContain('@nf-lab/conflict-lib');
   });
 
-  // Wording rules (T7): resolution-honest vocabulary only — "resolves to",
-  // "available for loading"; never "uses", never implied delivery.
+  // T7.5-AC-06: the parent cross-link navigates WITHIN /packages, where the
+  // router reuses the component — the selection must follow later
+  // query-param emissions, not only the creation snapshot.
+  it('follows later select query-param emissions (parent link within /packages)', async () => {
+    const { fixture, queryParams } = await createView({
+      fixture: 'self-fill',
+      select: '__GLOBAL__|@nf-lab/conflict-lib/extra',
+    });
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.detail-name')?.textContent).toContain('/extra');
+
+    queryParams.next(convertToParamMap({ select: CONFLICT_LIB }));
+    fixture.detectChanges();
+    expect(el.querySelector('.detail-name')?.textContent?.trim()).toBe('@nf-lab/conflict-lib');
+  });
+
+  // Wording rules (T7): resolution-honest vocabulary only — "mapped",
+  // "available for loading" (as grounding tooltips); never "uses", never
+  // implied delivery, never a winner claim.
   it('speaks the resolution-honest vocabulary across list and detail', async () => {
-    const fixture = await createView({
+    const { fixture } = await createView({
       fixture: 'frankenstein-live',
       select: '__GLOBAL__|@angular/common',
     });
     const el = fixture.nativeElement as HTMLElement;
 
-    expect(el.textContent).toMatch(/available\s+for\s+loading/);
+    expect(el.querySelectorAll('.file-mapped').length).toBeGreaterThan(0);
+    expect(el.querySelector<HTMLElement>('.chunk-list')?.title).toContain('available for loading');
     expect(el.textContent).not.toMatch(/\buses\b/);
     expect(el.textContent).not.toMatch(/\bloaded\b/);
     expect(el.textContent).not.toMatch(/\bwinner\b/);
-    for (const arrow of el.querySelectorAll('.pkg-detail .arrow')) {
-      expect(arrow.getAttribute('aria-label')).toMatch(/^(resolves to|resolution not derived)/);
-    }
-  });
-
-  // T7-AC-04 (DOM half): a mapped-source claim renders its chunk file and
-  // count; a source-only claim renders the shared absence wording and stays
-  // visibly qualified — never a zero masquerading as a count.
-  it('renders the mapped-source bundle claim with its chunk file', async () => {
-    const fixture = await createView({
-      fixture: 'frankenstein-live',
-      select: '__GLOBAL__|@angular/common',
-    });
-    const el = fixture.nativeElement as HTMLElement;
-
-    const claim = el.querySelector<HTMLElement>('.chunk-claim')!;
-    expect(claim.querySelector('.chunk-claim-head .mono')?.textContent).toBe(
-      'browser-angular_common',
-    );
-    expect(claim.querySelector('.chunk-status')?.textContent).toBe('mapped-source');
-    expect(claim.querySelector('.chunk-files')?.textContent?.replace(/\s+/g, ' ').trim()).toBe(
-      '1 chunk file · available for loading',
-    );
-    expect(claim.querySelector('.chunk-list .mono')?.textContent).toBe('chunk-WW26EZ22.js');
+    expect(el.textContent).not.toMatch(/\bprovider\b/);
   });
 
   it('qualifies the source-only bundle claim and claims chunk-list absence', async () => {
-    const fixture = await createView({
+    const { fixture } = await createView({
       fixture: 'frankenstein-live',
       select: '__GLOBAL__|tslib',
     });
@@ -298,32 +346,34 @@ describe('PackagesView', () => {
     expect(status.textContent).toBe('source-only');
     expect(status.classList.contains('chunk-status-qualified')).toBe(true);
     expect(status.title).toContain('registers no chunk list');
-    expect(claim.querySelector('.chunk-files')?.textContent?.trim()).toBe(
-      'no chunk list recorded in this capture',
+    expect(claim.querySelector('.chunk-absence')?.textContent).toBe(
+      '(no chunk list recorded in this capture)',
     );
     expect(claim.querySelector('.chunk-list')).toBeNull();
   });
 
-  // Honest no-copy rendering: declared registrations without any resolved
-  // copy state their absence instead of manufacturing mapped versions.
-  it('renders the honest no-copy state for the map-less multi-share capture', async () => {
-    const fixture = await createView({
+  // T7.5-AC-04 (DOM half): zero blocks, the honest no-copies line, and the
+  // unresolved bucket with states and offered tags.
+  it('renders the honest empty detail with the unresolved bucket', async () => {
+    const { fixture } = await createView({
       fixture: 'synthetic-multi-version',
       select: '__GLOBAL__|ui-lib',
     });
     const el = fixture.nativeElement as HTMLElement;
 
-    expect(el.querySelector('.pkg-no-copy')?.textContent).toBe('no resolved copies');
+    expect(el.querySelector('.pkg-no-copy')?.textContent).toBe('no copy');
     expect(el.querySelector('.pkg-conflict')).toBeNull();
-    expect(el.querySelector('.negotiation-note')?.textContent).toBe(
-      'declared, but no import-map binding resolves this package in this capture',
-    );
+    expect(el.querySelectorAll('.copy-block')).toHaveLength(0);
+    expect(el.querySelector('.no-copies')?.textContent).toBe('no resolved copies in this capture');
+    expect(el.querySelector('.unresolved-heading')?.textContent).toBe('unresolved');
     expect(stateChipsOf(el)).toEqual(['not mapped', 'not mapped']);
-    expect(el.textContent).toContain('no resolved copies — no bundle evidence to attribute');
+    const offered = Array.from(el.querySelectorAll<HTMLElement>('.offered-chip'));
+    expect(offered.map((chip) => chip.textContent)).toEqual(['offered 1.2.3', 'offered 2.0.0']);
+    expect(offered[0].title.length).toBeGreaterThan(0);
   });
 
   it('renders an honest observation when no snapshot is captured', async () => {
-    const fixture = await createView({ fixture: null });
+    const { fixture } = await createView({ fixture: null });
     const el = fixture.nativeElement as HTMLElement;
     expect(el.textContent).toContain('no captured snapshot to render');
     expect(el.querySelector('.tree-row')).toBeNull();
