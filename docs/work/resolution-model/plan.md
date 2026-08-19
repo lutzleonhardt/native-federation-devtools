@@ -6,7 +6,7 @@ External challenger: /home/lutz/Downloads/DEPENDENCY-GRAPH.md, SHA-256 5977479c3
 
 The work has three milestones: establish one canonical domain model, migrate the four consumers, then enforce and review the cutover. Tasks stay at independently reviewable boundaries; evidence acquisition, raw snapshot transport, and Store normalization are separate point tasks even though RM-AC-07 treats them as one ordered, traceable schema-gate chain.
 
-YAGNI boundary: no graph UI or pool graph, no network/runtime-use instrumentation, no UI redesign except the Task 7.5 Packages presentation redesign (frozen mock: `design/packages-view-redesign-mock.md`), no general diagnostics rule engine, no new Playwright/Cypress/Storybook setup, and no screenshot goldens. The external challenger informs requirements but is not copied or treated as an oracle.
+YAGNI boundary: no graph UI or pool graph, no network/runtime-use instrumentation, no UI redesign except the Task 7.5 Packages presentation redesign (frozen mock: `design/packages-view-redesign-mock.md`) and the Task 7.6/7.7 presentation polish from its screenshot review, no general diagnostics rule engine, no new Playwright/Cypress/Storybook setup, and no screenshot goldens. The external challenger informs requirements but is not copied or treated as an oracle.
 
 Tasks 2, 2.1, and 2.2 form the raw `pool`/`servedBy` schema gate. Task 2 produces evidence only; if its real witness cannot be produced, close Task 2 BLOCKED and do not start Tasks 2.1 or 2.2. Tasks 3–12 may still use null raw fields and source-backed canonical seeds, while the overall pooling acceptance remains incomplete.
 
@@ -460,6 +460,162 @@ T2-AC-02 through T2-AC-05 were retired by the approved task split. Their IDs are
   ~50-remote captures, participant combobox, group-by-source list
   toggle, consumer counts in list rows, multi-select filter.
 
+## Task 7.6: Polish the Packages presentation per the screenshot review
+
+**Dependency:** Task 7.5.
+
+### Instructions
+
+- Presentation-only polish of the Packages view from the 2026-08-19
+  screenshot review; canonical façade consumption, VM purity, claim
+  vocabulary, and grounded tooltips stay intact. Where wording or
+  layout changes, add a "Task 7.6 amendment" section to the frozen
+  mock `docs/work/resolution-model/design/packages-view-redesign-mock.md`
+  instead of silently diverging.
+- Toolbar geometry: the All/Conflicts buttons and the participant chip
+  filter form one left-hand filter zone separated by a subtle 1px
+  vertical divider (`--nf-color-border`); the scopes summary moves
+  right (`margin-left: auto`) — it is passive info, not a filter.
+  Filter behavior and the Conflicts ∧ participant combination stay
+  unchanged.
+- Detail meta: render `share scope: <label>` — a colon between the
+  label and the mono value; tooltips unchanged.
+- Copy-block header: replace the visible word `source` with `from` for
+  every disposition — reads `7.8.2 shared from [host]`,
+  `1.0.0 skip-registration from [mfe1]`. The word lives template-only
+  (`.source-word` in package-detail.html); VM fields and the qualifier
+  vocabulary in `packages-detail-vm.ts` stay unrenamed. Non-default
+  qualifier chips and the ambiguous badge render unchanged.
+- Copy-block nesting: consumer rows get an uppercase group label
+  `DECLARED BY` styled like the existing `CHUNKS` label (10px
+  uppercase, letter-spacing, muted); file lines, the DECLARED BY
+  group, and the CHUNKS group sit on the same indent level as siblings
+  under the copy header (today consumers/chunks indent 16px under the
+  0-indent file line and read as children of the file). The unresolved
+  bucket reuses `.consumer-row` (8px padding override) and must keep
+  its current appearance.
+- De-warn configuration facts: `.consumer-strict` and `.detail-strict`
+  (package-detail.css) plus the kit `.strict-marker`
+  (shared/kit/participant-row.css, rendered by Remotes today) switch
+  from `--nf-color-warning-text` to muted; STRICT / `pinned scope`
+  text and tooltips stay verbatim. Warning tokens remain reserved for
+  actual conflicts and honest-state warnings (`.detail-conflict`,
+  `.pkg-conflict`, state badges).
+- Adjust the Task 7.5 pins that assert the old wording/structure (the
+  visible `source` word, the consumer-row nesting) in
+  `packages.spec.ts` / `packages-view-model.spec.ts`; extend pins in
+  place rather than layering duplicates.
+
+### Acceptance
+
+- **T7.6-AC-01** — the toolbar renders All/Conflicts and the
+  participant chips as one left filter zone with a visible divider
+  between them and the scopes summary right-aligned; the existing
+  Conflicts ∧ participant combination pins stay green unchanged.
+- **T7.6-AC-02** — the detail meta renders `share scope: <label>`
+  (colon present) with the existing configured/default tooltip
+  unchanged.
+- **T7.6-AC-03** — the frankenstein `/primitives/signals` block head
+  reads `shared from` + host chip and the pooling-anchor skip block
+  reads `skip-registration from` + mfe1 chip; the standalone word
+  `source` no longer appears in copy-block DOM. **Contributes:** XC-06.
+- **T7.6-AC-04** — every copy block with consumer rows renders a
+  `DECLARED BY` group label parallel to `CHUNKS`; file lines, consumer
+  group, and chunk group share one indent level; a sparse block
+  (single consumer row, no chunk list) still renders the label.
+- **T7.6-AC-05** — STRICT markers (Packages consumer rows, unresolved
+  rows, kit participant-row) and `pinned scope` render muted, not
+  warning-colored; conflict labels keep their warning tokens.
+
+### Key Locations
+
+- `projects/devtools-ui/src/app/views/packages/packages.{html,css}` (toolbar)
+- `projects/devtools-ui/src/app/views/packages/package-detail.{html,css}` (meta colon, from-wording, nesting, strict colors)
+- `projects/devtools-ui/src/app/shared/kit/participant-row.css` (`.strict-marker`)
+- `projects/devtools-ui/src/app/views/packages/packages.spec.ts`, `packages-view-model.spec.ts` (wording/structure pins)
+- `docs/work/resolution-model/design/packages-view-redesign-mock.md` (amendment section)
+
+### Key Discoveries
+
+- Screenshot review findings (2026-08-19): the `source` label read as
+  jargon; unlabeled consumer rows floated under file lines in sparse
+  blocks; yellow STRICT read as a problem although it is a
+  configuration fact; the scope summary blended into the filters.
+- The visible `source` word exists only in the template; the qualifier
+  labels in `packages-detail-vm.ts` feed chips/tooltips and keep their
+  vocabulary.
+- The STRICT tooltip wording is frozen kit vocabulary
+  (view-conventions) — this is a color-only change.
+- Chip-host typography/color alignment is NOT this task — it moves
+  with the participant colors (Task 7.7) since both live in
+  `participant-chip.*`.
+
+## Task 7.7: Stable participant colors in the shared chip
+
+**Dependency:** none.
+
+### Instructions
+
+- Align `.chip-host` with `.chip-remote` in
+  `shared/kit/participant-chip.css`: `--nf-color-text` and the mono
+  font instead of muted sans; keep the dotted underline + `title`
+  (verbatim host name) tooltip affordance and the link hover behavior.
+- Define a palette of ~8 colorblind-aware participant hues as theme
+  tokens (`--nf-participant-color-1..N`) next to the existing
+  `--nf-color-*` tokens in `projects/devtools-ui/src/styles.css`,
+  with light/dark variants where the theme distinguishes them.
+- Deterministic assignment per snapshot: sort the capture's remote
+  names, index into the palette. One shared lookup owns the assignment
+  (Store selector or a small shared helper consumed by the chip), so
+  the identical name → color mapping holds across Packages, Remotes,
+  Import Map, and participant-row without touching call sites.
+- Honest threshold: assign colors ONLY when the remote count ≤ palette
+  size; above it, every chip renders neutral. No recycling and no
+  hashing — two remotes sharing a hue would visually claim a
+  relationship that does not exist. 25–50-remote configurations are
+  real; the neutral fallback is designed behavior, not an edge case.
+- Render the color as a small dot inside the chip before the name.
+  Not a full background (10px legibility, competes with warning
+  colors) and not the chip border (collides with the hover accent
+  border affordance). The host chip never carries a dot.
+- The chip stays presentational: it receives or injects the lookup but
+  performs no derivation of its own.
+
+### Acceptance
+
+- **T7.7-AC-01** — the host chip renders with the standard text color
+  and mono font, keeping the dotted underline and host-name tooltip;
+  inside links the hover accent still applies.
+- **T7.7-AC-02** — with remote count ≤ palette size, every remote chip
+  shows a color dot and the same remote name yields the identical
+  color in Packages detail, Remotes, and Import Map (one deterministic
+  sorted-name lookup).
+- **T7.7-AC-03** — with remote count > palette size, no chip renders a
+  color dot; there is no recycling code path.
+- **T7.7-AC-04** — the host chip never renders a color dot regardless
+  of remote count.
+
+### Key Locations
+
+- `projects/devtools-ui/src/app/shared/kit/participant-chip.{ts,html,css}` + spec
+- `projects/devtools-ui/src/styles.css` (theme tokens)
+- assignment lookup: new `shared/kit/participant-colors.ts` or a Store selector near `shared/store/`
+- consuming templates (verification only): `views/packages/package-detail.html`, `views/remotes/remotes.html`, `views/import-map/import-map.html`, `shared/kit/participant-row.html`
+
+### Key Discoveries
+
+- The chip's hover affordance recolors the border
+  (`:host-context(a:hover) .chip`) — the identity color must not use
+  the border channel.
+- Threshold = palette length is the honesty invariant: fewer hues than
+  remotes makes unique identity coding impossible; recycled colors lie.
+- Stable per-remote identity across views feeds the later graph view
+  (all views pivot on consumer → copy → chunk) — design the lookup so
+  a graph view can consume it unchanged.
+- Task 7.5 deliberately deferred large-capture affordances
+  (consumer-row collapse, participant combobox); this task's neutral
+  fallback is the color-system counterpart of that decision.
+
 ## Task 8: Migrate Remotes to canonical resolutions
 
 **Dependency:** Task 6.
@@ -649,4 +805,4 @@ T2-AC-02 through T2-AC-05 were retired by the approved task split. Their IDs are
 - **XC-03** — Packages, Remotes, Import Map, and Diagnostics share canonical IDs and cardinalities: declarations never become registrations/copies, claims never duplicate bindings, and the four package counts keep their distinct meanings. **Touches:** T1, T2.2, T3, T4, T5, T6, T7, T7.5, T8, T9, T10, T11.
 - **XC-04** — Old/new snapshot compatibility, hostile-page safety, privacy/passivity, all 12 lab captures plus two live phases, and byte-stable fixture derivation survive the migration. **Touches:** T2, T2.1, T2.2, T3, T11.
 - **XC-05** — The resolution phase exports one raw-free canonical projection with consumer-copy relations, selected artifact claims, and filterable completeness; it implements no graph UI and permits no downstream raw-data resolver. **Touches:** T6, T11.
-- **XC-06** — All product text distinguishes declaration/mapping/selection from request, download, execution, cache hit, or wire cost, and the final manual fixture walkthrough confirms the distinction is understandable and visible. **Touches:** T2.2, T3, T4, T6, T7, T7.5, T8, T9, T10, T11, T12.
+- **XC-06** — All product text distinguishes declaration/mapping/selection from request, download, execution, cache hit, or wire cost, and the final manual fixture walkthrough confirms the distinction is understandable and visible. **Touches:** T2.2, T3, T4, T6, T7, T7.5, T7.6, T8, T9, T10, T11, T12.
