@@ -230,6 +230,8 @@ export function materializeResolvedCopies(
       sourceRegistrationRefs: assembly.sourceRegistrationRefs,
       observedTargetProviders,
       registryServingSlotClaims,
+      // `attachBundleClaimIds` completes the field after bundle-claim derivation.
+      bundleClaimIds: [],
       provenance: { evidence: assembly.sourceEvidence },
     };
   }

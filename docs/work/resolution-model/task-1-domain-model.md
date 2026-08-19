@@ -4,8 +4,8 @@ This model keeps captured declarations intact before any resolution policy is ap
 
 ## Domain relationships
 
-The complete, current relationship diagrams are maintained together in the
-root [Resolution data model](../../../README.md#resolution-data-model). This
+The complete, current relationship diagrams are maintained together in
+[Resolution data model](../../resolution-data-model.md). This
 task document remains the detailed catalog of the registry-evidence subset and
 its invariants; it does not define a separate model view.
 

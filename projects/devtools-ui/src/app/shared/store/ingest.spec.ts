@@ -418,9 +418,7 @@ describe('ingestSnapshot — core relation (T6-AC-01)', () => {
   it('splits the strict-split 1.0.0 tag into distinct skip and scope rows with their own participants', () => {
     const model = ingestSnapshot(FIXTURES['strict-split']);
 
-    expect(
-      model.sharedRows.map((row) => [row.tag, row.action, row.participant]),
-    ).toEqual([
+    expect(model.sharedRows.map((row) => [row.tag, row.action, row.participant])).toEqual([
       ['2.0.0', 'share', '__NF-HOST__'],
       ['1.0.0', 'scope', 'mfe3'],
       ['1.0.0', 'skip', 'mfe1'],
@@ -467,16 +465,22 @@ describe('ingestSnapshot — chunk union (T6-AC-04)', () => {
     }
     // Chunks never count as packages — in either package entity.
     expect(model.scopedPackages).toEqual([]);
-    expect(model.sharedRows.some((row) => row.packageName.startsWith('@nf-internal/'))).toBe(
-      false,
-    );
+    expect(model.sharedRows.some((row) => row.packageName.startsWith('@nf-internal/'))).toBe(false);
     expect(new Set(model.sharedRows.map((row) => row.packageName)).size).toBe(14);
   });
 
   it('collects frankenstein-live chunks from shared-chunks bundle lists (host only)', () => {
     const model = ingestSnapshot(FIXTURES['frankenstein-live']);
 
-    expect(model.chunkGroups.map((group) => [group.owningRemote, group.bundleName, group.files.length, group.origin, group.mapped])).toEqual([
+    expect(
+      model.chunkGroups.map((group) => [
+        group.owningRemote,
+        group.bundleName,
+        group.files.length,
+        group.origin,
+        group.mapped,
+      ]),
+    ).toEqual([
       ['__NF-HOST__', 'browser-angular_common', 1, 'shared-chunks', true],
       ['__NF-HOST__', 'browser-rxjs', 1, 'shared-chunks', true],
       ['__NF-HOST__', 'browser-angular_core', 5, 'shared-chunks', true],
@@ -642,5 +646,53 @@ describe('ingestSnapshot — provenance carry', () => {
       generation: 'v4',
     });
     expect(model.channels).toEqual(FIXTURES['frankenstein-live'].channels);
+  });
+});
+
+describe('ingestSnapshot — canonical resolution projection (resolution-model Task 6)', () => {
+  it('publishes the complete attached pipeline with consistent references', () => {
+    const model = ingestSnapshot(FIXTURES['pooling-anchor']);
+    const projection = model.resolutionProjection;
+
+    expect(projection.remotes.map((remote) => remote.name)).toEqual(
+      model.remotes.map((remote) => remote.name),
+    );
+    // The published claims are the attached collection: mapped claims carry
+    // their copy link, everything else an explicit null.
+    const copyIds = new Set(projection.copies.map((copy) => copy.id));
+    expect(
+      projection.declarationResolutionClaims.some(
+        (claim) => claim.copyId !== null && copyIds.has(claim.copyId),
+      ),
+    ).toBe(true);
+    for (const relation of projection.consumerRelations) {
+      expect(copyIds.has(relation.copyId)).toBe(true);
+    }
+    expect(projection.packageMeasures.length).toBeGreaterThan(0);
+    expect(projection.completeness.total).toEqual({
+      unknownResolutions: 0,
+      unmappedResolutions: 0,
+      blockedResolutions: 0,
+      ambiguousSourceClaims: 0,
+    });
+  });
+
+  it('joins frankenstein-live host bundles to dense chunk groups as mapped-source', () => {
+    const model = ingestSnapshot(FIXTURES['frankenstein-live']);
+    const projection = model.resolutionProjection;
+
+    const rxjsClaims = projection.bundleClaims.filter(
+      (bundleClaim) => bundleClaim.bundle === 'browser-rxjs',
+    );
+    expect(rxjsClaims.length).toBeGreaterThan(0);
+    const chunkGroupsById = new Map(projection.chunkGroups.map((group) => [group.id, group]));
+    for (const bundleClaim of rxjsClaims) {
+      expect(bundleClaim.status).toBe('mapped-source');
+      expect(bundleClaim.sourceRemote).toBe('__NF-HOST__');
+      expect(bundleClaim.chunkGroupIds).toHaveLength(1);
+      expect(chunkGroupsById.get(bundleClaim.chunkGroupIds[0])?.files).toEqual([
+        'chunk-PAMKM67I.js',
+      ]);
+    }
   });
 });

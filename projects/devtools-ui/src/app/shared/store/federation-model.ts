@@ -10,7 +10,11 @@
  */
 import type { ChannelsV1, GenerationV1, ServedFileV1, SnapshotGenerationV1 } from 'devtools-bridge';
 
-import type { CanonicalRegistryEvidence, EffectiveConsumerResolution } from './resolution';
+import type {
+  CanonicalRegistryEvidence,
+  CanonicalResolutionProjection,
+  EffectiveConsumerResolution,
+} from './resolution';
 
 /** Which loader owns the page's import maps, from observed tag types. */
 export type MapMode = 'native' | 'shim' | 'none';
@@ -147,6 +151,12 @@ export interface FederationModel {
   registryEvidence: CanonicalRegistryEvidence;
   /** Canonical import-map outcome per unique consumer scope context and package specifier. */
   effectiveConsumerResolutions: EffectiveConsumerResolution[];
+  /**
+   * The raw-free canonical resolution projection — copies, consumer-copy
+   * relations, chunk groups, bundle claims, claims, measures, and
+   * completeness. Migrated views and any future graph read this surface.
+   */
+  resolutionProjection: CanonicalResolutionProjection;
   /** Sorted (scope, package, semver tag desc, action); participants keep registry order. */
   sharedRows: SharedParticipantRow[];
   scopedPackages: ScopedPackageRow[];

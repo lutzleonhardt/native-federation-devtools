@@ -30,6 +30,14 @@ import type {
 } from './federation-model';
 import { detectMapMode, mergeDocumentMaps, resolveUrl } from './merge-document-maps';
 import {
+  aggregatePackageMeasures,
+  attachBundleClaimIds,
+  attachCopyIds,
+  buildCanonicalProjection,
+  deriveBundleClaims,
+  deriveChunkGroups,
+  deriveResolutionClaims,
+  materializeResolvedCopies,
   normalizeRegistryEvidence,
   projectSharedRows,
   resolveEffectiveConsumerBindings,
@@ -73,6 +81,48 @@ export function ingestSnapshot(snapshot: SnapshotV1): FederationModel {
   });
   const sharedRows = projectSharedRows(registryEvidence, {
     effectiveConsumerResolutions,
+  });
+
+  const resolutionClaims = deriveResolutionClaims(registryEvidence, effectiveConsumerResolutions, {
+    remoteScopeUrlByName: scopeUrlByRemote,
+    hostRemote: NF_HOST,
+  });
+  const materializedCopies = materializeResolvedCopies(
+    registryEvidence,
+    effectiveConsumerResolutions,
+    resolutionClaims,
+    // URL-identified copy IDs are namespaced by capture identity.
+    { snapshotIdentity: `${snapshot.capture.capturedAt}|${pageUrl}` },
+  );
+  const declarationResolutionClaims = attachCopyIds(
+    resolutionClaims.declarationResolutionClaims,
+    materializedCopies,
+  );
+  const canonicalChunkGroups = deriveChunkGroups(registryEvidence, chunksRepo);
+  const bundleClaims = deriveBundleClaims(
+    registryEvidence,
+    resolutionClaims,
+    materializedCopies,
+    canonicalChunkGroups,
+  );
+  const resolvedCopies = attachBundleClaimIds(materializedCopies, bundleClaims);
+  const resolutionProjection = buildCanonicalProjection({
+    remotes: remotes.map(({ name, isHost, scopeUrl, resolvedScopeUrl }) => ({
+      name,
+      isHost,
+      scopeUrl,
+      resolvedScopeUrl,
+    })),
+    resolutions: effectiveConsumerResolutions,
+    claims: { ...resolutionClaims, declarationResolutionClaims },
+    copies: resolvedCopies,
+    chunkGroups: canonicalChunkGroups,
+    bundleClaims,
+    packageMeasures: aggregatePackageMeasures(
+      registryEvidence,
+      declarationResolutionClaims,
+      resolvedCopies,
+    ),
   });
 
   const scopedPackages: ScopedPackageRow[] = [];
@@ -152,6 +202,7 @@ export function ingestSnapshot(snapshot: SnapshotV1): FederationModel {
     effectiveMap,
     registryEvidence,
     effectiveConsumerResolutions,
+    resolutionProjection,
     sharedRows,
     scopedPackages,
     remotes,

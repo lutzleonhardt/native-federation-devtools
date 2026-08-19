@@ -1,3 +1,4 @@
+import type { BundleClaimId } from './bundle-claims-model';
 import type {
   DeclarationResolutionClaimId,
   ObservedTargetProvider,
@@ -75,8 +76,6 @@ export type ResolvedCopySourceRegistrationRef =
  * One materially resolved dependency instance, derived only from mapped
  * effective resolutions and their claims. A copy proves map resolution, not
  * that the browser requested, downloaded, evaluated, or used the target.
- * `bundleClaimIds` from the specification is deliberately absent until a
- * bundle-claim layer exists.
  */
 export interface ResolvedDependencyCopy {
   id: ResolvedDependencyCopyId;
@@ -101,6 +100,11 @@ export interface ResolvedDependencyCopy {
   observedTargetProviders: ObservedTargetProvider[];
   /** Serving slots of the evidenced source registrations, sorted by ID. */
   registryServingSlotClaims: RegistryServingSlotClaim[];
+  /**
+   * This copy's bundle claims; `materializeResolvedCopies` emits an empty
+   * list and `attachBundleClaimIds` completes the field after derivation.
+   */
+  bundleClaimIds: BundleClaimId[];
   provenance: EvidenceProvenance;
 }
 
