@@ -100,7 +100,7 @@ h3 {
 }
 
 .kv-row dt {
-  min-width: 80px;
+  min-width: 110px;
   color: var(--nf-color-text-muted);
 }
 
@@ -108,8 +108,91 @@ h3 {
   margin: 0;
 }
 
+/* Resolved copies: one block per canonical copy — tag, qualified source,
+ * disposition/role facts, then the mapped entrypoints. */
+.copy-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.copy-item {
+  padding: 2px 0;
+}
+
+.copy-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 0 0 2px;
+}
+
+.copy-tag {
+  font-family: var(--nf-font-mono);
+  font-size: 11px;
+}
+
+.source-qualifier,
+.copy-fact {
+  padding: 0 4px;
+  border: 1px solid var(--nf-color-border);
+  border-radius: 3px;
+  font-size: 10px;
+  color: var(--nf-color-text-muted);
+  white-space: nowrap;
+}
+
+.entry-specifier {
+  color: var(--nf-color-text-muted);
+}
+
+.entry-arrow {
+  font-size: 10px;
+  color: var(--nf-color-text-muted);
+}
+
+/* Chunk claims: one block per canonical bundle claim — bundle, source,
+ * qualified status, then the registered files. */
+.chunk-claims {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chunk-claim {
+  padding: 2px 0;
+}
+
+.chunk-claim-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 0;
+}
+
+.chunk-status {
+  padding: 0 4px;
+  border: 1px solid var(--nf-color-border);
+  border-radius: 3px;
+  font-size: 10px;
+  color: var(--nf-color-text-muted);
+  white-space: nowrap;
+}
+
+/* Uncertain claims stay visibly qualified (source-only, ambiguous). */
+.chunk-status-qualified {
+  border-style: dashed;
+}
+
+.chunk-files {
+  margin: 1px 0 0 12px;
+  color: var(--nf-color-text-muted);
+}
+
 .chunk-list li {
-  padding: 1px 0 1px 88px;
+  padding: 1px 0 1px 12px;
 }
 
 .chunk-item {

@@ -1,32 +1,35 @@
 /**
  * Row half of the Packages vm builder — the FLAT leaf list: one row per
- * (scope, package), linked subpath packages indented one level under their
- * parent (no expansion; negotiation structure lives in the detail pane).
+ * (share scope, package), linked subpath packages indented one level under
+ * their parent (no expansion; negotiation structure lives in the detail
+ * pane).
  *
- * Version doctrine (T10.5): the row lists the versions that exist as
- * MAPPED copies (share and scope rows) — the elected winner first, every
- * other mapped tag muted with its own-copy note. The conflict badge counts
- * the same set (`mappedTags`), so row and badge can never diverge;
- * declared-only multiplicity (clean skip) is the election succeeding and
- * stays out of both.
+ * Version doctrine (T7): the row lists the RESOLVED tags of the group's
+ * canonical copies — requested (declared) versions never mix in. A tag whose
+ * copies carry the `ordinary-shared` role leads; other resolved tags render
+ * muted with their own-copy claim. The multiplicity indicator counts the
+ * same set (distinct resolved tags), so row and indicator can never
+ * diverge; copy multiplicity with one resolved tag is never flagged.
  */
-import { NF_HOST } from 'devtools-bridge';
-
 import type { TreeTableRow } from '../../shared/kit/tree-table';
+import type { ResolvedDependencyCopy } from '../../shared/store/resolution';
 import {
+  CanonicalIndexes,
   GLOBAL_SCOPE,
   PackageGroup,
-  packageId,
+  copySourceRemote,
+  isHostRemote,
+  noCopyNoteOf,
+  parentOf,
   participantDisplay,
-  winnerOf,
 } from './packages-vm-shared';
 
-/** One version of a package row's mapped-copy list. */
+/** One resolved tag of a package row's copy list. */
 export interface RowVersionVm {
   tag: string;
-  /** True on non-winner mapped tags — rendered dimmed beside the winner. */
+  /** True on resolved tags without a shared-elected copy — rendered dimmed. */
   muted: boolean;
-  /** Own-copy claim of a muted tag (tooltip); null on winner/winner-less tags. */
+  /** Own-copy claim of a muted tag (tooltip); null on unmuted tags. */
   note: string | null;
 }
 
@@ -41,87 +44,102 @@ export interface PackageRowVm {
   /** Subpath suffix (`/extra`) on linked sibling rows, full name otherwise. */
   displayName: string;
   /**
-   * Versions existing as mapped copies — the elected winner first (when
-   * unique), every other mapped tag follows muted. Winner-less groups list
-   * every mapped tag unmuted (no version to privilege).
+   * Distinct resolved tags of the group's copies — tags with an
+   * `ordinary-shared` copy first, every other resolved tag muted with its
+   * own-copy claim.
    */
   versions: RowVersionVm[];
+  /** Copies without a uniquely evidenced source tag (honest residual). */
+  unknownTagged: { count: number; note: string } | null;
+  /** Honest empty state of the versions cell; null while copies exist. */
+  noCopy: { label: string; note: string } | null;
   conflict: { label: string; note: string } | null;
   /** Present on subpath rows rendered under their parent package (tooltip data). */
   linked: { parentPackage: string; rule: 'name-derived' } | null;
+  /** Remotes whose evidenced source records the group's copies materialize. */
+  sources: { name: string; host: boolean }[];
   /**
-   * Participants serving a mapped copy (share and scope rows), row order —
-   * who provides.
+   * Consumers whose bindings resolve to the group's copies without sourcing
+   * one — rendered as "+n" with names and claim mapping states in the
+   * tooltip. Null when every consumer sources a copy.
    */
-  providers: { name: string; host: boolean }[];
-  /**
-   * Declarers WITHOUT a mapped copy (skip-only participants) — who
-   * consumes the elected copy; rendered as "+n" with the names and
-   * verbatim actions in the tooltip. Null when everyone provides.
-   */
-  alsoDeclaredBy: { count: number; tooltip: string } | null;
+  alsoResolvedBy: { count: number; tooltip: string } | null;
+}
+
+/** Own-copy claim of one muted resolved tag, from its copies' sources. */
+function mutedNoteOf(copies: ResolvedDependencyCopy[], indexes: CanonicalIndexes): string {
+  const claims = copies.map((copy) => {
+    const source = copySourceRemote(copy, indexes);
+    return source === null
+      ? 'source unknown'
+      : `${participantDisplay(source)} (${copy.sourceActions.join(', ')})`;
+  });
+  return `own copy of ${[...new Set(claims)].join(', ')}`;
 }
 
 /**
- * Mapped-copy versions of one group, winner first. A muted tag carries the
- * own-copy claim of its non-skip rows as the note.
+ * Resolved tags of one group — tags backed by an `ordinary-shared` copy
+ * first (unmuted), every other resolved tag muted with its own-copy claim.
+ * Without any shared-elected tag, all resolved tags list unmuted (nothing
+ * to privilege).
  */
-function rowVersionsOf(group: PackageGroup): RowVersionVm[] {
-  const winner = winnerOf(group);
-  const versions: RowVersionVm[] = [];
-  const seen = new Set<string>();
-  if (winner !== null) {
-    seen.add(winner.row.tag);
-    versions.push({ tag: winner.row.tag, muted: false, note: null });
-  }
-  for (const facts of group.facts) {
-    const { tag, action } = facts.row;
-    if (action === 'skip' || seen.has(tag)) {
+function rowVersionsOf(group: PackageGroup, indexes: CanonicalIndexes): RowVersionVm[] {
+  const copiesByTag = new Map<string, ResolvedDependencyCopy[]>();
+  for (const copy of group.copies) {
+    if (copy.resolvedTag === null) {
       continue;
     }
-    seen.add(tag);
-    const claims = group.facts
-      .filter((entry) => entry.row.tag === tag && entry.row.action !== 'skip')
-      .map((entry) => `${participantDisplay(entry.row.participant)} (${entry.row.action})`);
-    versions.push({
-      tag,
-      muted: winner !== null,
-      note: winner === null ? null : `own copy of ${claims.join(', ')}`,
-    });
+    copiesByTag.set(copy.resolvedTag, [...(copiesByTag.get(copy.resolvedTag) ?? []), copy]);
   }
-  return versions;
+  const sharedTags = group.resolvedTags.filter((tag) =>
+    copiesByTag.get(tag)?.some((copy) => copy.effectiveRoles.includes('ordinary-shared')),
+  );
+  const otherTags = group.resolvedTags.filter((tag) => !sharedTags.includes(tag));
+  return [
+    ...sharedTags.map((tag) => ({ tag, muted: false, note: null })),
+    ...otherTags.map((tag) => ({
+      tag,
+      muted: sharedTags.length > 0,
+      note: sharedTags.length > 0 ? mutedNoteOf(copiesByTag.get(tag) ?? [], indexes) : null,
+    })),
+  ];
 }
 
 function packageRowOf(
   group: PackageGroup,
+  indexes: CanonicalIndexes,
   linked: { parentPackage: string } | null,
 ): PackageRowVm {
-  // Providers = participants with a mapped copy (any non-skip row);
-  // skip-only declarers consume the elected copy and collapse to "+n".
-  const providers: { name: string; host: boolean }[] = [];
-  const consumers: { name: string; action: string }[] = [];
-  const seen = new Set<string>();
-  for (const facts of group.facts) {
-    const name = facts.row.participant;
-    if (seen.has(name)) {
-      continue;
-    }
-    seen.add(name);
-    const providing = group.facts.some(
-      (candidate) => candidate.row.participant === name && candidate.row.action !== 'skip',
-    );
-    if (providing) {
-      providers.push({ name, host: name === NF_HOST });
-    } else {
-      consumers.push({ name: participantDisplay(name), action: facts.row.action });
+  // Sources = remotes whose evidenced records materialize the group's
+  // copies; consumers that only resolve here collapse to "+n".
+  const sources: { name: string; host: boolean }[] = [];
+  const sourceNames = new Set<string>();
+  for (const copy of group.copies) {
+    const source = copySourceRemote(copy, indexes);
+    if (source !== null && !sourceNames.has(source)) {
+      sourceNames.add(source);
+      sources.push({ name: source, host: isHostRemote(source) });
     }
   }
-  const alsoDeclaredBy =
-    consumers.length > 0
+  const consumerStates = new Map<string, Set<string>>();
+  for (const copy of group.copies) {
+    for (const relation of indexes.relationsByCopy.get(copy.id) ?? []) {
+      if (sourceNames.has(relation.consumerRemote)) {
+        continue;
+      }
+      const states = consumerStates.get(relation.consumerRemote) ?? new Set<string>();
+      for (const state of relation.mappingStates) {
+        states.add(state);
+      }
+      consumerStates.set(relation.consumerRemote, states);
+    }
+  }
+  const alsoResolvedBy =
+    consumerStates.size > 0
       ? {
-          count: consumers.length,
-          tooltip: `also declared by: ${consumers
-            .map((consumer) => `${consumer.name} (${consumer.action})`)
+          count: consumerStates.size,
+          tooltip: `also resolves here: ${[...consumerStates.entries()]
+            .map(([name, states]) => `${participantDisplay(name)} (${[...states].join('/')})`)
             .join(', ')}`,
         }
       : null;
@@ -131,35 +149,46 @@ function packageRowOf(
     scope: group.scope,
     scopeLabel: group.scope === GLOBAL_SCOPE ? null : group.scope,
     packageName: group.packageName,
-    displayName: linked
-      ? group.packageName.slice(linked.parentPackage.length)
-      : group.packageName,
-    versions: rowVersionsOf(group),
-    conflict: group.conflict.conflict
+    displayName: linked ? group.packageName.slice(linked.parentPackage.length) : group.packageName,
+    versions: rowVersionsOf(group, indexes),
+    unknownTagged:
+      group.unknownTagCopyCount > 0
+        ? {
+            count: group.unknownTagCopyCount,
+            note: `${group.unknownTagCopyCount} ${
+              group.unknownTagCopyCount === 1 ? 'copy' : 'copies'
+            } without a uniquely evidenced source tag`,
+          }
+        : null,
+    noCopy:
+      group.copies.length === 0
+        ? { label: 'no resolved copies', note: noCopyNoteOf(group, indexes) }
+        : null,
+    conflict: group.multiVersion
       ? {
-          label: `⚠ ${group.conflict.mappedTags.length} versions mapped`,
-          note: 'more than one version mapped in this share scope (rule: mapped-multiplicity)',
+          label: `⚠ ${group.resolvedTags.length} resolved versions`,
+          note: 'more than one distinct version resolves in this share scope (rule: resolved-tag-multiplicity)',
         }
       : null,
     linked: linked ? { parentPackage: linked.parentPackage, rule: 'name-derived' } : null,
-    providers,
-    alsoDeclaredBy,
+    sources,
+    alsoResolvedBy,
   };
 }
 
 /** Flatten to kit tree rows — base packages at depth 0, linked subpaths at depth 1. */
 export function buildRows(
   groups: PackageGroup[],
+  indexes: CanonicalIndexes,
   conflictsOnly: boolean,
 ): TreeTableRow<PackageRowVm>[] {
   const byId = new Map(groups.map((group) => [group.id, group]));
   const linkedChildren = new Map<string, PackageGroup[]>();
   const bases: PackageGroup[] = [];
   for (const group of groups) {
-    const link = group.facts[0].parentLink;
-    const parentId = link === null ? null : packageId(group.scope, link.parentPackage);
-    if (parentId !== null && byId.has(parentId)) {
-      linkedChildren.set(parentId, [...(linkedChildren.get(parentId) ?? []), group]);
+    const parent = parentOf(group, byId);
+    if (parent !== null) {
+      linkedChildren.set(parent.id, [...(linkedChildren.get(parent.id) ?? []), group]);
     } else {
       bases.push(group);
     }
@@ -177,22 +206,22 @@ export function buildRows(
       depth,
       expandable: false,
       expanded: false,
-      payload: packageRowOf(group, linked),
+      payload: packageRowOf(group, indexes, linked),
     });
   };
 
   for (const base of bases) {
     const children = linkedChildren.get(base.id) ?? [];
-    if (!conflictsOnly || base.conflict.conflict) {
+    if (!conflictsOnly || base.multiVersion) {
       pushPackage(base, 0, null);
       for (const child of children.filter(
-        (candidate) => !conflictsOnly || candidate.conflict.conflict,
+        (candidate) => !conflictsOnly || candidate.multiVersion,
       )) {
         pushPackage(child, 1, { parentPackage: base.packageName });
       }
     } else {
       // Parent filtered out: a conflicted subpath stands on its own row.
-      for (const child of children.filter((candidate) => candidate.conflict.conflict)) {
+      for (const child of children.filter((candidate) => candidate.multiVersion)) {
         pushPackage(child, 0, null);
       }
     }

@@ -26,56 +26,130 @@
         <a
           [routerLink]="['/packages']"
           [queryParams]="{ select: detail.parent.packageId }"
-          [title]="
-            'parent association derived from the package name — rule: ' + detail.parent.rule
-          "
+          [title]="'parent association derived from the package name — rule: ' + detail.parent.rule"
           >{{ detail.parent.packageName }}</a
         >
       </span>
     }
   </p>
 
-  <h3>Negotiation</h3>
-  <nf-package-negotiation [versions]="detail.negotiation" [note]="detail.negotiationNote" />
+  <h3>Resolution</h3>
+  <dl class="detail-kv">
+    <div class="kv-row">
+      <dt class="tip" title="shared version registrations of this package (canonical measure)">
+        registrations
+      </dt>
+      <dd>{{ detail.measures.registrations }}</dd>
+    </div>
+    <div class="kv-row">
+      <dt
+        class="tip"
+        title="distinct tags across the shared version registrations — declared, not resolved"
+      >
+        declared tags
+      </dt>
+      <dd>{{ detail.measures.declaredTags }}</dd>
+    </div>
+    <div class="kv-row">
+      <dt class="tip" title="copies the captured import map resolves — resolution, never delivery">
+        resolved copies
+      </dt>
+      <dd>{{ detail.measures.resolvedCopies }}</dd>
+    </div>
+    <div class="kv-row">
+      <dt class="tip" title="distinct source tags across the resolved copies">resolved tags</dt>
+      <dd>{{ detail.measures.resolvedTags }}</dd>
+    </div>
+    @if (detail.measures.unknownTagCopies > 0) {
+      <div class="kv-row">
+        <dt class="tip" title="copies without a uniquely evidenced source tag">unknown tags</dt>
+        <dd>{{ detail.measures.unknownTagCopies }}</dd>
+      </div>
+    }
+    <div class="kv-row">
+      <dt
+        class="tip"
+        title="shared participant declarations of this package — a declaration count, nothing more"
+      >
+        declarations
+      </dt>
+      <dd>{{ detail.measures.declarations }}</dd>
+    </div>
+  </dl>
 
-  <h3>Entries</h3>
-  @if (detail.entries.length > 0) {
-    <ul class="entry-list">
-      @for (entry of detail.entries; track entry.participant + entry.file) {
-        <li class="entry-item">
-          <a
-            class="chip-link"
-            [routerLink]="['/remotes']"
-            [queryParams]="{ select: entry.participant }"
-            ><nf-participant-chip [name]="entry.participant" [host]="entry.host"
-          /></a>
-          <span class="entry-file">{{ entry.file }}</span>
-          @if (entry.targetUrl) {
-            <a
-              class="entry-mapped"
-              [routerLink]="['/import-map']"
-              [queryParams]="{ select: entry.importMapSelect }"
-              [title]="entry.targetUrl"
-              >mapped</a
-            >
-          } @else {
-            <span class="view-observation">not mapped</span>
-          }
-          @if (entry.hasIntegrity) {
-            <span class="entry-sri" title="the mapped target carries an SRI hash">SRI</span>
+  <h3>Negotiation</h3>
+  <nf-package-negotiation [versions]="detail.negotiation" [note]="detail.resolutionNote" />
+
+  <h3>Resolved copies</h3>
+  @if (detail.copies.length > 0) {
+    <ul class="copy-list">
+      @for (copy of detail.copies; track copy.copyId) {
+        <li class="copy-item">
+          <p class="copy-head">
+            @if (copy.resolvedTag !== null) {
+              <span class="copy-tag">{{ copy.resolvedTag }}</span>
+            } @else {
+              <span
+                class="view-observation tip"
+                title="no uniquely evidenced source tag for this copy"
+                >unknown tag</span
+              >
+            }
+            @if (copy.source.remoteSelect !== null) {
+              <a
+                class="chip-link"
+                [routerLink]="['/remotes']"
+                [queryParams]="{ select: copy.source.remoteSelect }"
+                ><nf-participant-chip [name]="copy.source.remoteSelect" [host]="copy.source.host"
+              /></a>
+            }
+            @if (copy.source.qualifier === 'ambiguous-source') {
+              <nf-state-badge kind="ambiguous" [note]="copy.source.note" />
+            } @else {
+              <span class="source-qualifier tip" [title]="copy.source.note">{{
+                copy.source.label
+              }}</span>
+            }
+            <span class="copy-fact tip" [title]="copy.disposition.note">{{
+              copy.disposition.label
+            }}</span>
+            @for (role of copy.roles; track role.label) {
+              <span class="copy-fact tip" [title]="role.note">{{ role.label }}</span>
+            }
+          </p>
+          @if (copy.entrypoints.length > 0) {
+            <ul class="entry-list">
+              @for (entry of copy.entrypoints; track entry.specifier) {
+                <li class="entry-item">
+                  <span class="entry-specifier mono">{{ entry.specifier }}</span>
+                  <span class="entry-arrow" aria-hidden="true">resolves to</span>
+                  <span class="entry-file">{{ entry.file }}</span>
+                  <a
+                    class="entry-mapped"
+                    [routerLink]="['/import-map']"
+                    [queryParams]="{ select: entry.importMapSelect }"
+                    [title]="entry.targetUrl"
+                    >mapped</a
+                  >
+                  @if (entry.hasIntegrity) {
+                    <span class="entry-sri" title="the mapped target carries an SRI hash">SRI</span>
+                  }
+                </li>
+              }
+            </ul>
           }
         </li>
       }
     </ul>
   } @else {
-    <p class="view-observation">no served files recorded for mapped copies</p>
+    <p class="view-observation">no resolved copies for this package in this capture</p>
   }
 
   <h3>Integrity</h3>
   @if (detail.integrity.mappedTargets > 0) {
     <p class="integrity-line">
-      {{ detail.integrity.withIntegrity }} of {{ detail.integrity.mappedTargets }} mapped
-      targets carry SRI hashes
+      {{ detail.integrity.withIntegrity }} of {{ detail.integrity.mappedTargets }} mapped targets
+      carry SRI hashes
     </p>
   } @else {
     <p class="view-observation">no mapped targets for this package</p>
@@ -83,68 +157,52 @@
 
   <h3>Chunks</h3>
   @if (detail.chunks; as chunks) {
-    @switch (chunks.level) {
-      @case ('package') {
-        @if (chunks.packageEntry; as chunkEntry) {
-          <dl class="detail-kv">
-            <div class="kv-row">
-              <dt>bundle</dt>
-              <dd class="mono">{{ chunkEntry.bundleName }}</dd>
-            </div>
-            <div class="kv-row">
-              <dt>chunk files</dt>
-              <dd [title]="'joined from the registry bundle-chunk lists — rule: ' + chunks.rule">
-                @if (chunkEntry.files.length > 0) {
-                  {{ chunkEntry.fileClaim }} · {{ chunkEntry.mappedCount }} mapped · loaded on
-                  demand
-                } @else {
-                  {{ chunkEntry.fileClaim }}
-                }
-              </dd>
-            </div>
-          </dl>
-          @if (chunkEntry.fileRows.length > 0) {
+    <ul class="chunk-claims">
+      @for (claim of chunks.claims; track claim.claimId) {
+        <li class="chunk-claim">
+          <p class="chunk-claim-head">
+            <span class="mono">{{ claim.bundle }}</span>
+            @if (claim.source; as source) {
+              <a
+                class="chip-link"
+                [routerLink]="['/remotes']"
+                [queryParams]="{ select: source.remoteSelect }"
+                ><nf-participant-chip [name]="source.remoteSelect" [host]="source.host"
+              /></a>
+            }
+            @if (claim.status === 'ambiguous') {
+              <nf-state-badge kind="ambiguous" [note]="claim.note" />
+            } @else {
+              <span
+                class="chunk-status tip"
+                [class.chunk-status-qualified]="claim.status !== 'mapped-source'"
+                [title]="claim.note"
+                >{{ claim.status }}</span
+              >
+            }
+          </p>
+          <p
+            class="chunk-files"
+            [title]="'rendered from canonical bundle claims — rule: ' + chunks.rule"
+          >
+            @if (claim.files.length > 0) {
+              {{ claim.fileClaim }} · available for loading
+            } @else {
+              {{ claim.fileClaim }}
+            }
+          </p>
+          @if (claim.files.length > 0) {
             <ul class="chunk-list">
-              @for (row of chunkEntry.fileRows; track row.file) {
+              @for (file of claim.files; track file) {
                 <li class="chunk-item">
-                  <span class="mono">{{ row.file }}</span>
-                  @if (row.mapped; as mapped) {
-                    <a
-                      class="entry-mapped"
-                      [routerLink]="['/import-map']"
-                      [queryParams]="{ select: mapped.select }"
-                      [title]="mapped.targetUrl"
-                      >mapped</a
-                    >
-                    @if (mapped.hasIntegrity) {
-                      <span class="entry-sri" title="the mapped target carries an SRI hash"
-                        >SRI</span
-                      >
-                    }
-                  } @else {
-                    <span class="view-observation">not mapped</span>
-                  }
+                  <span class="mono">{{ file }}</span>
                 </li>
               }
             </ul>
           }
-        } @else {
-          <p class="view-observation" [attr.title]="'rule: ' + chunks.rule">
-            {{ chunks.remoteDisplay }} records chunk lists, but none for this package
-          </p>
-        }
+        </li>
       }
-      @case ('remote') {
-        <p class="view-observation" [attr.title]="'rule: ' + chunks.rule">
-          {{ chunks.note }} ({{ chunks.groupCount }} chunk groups)
-        </p>
-      }
-      @case ('none') {
-        <p class="view-observation" [attr.title]="'rule: ' + chunks.rule">
-          {{ chunks.note }}
-        </p>
-      }
-    }
+    </ul>
   } @else if (detail.chunksUnavailable) {
     <p class="view-observation">{{ detail.chunksUnavailable }}</p>
   }

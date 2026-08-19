@@ -59,38 +59,43 @@
   margin: 2px 0 2px 16px;
 }
 
-.provider-line,
-.residual-line {
-  margin: 2px 0 0 2px;
-  color: var(--nf-color-text-muted);
-}
-
 /* Anchors wrapping a participant chip: the chip IS the link — never an
  * underline through the chip text (hover accent lives in the chip's css). */
 .chip-link {
   text-decoration: none !important;
 }
 
-.provider-fallback {
+.mono {
+  font-family: var(--nf-font-mono);
+  font-size: 11px;
+}
+
+/* Further specifier claims of a multi-entrypoint declaration — every claim
+ * stays visible with its own state. */
+.claim-line {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 1px 0 0 18px;
+}
+
+.claim-specifier,
+.claim-target {
+  color: var(--nf-color-text-muted);
+}
+
+/* Canonical claim-state chip: selected / not selected / anchored / … —
+ * the grounded reason lives one hover away. */
+.state-chip {
   padding: 0 4px;
   border: 1px solid var(--nf-color-border);
   border-radius: 3px;
   font-size: 10px;
-  text-decoration: underline dotted;
-  text-underline-offset: 2px;
-  cursor: help;
+  color: var(--nf-color-text-muted);
+  white-space: nowrap;
 }
 
-/* The one visible provenance tag: source-derived (not capture-backed). */
-.rule-tag {
-  padding: 0 4px;
-  border: 1px dashed var(--nf-color-border);
-  border-radius: 3px;
-  font-family: var(--nf-font-mono);
-  font-size: 10px;
-  color: var(--nf-color-text-muted);
-  text-decoration: underline dotted;
-  text-underline-offset: 2px;
-  cursor: help;
-  white-space: nowrap;
+.state-selected {
+  color: var(--nf-color-text);
 }

@@ -1,49 +1,60 @@
 /**
- * Packages view model — the pure vm layer of the default V2 view (see the
- * four-layer map at `FederationStore`). Inputs are the store's model +
- * derived projections plus caller-owned UI state; the output is render-ready
- * only: templates consume these rows, never store types (XC-06).
+ * Packages view model — the pure vm layer of the default V2 view. Inputs are
+ * the canonical Store façade (`model.resolutionProjection`,
+ * `model.effectiveConsumerResolutions`, `model.registryEvidence`) plus
+ * caller-owned UI state; the output is render-ready only: templates consume
+ * these rows, never store types (T7-AC-05).
  *
  * This file is the FACADE: grouping, scopes summary, and the public
  * surface. The two halves live beside it — `packages-row-vm.ts` (flat leaf
- * list, mapped-copy versions, conflict badge) and `packages-detail-vm.ts`
- * (negotiation, entries, integrity, chunks via `packages-chunk-vm.ts`);
- * shared internals in `packages-vm-shared.ts`. Views import from here only.
+ * list, resolved-tag versions, multiplicity indicator) and
+ * `packages-detail-vm.ts` (measures, negotiation, resolved copies, chunks
+ * via `packages-chunk-vm.ts`); shared internals in `packages-vm-shared.ts`.
+ * Views import from here only.
  *
- * Presentation doctrine (user-directed rework of the plan block, sharpened
- * in T10.5):
- * - The left list is FLAT: one leaf row per package, secondaries indented
- *   under their parent; negotiation structure lives in the detail pane.
- * - Row versions and the conflict badge speak about the SAME set — the
- *   mapped copies; declared-only multiplicity is never flagged.
- * - Only the unique elected winner stays quiet: every other row says
- *   where it resolves (skip → winner's file, scope and non-elected share
- *   copies → own copy, winner-less → honest reason).
- * - Provenance rules ride along as data for tooltips; only the
- *   `source-derived` residual keeps a visible tag (the one claim not
- *   grounded in capture evidence).
+ * Presentation doctrine (T10.5 flat list, model inputs recast by T7):
+ * - The left list is FLAT: one leaf row per (share scope, package),
+ *   secondaries indented under their parent; negotiation structure lives in
+ *   the detail pane.
+ * - Row versions are the RESOLVED tags of the group's canonical copies;
+ *   requested (declared) versions render separately in the negotiation.
+ *   The multiplicity indicator counts the same set — distinct resolved
+ *   tags — so row and indicator can never diverge; copy multiplicity with
+ *   one resolved tag is never flagged.
+ * - Every claim is qualified: selected/not-selected/anchored states stay
+ *   visible, source wording is qualified (registry slot, explicit anchor,
+ *   exact/observed target source, unknown), and reasons ride along as
+ *   tooltip data.
  *
  * The builder groups and flattens precomputed knowledge — it derives
  * nothing new.
  */
 import type { TreeTableRow } from '../../shared/kit/tree-table';
-import type { DerivedFederation } from '../../shared/store/derived-model';
 import type { FederationModel } from '../../shared/store/federation-model';
+import type { SharedExternalId } from '../../shared/store/resolution';
 import { PackageDetailVm, buildDetail } from './packages-detail-vm';
 import { PackageRowVm, buildRows } from './packages-row-vm';
-import { GLOBAL_SCOPE, PackageGroup, packageId } from './packages-vm-shared';
+import {
+  CanonicalIndexes,
+  GLOBAL_SCOPE,
+  PackageGroup,
+  buildCanonicalIndexes,
+  copyGroupIds,
+  multiVersionOf,
+  packageId,
+} from './packages-vm-shared';
 
 export { packageId } from './packages-vm-shared';
 export { NEGOTIATION_LEGEND } from './packages-detail-vm';
 export type { PackageRowVm, RowVersionVm } from './packages-row-vm';
 export type {
-  DetailEntryVm,
+  DetailCopyVm,
   DetailParticipantVm,
   DetailVersionVm,
   PackageDetailVm,
-  ProviderVm,
+  ResolutionMeasuresVm,
 } from './packages-detail-vm';
-export type { ChunkSectionVm } from './packages-chunk-vm';
+export type { ChunkClaimVm, ChunkSectionVm } from './packages-chunk-vm';
 
 export type PackagesFilter = 'all' | 'conflicts';
 
@@ -72,17 +83,14 @@ export interface PackagesVm {
   emptyNote: string | null;
 }
 
-export function buildPackagesVm(
-  model: FederationModel,
-  derived: DerivedFederation,
-  ui: PackagesUiState,
-): PackagesVm {
-  const groups = groupPackages(derived);
+export function buildPackagesVm(model: FederationModel, ui: PackagesUiState): PackagesVm {
+  const indexes = buildCanonicalIndexes(model);
+  const groups = groupPackages(model, indexes);
   const scopes = summarizeScopes(groups);
-  const conflictCount = groups.filter((group) => group.conflict.conflict).length;
+  const conflictCount = groups.filter((group) => group.multiVersion).length;
 
-  const rows = buildRows(groups, ui.filter === 'conflicts');
-  const detail = buildDetail(groups, model, derived, ui.selectedId);
+  const rows = buildRows(groups, indexes, ui.filter === 'conflicts');
+  const detail = buildDetail(groups, indexes, ui.selectedId);
 
   let emptyNote: string | null = null;
   if (groups.length === 0) {
@@ -94,31 +102,66 @@ export function buildPackagesVm(
   return { scopes, packageCount: groups.length, conflictCount, rows, detail, emptyNote };
 }
 
-/** One group per (scope, package), store order; conflicts cover every group. */
-function groupPackages(derived: DerivedFederation): PackageGroup[] {
-  const conflictById = new Map(
-    derived.packageConflicts.map((conflict) => [
-      packageId(conflict.scope, conflict.packageName),
-      conflict,
-    ]),
-  );
+/**
+ * One group per (share scope, package) from the canonical shared-external
+ * records, store order; copies join source-first (the `packageMeasures`
+ * attribution). An empty share scope holds no records and manufactures no
+ * packages (T7-AC-02).
+ */
+function groupPackages(model: FederationModel, indexes: CanonicalIndexes): PackageGroup[] {
   const groups: PackageGroup[] = [];
   const byId = new Map<string, PackageGroup>();
-  for (const facts of derived.sharedRowFacts) {
-    const id = packageId(facts.row.scope, facts.row.packageName);
+  const groupIdBySharedExternal = new Map<SharedExternalId, string>();
+  for (const external of model.registryEvidence.sharedExternals) {
+    const id = packageId(external.shareScope, external.packageName);
+    groupIdBySharedExternal.set(external.id, id);
     let group = byId.get(id);
     if (group === undefined) {
       group = {
         id,
-        scope: facts.row.scope,
-        packageName: facts.row.packageName,
-        facts: [],
-        conflict: conflictById.get(id)!,
+        scope: external.shareScope,
+        packageName: external.packageName,
+        registrations: [],
+        copies: [],
+        resolvedTags: [],
+        unknownTagCopyCount: 0,
+        multiVersion: false,
       };
       byId.set(id, group);
       groups.push(group);
     }
-    group.facts.push(facts);
+    for (const registrationId of external.versionRegistrationIds) {
+      const registration = indexes.registrationById.get(registrationId);
+      if (registration === undefined) {
+        continue;
+      }
+      group.registrations.push({
+        registration,
+        declarations: registration.participantDeclarationIds.flatMap((declarationId) => {
+          const declaration = indexes.declarationById.get(declarationId);
+          return declaration === undefined ? [] : [declaration];
+        }),
+      });
+    }
+  }
+
+  const knownGroupIds = new Set(byId.keys());
+  for (const copy of model.resolutionProjection.copies) {
+    for (const groupId of copyGroupIds(copy, indexes, knownGroupIds, groupIdBySharedExternal)) {
+      const group = byId.get(groupId);
+      if (group === undefined) {
+        continue;
+      }
+      group.copies.push(copy);
+      if (copy.resolvedTag === null) {
+        group.unknownTagCopyCount += 1;
+      } else if (!group.resolvedTags.includes(copy.resolvedTag)) {
+        group.resolvedTags.push(copy.resolvedTag);
+      }
+    }
+  }
+  for (const group of groups) {
+    group.multiVersion = multiVersionOf(group.scope, group.resolvedTags);
   }
   return groups;
 }
