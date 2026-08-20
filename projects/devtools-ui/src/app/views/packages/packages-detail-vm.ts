@@ -358,17 +358,46 @@ function declaredOf(
 }
 
 /**
+ * Display list of the own registered files evidenced behind the given
+ * claims — each claim's own entrypoint candidate, joined in claim order.
+ * Null when no claim's candidate is part of the canonical evidence: the
+ * outcome then renders without a file name, never with an invented one.
+ */
+function evidencedOwnFilesOf(
+  claims: DeclarationResolutionClaim[],
+  indexes: CanonicalIndexes,
+): string | null {
+  const files: string[] = [];
+  for (const claim of claims) {
+    const file = indexes.candidateById.get(claim.candidateId)?.file;
+    if (file !== undefined && file !== '' && !files.includes(file)) {
+      files.push(file);
+    }
+  }
+  return files.length === 0 ? null : files.join(', ');
+}
+
+/**
  * Deviation annotations of one consumer row from its claims' mapping states
  * and the consumer's own registration action. The happy path (selected share
  * declaration) contributes nothing; skip consumers say what they skipped,
- * scope consumers that they kept their own copy.
+ * scope consumers that they kept their own copy. Outcome notes name the
+ * consumer's own registered file when the claim evidence carries it —
+ * capture-relative wording: an unselected own copy may be selected under a
+ * different composition.
  */
 function consumerDeviationsOf(
   declaration: ParticipantDeclaration,
   registration: VersionRegistration,
   claims: DeclarationResolutionClaim[],
+  indexes: CanonicalIndexes,
 ): AnnotationVm[] {
   const states = new Set(claims.map((claim) => claim.mappingState));
+  const filesInStates = (...triggering: DeclarationResolutionClaim['mappingState'][]) =>
+    evidencedOwnFilesOf(
+      claims.filter((claim) => triggering.includes(claim.mappingState)),
+      indexes,
+    );
   const deviations: AnnotationVm[] = [];
   if (states.has('anchored')) {
     const anchor = declaration.servedBy;
@@ -385,20 +414,32 @@ function consumerDeviationsOf(
     });
   }
   if (states.has('own-selected') && registration.action === 'scope') {
+    const files = filesInStates('own-selected');
     deviations.push({
       label: 'kept own copy',
-      note: 'registered with action scope — keeps its own copy, mapped only for its own declarers',
+      note:
+        files === null
+          ? 'registered with action scope — keeps its own copy, mapped only for its own declarers'
+          : `own copy ${files} is registered with action scope — the consumer keeps it, mapped only for its own declarers`,
     });
   }
   if (registration.action === 'skip' && (states.has('fallback') || states.has('not-selected'))) {
+    const files = filesInStates('fallback', 'not-selected');
     deviations.push({
       label: `skipped own ${registration.tag}`,
-      note: `own copy ${registration.tag} is registered with action skip — the consumer resolves to the elected copy`,
+      note:
+        files === null
+          ? `own copy ${registration.tag} is registered with action skip — the consumer resolves to the elected copy`
+          : `own copy ${files} (${registration.tag}) is registered with action skip — the consumer resolves to the elected copy`,
     });
   } else if (states.has('not-selected')) {
+    const files = filesInStates('not-selected');
     deviations.push({
       label: 'not selected',
-      note: 'the consumer’s own candidate is not the effective target — its binding resolves to this copy',
+      note:
+        files === null
+          ? 'the consumer’s own candidate is not selected in this capture — its binding resolves to this copy'
+          : `own copy ${files} is registered but not selected in this capture — the binding resolves to this copy; a different composition may select it`,
     });
   }
   return deviations;
@@ -478,7 +519,7 @@ function consumersOf(
       host: isHostRemote(declaration.participant),
       declared: declaredOf(declaration, registration, group.scope),
       strict: declaration.strictVersion,
-      deviations: consumerDeviationsOf(declaration, registration, copyClaims),
+      deviations: consumerDeviationsOf(declaration, registration, copyClaims, indexes),
       viaSpecifiers: specifiers.includes(group.packageName) ? [] : specifiers,
       remoteSelect: declaration.participant,
     });
@@ -532,7 +573,10 @@ function consumersOf(
         host: isHostRemote(declaration.participant),
         declared: declaredOf(declaration, registration, scope),
         strict: declaration.strictVersion,
-        deviations: [declaredUnder, ...consumerDeviationsOf(declaration, registration, claims)],
+        deviations: [
+          declaredUnder,
+          ...consumerDeviationsOf(declaration, registration, claims, indexes),
+        ],
         viaSpecifiers: [],
         remoteSelect: declaration.participant,
       });

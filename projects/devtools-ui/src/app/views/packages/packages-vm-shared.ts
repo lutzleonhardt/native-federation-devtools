@@ -28,6 +28,8 @@ import type {
   DeclarationResolutionClaimId,
   EffectiveConsumerResolution,
   EffectiveConsumerResolutionId,
+  EntrypointCandidate,
+  EntrypointCandidateId,
   ParticipantDeclaration,
   ParticipantDeclarationId,
   PrivateRegistration,
@@ -90,6 +92,7 @@ export interface CanonicalIndexes {
   declarationById: Map<ParticipantDeclarationId, ParticipantDeclaration>;
   registrationById: Map<VersionRegistrationId, VersionRegistration>;
   privateRegistrationById: Map<PrivateRegistrationId, PrivateRegistration>;
+  candidateById: Map<EntrypointCandidateId, EntrypointCandidate>;
   resolutionById: Map<EffectiveConsumerResolutionId, EffectiveConsumerResolution>;
   claimsByDeclaration: Map<ParticipantDeclarationId, DeclarationResolutionClaim[]>;
   /** Every attached claim (shared and private subjects), by canonical ID. */
@@ -132,6 +135,9 @@ export function buildCanonicalIndexes(model: FederationModel): CanonicalIndexes 
     ),
     privateRegistrationById: new Map(
       model.registryEvidence.privateRegistrations.map((record) => [record.id, record]),
+    ),
+    candidateById: new Map(
+      model.registryEvidence.entrypointCandidates.map((record) => [record.id, record]),
     ),
     resolutionById: new Map(
       model.effectiveConsumerResolutions.map((resolution) => [resolution.id, resolution]),
