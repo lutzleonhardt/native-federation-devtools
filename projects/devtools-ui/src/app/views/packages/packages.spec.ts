@@ -280,6 +280,72 @@ describe('PackagesView', () => {
     expect(el.querySelectorAll('.tree-row')).toHaveLength(1);
   });
 
+  // T7.8-AC-03 (XC-06): the dense multi-entry fixture is the end-to-end
+  // witness for the plural FILES group — until now only synthetic VM seeds
+  // exercised it. One block, ONE files label, two file lines; the secondary
+  // line names its specifier, the parent line (specifier == package name)
+  // stays unlabeled.
+  it('renders the dense multi-entry copy as one block with two FILES lines', async () => {
+    const { fixture } = await createView({
+      fixture: 'synthetic-dense-entries',
+      select: '__GLOBAL__|@nf-lab/dense-lib',
+    });
+    const el = fixture.nativeElement as HTMLElement;
+
+    const blocks = Array.from(el.querySelectorAll<HTMLElement>('.copy-block'));
+    expect(blocks).toHaveLength(1);
+    expect(el.querySelector('.detail-conflict')).toBeNull();
+    const block = blocks[0];
+    expect(block.querySelector('.copy-tag')?.textContent).toBe('1.2.0');
+    const labels = Array.from(block.querySelectorAll(':scope > .group-label')).map(
+      (label) => label.textContent,
+    );
+    // No chunks group: the fixture carries no bundle/chunk evidence at all.
+    expect(labels).toEqual(['files', 'declared by']);
+
+    const lines = Array.from(block.querySelectorAll<HTMLElement>('.file-line'));
+    expect(lines).toHaveLength(2);
+    expect(lines[0].querySelector('.file-specifier')).toBeNull();
+    expect(lines[0].querySelector('.file-name')?.textContent).toBe(
+      '_nf_lab_dense_lib.h4PpYcAsEa.js',
+    );
+    expect(lines[1].querySelector('.file-specifier')?.textContent).toBe(
+      '@nf-lab/dense-lib/secondary',
+    );
+    expect(lines[1].querySelector('.file-name')?.textContent).toBe(
+      '_nf_lab_dense_lib_secondary.s3CnDaRyEa.js',
+    );
+    // Both lines belong to the one copy: a single declaring consumer row.
+    expect(block.querySelectorAll('.consumer-row')).toHaveLength(1);
+    expect(block.querySelector('.consumer-row .chip')?.textContent).toBe('mfe-dense');
+  });
+
+  // T7.8-AC-04 (DOM half): the deviating secondary split into its own
+  // registration under the same registry key — two separate blocks, each
+  // with its own FILES group, never one merged block.
+  it('renders the split secondary as its own block, never merged', async () => {
+    const { fixture } = await createView({
+      fixture: 'synthetic-dense-entries',
+      select: '__GLOBAL__|@nf-lab/split-lib',
+    });
+    const el = fixture.nativeElement as HTMLElement;
+
+    const blocks = Array.from(el.querySelectorAll<HTMLElement>('.copy-block'));
+    expect(blocks).toHaveLength(2);
+    const parentBlock = blocks.find(
+      (block) => block.querySelector('.copy-tag')?.textContent === '3.0.0',
+    )!;
+    const secondaryBlock = blocks.find(
+      (block) => block.querySelector('.copy-tag')?.textContent === '3.1.4',
+    )!;
+    expect(parentBlock.querySelectorAll('.file-line')).toHaveLength(1);
+    expect(parentBlock.querySelector('.file-specifier')).toBeNull();
+    expect(secondaryBlock.querySelectorAll('.file-line')).toHaveLength(1);
+    expect(secondaryBlock.querySelector('.file-specifier')?.textContent).toBe(
+      '@nf-lab/split-lib/secondary',
+    );
+  });
+
   it('narrows the clean self-fill capture to the empty note under Conflicts', async () => {
     const { fixture } = await createView({ fixture: 'self-fill' });
     const el = fixture.nativeElement as HTMLElement;
