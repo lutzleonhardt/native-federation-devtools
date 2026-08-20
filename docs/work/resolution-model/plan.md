@@ -616,6 +616,80 @@ T2-AC-02 through T2-AC-05 were retired by the approved task split. Their IDs are
   (consumer-row collapse, participant combobox); this task's neutral
   fallback is the color-system counterpart of that decision.
 
+## Task 7.8: Witness dense multi-entry copies with a fixture
+
+**Dependency:** Task 7.6.
+
+### Instructions
+
+- Add a `synthetic-dense-entries` bridge fixture that models the only
+  real path to a multi-entry registration. Source-verified context
+  (orchestrator + core repos, 2026-08-20; persisted in auto-memory
+  `orchestrator-registry-semantics`): the dense format is DOUBLE opt-in
+  — build-side `features.denseExternals` (wire format since core
+  v4.3.0) or host-side `feature.convertFlatSharedInfo` (densifies even
+  ≤4.4 flat remoteEntries at fetch); both flags default to false in
+  v4.5.0/v4.6.0. Default builds emit one single-entry registration per
+  full specifier, which is why every existing fixture renders one file
+  line per copy and secondaries live as separate registry keys.
+- Happy case: one v4.5-generation registration whose `entries` map
+  carries the parent package AND a secondary entrypoint (identical
+  metadata signature: version, requiredVersion, strictVersion,
+  singleton, shareScope), both specifiers mapped in the import map.
+  The canonical pipeline must materialize ONE resolved copy carrying
+  both entrypoints.
+- Split case: a package where the secondary's metadata deviates (e.g.
+  different version) — densification then splits into a separate
+  registration under the SAME registry key; the pipeline must yield
+  separate copies/blocks, never a merged lie.
+- Register the fixture in the FIXTURES index; the snapshot-v1
+  round-trip spec and the fixture picker follow the index dynamically
+  (verified — no count pins to adjust). Document the double-opt-in
+  provenance in the fixture header comment so the case never reads as
+  synthetic fantasy.
+- DOM-pin the plural FILES rendering in `packages.spec.ts`: one block,
+  one FILES label, two file lines, the secondary line showing its
+  specifier. VM-level plural support is already pinned (CROSS_SOURCE
+  seed in `packages-view-model.spec.ts`) — extend pins in place, do
+  not duplicate.
+- OUT of scope: a real capture. It requires a lab/test app built with
+  `features.denseExternals: true` — a default-config ≥4.5 capture can
+  never witness the case; maintainer work for a later capture task.
+
+### Acceptance
+
+- **T7.8-AC-01** — the fixture round-trips through the snapshot-v1
+  contract like every other fixture and is selectable in the picker
+  without picker-spec changes.
+- **T7.8-AC-02** — store-level pin: the happy case materializes
+  exactly one resolved copy whose entrypoints record both specifiers.
+- **T7.8-AC-03** — Packages DOM pin: the copy block renders one FILES
+  label with two file lines; the secondary line shows its specifier.
+  **Contributes:** XC-06.
+- **T7.8-AC-04** — split-case pin: deviating metadata yields two
+  registrations under one registry key and two separate blocks.
+
+### Key Locations
+
+- `projects/devtools-bridge/src/lib/fixtures/` (new fixture + `index.ts`)
+- `projects/devtools-bridge/src/lib/snapshot-v1.spec.ts` (round-trip; iterates FIXTURES dynamically)
+- `projects/devtools-ui/src/app/shared/store/resolution/materialize-resolved-copies.spec.ts` (copy-level pin)
+- `projects/devtools-ui/src/app/views/packages/packages.spec.ts` (FILES plural DOM pin)
+
+### Key Discoveries
+
+- Dense grouping happens via `inferPackageFromSecondary` plus an
+  identical metadata signature; the default flat path documents
+  first-writer-wins when a secondary is emitted as its own package
+  (generate-import-map.ts) — the fixture must model the opt-in output,
+  not the default.
+- All existing bridge fixtures carry single-entry `entries` maps; the
+  plural FILES rendering is currently guarded only by synthetic VM
+  seeds, never end-to-end.
+- The Packages FILES group (Task 7.6 amendment) renders one line per
+  entrypoint with the specifier shown when it differs from the package
+  name — the DOM pin rides on that behavior.
+
 ## Task 8: Migrate Remotes to canonical resolutions
 
 **Dependency:** Task 6.
