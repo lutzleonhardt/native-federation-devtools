@@ -104,6 +104,16 @@ describe('PackagesView', () => {
     expect(hostToggle.querySelector<HTMLElement>('.chip-host')?.title).toBe('__NF-HOST__');
     expect(el.querySelectorAll('.tree-row')).toHaveLength(2);
 
+    // T7.6-AC-01: buttons + chips form one left filter zone with a visible
+    // divider between them; the scopes summary sits outside the zone and is
+    // pushed to the right edge via its auto margin.
+    const zone = el.querySelector<HTMLElement>('.filter-zone')!;
+    expect(zone.querySelector('.filter-group')).not.toBeNull();
+    expect(zone.querySelector('.participant-filter')).not.toBeNull();
+    expect(zone.querySelector('.scopes-summary')).toBeNull();
+    expect(getComputedStyle(el.querySelector('.participant-filter')!).borderLeftWidth).toBe('1px');
+    expect(getComputedStyle(el.querySelector('.scopes-summary')!).marginLeft).toBe('auto');
+
     // on: narrow to the packages the host is involved in
     hostToggle.click();
     fixture.detectChanges();
@@ -138,13 +148,15 @@ describe('PackagesView', () => {
     for (const heading of ['Resolution', 'Negotiation', 'Resolved copies', 'Integrity']) {
       expect(el.querySelector('.pkg-detail')!.textContent).not.toContain(heading);
     }
-    // Header: tag · shared · source [host]; default qualifiers as tooltips.
+    // Header: tag · shared · from [host]; default qualifiers as tooltips.
     const head = el.querySelector<HTMLElement>('.copy-head')!;
     expect(head.querySelector('.copy-tag')?.textContent).toBe('21.2.12');
     expect(head.querySelector('.copy-disposition')?.textContent).toBe('shared');
     expect(head.querySelector<HTMLElement>('.copy-disposition')?.title).toContain(
       'ordinary-shared',
     );
+    // T7.6-AC-03: the connective reads 'from'; the qualifier stays tooltip data.
+    expect(head.querySelector('.source-word')?.textContent).toBe('from');
     expect(head.querySelector<HTMLElement>('.source-word')?.title).toContain('exact target source');
     expect(el.querySelector('.pkg-detail')!.textContent).not.toContain('exact target source');
     expect(el.querySelector('.pkg-detail')!.textContent).not.toContain('ordinary-shared');
@@ -160,6 +172,24 @@ describe('PackagesView', () => {
     expect(consumer.querySelector('.consumer-declared')?.textContent).toBe('^21.2.0');
     expect(consumer.querySelector('.consumer-strict')?.textContent).toBe('STRICT');
     expect(stateChipsOf(el)).toEqual([]);
+    // T7.6-AC-04: consumers and chunks sit under group labels; file list,
+    // both labels, and the chunk claims are direct siblings under the block
+    // (one CHUNKS label per block, bundle heads as rows beneath).
+    const block = el.querySelector<HTMLElement>('.copy-block')!;
+    expect(
+      Array.from(block.querySelectorAll(':scope > .group-label')).map((label) => label.textContent),
+    ).toEqual(['files', 'declared by', 'chunks']);
+    expect(block.querySelector(':scope > .file-list')).not.toBeNull();
+    expect(block.querySelector(':scope > .chunk-claim')).not.toBeNull();
+    expect(block.querySelector('.chunk-claim .group-label')).toBeNull();
+    // The arrow glyph is gone — 'resolves to' stays participant-row kit
+    // vocabulary and does not leak into the copy block.
+    expect(block.textContent).not.toContain('→');
+    // T7.6-AC-05: STRICT is a configuration fact — muted like the declared
+    // range, never warning-colored.
+    expect(getComputedStyle(consumer.querySelector('.consumer-strict')!).color).toBe(
+      getComputedStyle(consumer.querySelector('.consumer-declared')!).color,
+    );
     // Chunks nest inside the block: five files, unqualified (mapped-source).
     expect(el.querySelectorAll('.copy-block .chunk-item')).toHaveLength(5);
     expect(el.querySelector('.chunk-status')).toBeNull();
@@ -198,6 +228,20 @@ describe('PackagesView', () => {
     expect(blocks[1].querySelector('.copy-disposition')?.textContent).toBe('isolated');
     expect(blocks[1].querySelector('.copy-audience')?.textContent).toBe('mapped only for mfe3');
     expect(stateChipsOf(el)).toEqual(['skipped own 1.0.0', 'kept own copy']);
+    // T7.6-AC-04: the sparse isolated block (one consumer row, no chunk
+    // list) still renders both group labels.
+    expect(
+      Array.from(blocks[1].querySelectorAll(':scope > .group-label')).map(
+        (label) => label.textContent,
+      ),
+    ).toEqual(['files', 'declared by', 'chunks']);
+    expect(blocks[1].querySelectorAll('.consumer-row')).toHaveLength(1);
+    expect(blocks[1].querySelector('.chunk-list')).toBeNull();
+    // T7.6-AC-05: the conflict header keeps its warning color; STRICT stays
+    // muted alongside the declared range.
+    const strictColor = getComputedStyle(el.querySelector('.consumer-strict')!).color;
+    expect(strictColor).toBe(getComputedStyle(el.querySelector('.consumer-declared')!).color);
+    expect(strictColor).not.toBe(getComputedStyle(el.querySelector('.detail-conflict')!).color);
 
     // Row: ⚠ glyph with the rule tooltip, non-elected version muted.
     const conflict = el.querySelector<HTMLElement>('.pkg-conflict')!;
@@ -280,6 +324,15 @@ describe('PackagesView', () => {
     expect(strictEl.querySelector<HTMLElement>('.detail-scope .mono')?.title).toBe(
       'configured via shareScope: strict',
     );
+    // T7.6-AC-02: label and value joined by a colon.
+    expect(strictEl.querySelector('.detail-scope')?.textContent?.replace(/\s+/g, ' ').trim()).toBe(
+      'share scope: strict',
+    );
+    // T7.6-AC-05: pinned scope is a configuration fact — muted like the meta
+    // line, tooltip verbatim.
+    expect(getComputedStyle(strictEl.querySelector('.detail-strict')!).color).toBe(
+      getComputedStyle(strictEl.querySelector('.detail-scope')!).color,
+    );
   });
 
   it('marks the global scope as the unconfigured default in the detail tooltip', async () => {
@@ -288,6 +341,26 @@ describe('PackagesView', () => {
     expect(el.querySelector<HTMLElement>('.detail-scope .mono')?.title).toBe(
       '__GLOBAL__ — the default share scope (no shareScope configured)',
     );
+    expect(el.querySelector('.detail-scope')?.textContent?.replace(/\s+/g, ' ').trim()).toBe(
+      'share scope: global',
+    );
+  });
+
+  // T7.6-AC-03: the copy-head connective reads 'from' for every disposition;
+  // the standalone word 'source' is gone from the copy-block DOM.
+  it('reads skip-registration from [mfe1] on the pooling-anchor block', async () => {
+    const { fixture } = await createView({ fixture: 'pooling-anchor', select: CONFLICT_LIB });
+    const el = fixture.nativeElement as HTMLElement;
+
+    const anchor = Array.from(el.querySelectorAll<HTMLElement>('.copy-block')).find(
+      (block) => block.querySelector('.copy-tag')?.textContent === '1.0.0',
+    )!;
+    expect(anchor.querySelector('.copy-disposition')?.textContent).toBe('skip-registration');
+    expect(anchor.querySelector('.copy-head .source-word')?.textContent).toBe('from');
+    expect(anchor.querySelector('.copy-head .chip-link .chip')?.textContent).toBe('mfe1');
+    for (const block of Array.from(el.querySelectorAll<HTMLElement>('.copy-block'))) {
+      expect(block.textContent).not.toMatch(/(?<![\w-])source(?![\w-])/);
+    }
   });
 
   it('selects a package on row click', async () => {
@@ -366,6 +439,8 @@ describe('PackagesView', () => {
     expect(el.querySelectorAll('.copy-block')).toHaveLength(0);
     expect(el.querySelector('.no-copies')?.textContent).toBe('no resolved copies in this capture');
     expect(el.querySelector('.unresolved-heading')?.textContent).toBe('unresolved');
+    // The bucket keeps its own heading — no DECLARED BY label (T7.6-AC-04).
+    expect(el.querySelector('.unresolved-list .group-label')).toBeNull();
     expect(stateChipsOf(el)).toEqual(['not mapped', 'not mapped']);
     const offered = Array.from(el.querySelectorAll<HTMLElement>('.offered-chip'));
     expect(offered.map((chip) => chip.textContent)).toEqual(['offered 1.2.3', 'offered 2.0.0']);

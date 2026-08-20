@@ -7,7 +7,7 @@
   </h2>
   <p class="detail-meta">
     <span class="detail-scope"
-      >share scope
+      >share scope:
       <span
         class="mono tip"
         [attr.title]="
@@ -66,7 +66,7 @@
                   ? block.source.label + ' — ' + block.source.note
                   : null
               "
-              >source</span
+              >from</span
             >
             <a
               class="chip-link"
@@ -87,10 +87,10 @@
           }
         </p>
         @if (block.files.length > 0) {
+          <p class="group-label">files</p>
           <ul class="file-list">
             @for (file of block.files; track file.specifier) {
               <li class="file-line">
-                <span class="file-arrow" aria-hidden="true">→</span>
                 @if (file.showSpecifier) {
                   <span class="file-specifier mono">{{ file.specifier }}</span>
                 }
@@ -118,6 +118,7 @@
           </ul>
         }
         @if (block.consumers.length > 0) {
+          <p class="group-label">declared by</p>
           <ul class="consumer-list">
             @for (consumer of block.consumers; track consumer.declarationId) {
               <li class="consumer-row">
@@ -158,10 +159,12 @@
             }
           </ul>
         }
+        @if (block.chunks.length > 0) {
+          <p class="group-label">chunks</p>
+        }
         @for (claim of block.chunks; track claim.claimId) {
           <div class="chunk-claim">
             <p class="chunk-claim-head">
-              <span class="chunk-word">chunks</span>
               <span class="mono">{{ claim.bundle }}</span>
               @if (claim.showSource) {
                 @if (claim.source; as source) {

@@ -53,6 +53,9 @@ describe('ParticipantRow (view kit)', () => {
     expect(strictMarker.textContent).toBe('strict');
     // Config-origin reference (T10.5): the tooltip names the config field.
     expect(strictMarker.title).toContain('strictVersion: true');
+    // T7.6-AC-05: a configuration fact — muted like the declared range,
+    // never warning-colored.
+    expect(getComputedStyle(strictMarker).color).toBe(getComputedStyle(declared).color);
 
     const arrow = el.querySelector('.arrow')!;
     expect(arrow.textContent).toContain('→');

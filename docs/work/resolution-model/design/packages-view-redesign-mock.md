@@ -125,7 +125,7 @@ unresolved
 
 The `unresolved` bucket also receives consumers whose declaration is
 not mapped / blocked / unknown while other consumers do resolve.
-Note: a *not selected* declaration is NOT unresolved — in
+Note: a _not selected_ declaration is NOT unresolved — in
 co-declared-share both consumers resolve to the one copy (2 consumer
 resolutions, 1 copy per Task-7 pins), so mfe2 renders as a consumer
 row under the block with a `not selected` state chip.
@@ -163,3 +163,52 @@ row under the block with a `not selected` state chip.
   revisit only if it is missed during real debugging.
 - **Consistent participant colors across views** (from Auke's design):
   candidate for the redesign task or Task 8, decide at planning.
+
+## Task 7.6 amendment (2026-08-19 screenshot review)
+
+Presentation polish on top of the frozen mock — wording/layout deltas
+only; VM shapes, claim vocabulary, and grounded tooltips are unchanged.
+
+1. **`source` → `from`.** The copy-block head reads
+   `21.2.12 · shared · from [host]` and
+   `1.0.0 · skip-registration · from [mfe1]`. The word is template-only
+   (`.source-word`); the qualifier vocabulary (exact-target-source,
+   ambiguous-source, explicit-anchor) keeps its labels and tooltips.
+2. **`DECLARED BY` group label.** Consumer rows sit under an uppercase
+   group label; the labels share one indent level under the copy head,
+   and only rows inside a group indent. The label renders even for a
+   sparse block (single consumer row, no chunk list). The unresolved
+   bucket keeps its own `unresolved` heading and appearance.
+
+   ```
+   21.2.12 · shared · from [host]
+   FILES
+     _angular_core_primitives_signals.ePwPWbaXlE.js    mapped · SRI ✓
+   DECLARED BY
+     [host]  ^21.2.0 STRICT
+   CHUNKS
+     browser-angular_core
+       chunk-RCIWTGS7.js
+       …
+   ```
+
+3. **`CHUNKS` breaks like `DECLARED BY`.** One CHUNKS label per block
+   (not a per-claim inline prefix — multi-claim blocks no longer repeat
+   the word); each bundle claim head becomes a row inside the group,
+   chunk files indent one level deeper.
+4. **`FILES` group label replaces the arrow.** The mapped file lines
+   (one per entrypoint — a copy can own several) sit under a FILES
+   label like the other groups; the `→` glyph is dropped, since it
+   means "resolves to" in the participant-row kit and would carry a
+   second meaning here. Head + three labeled groups is the whole block
+   grammar.
+5. **Detail meta colon.** `share scope: global` — colon between label
+   and value; the configured/default tooltips stay verbatim.
+6. **Toolbar zones.** All/Conflicts buttons + participant chips form one
+   left-hand filter zone with a subtle 1px divider between them; the
+   scopes summary is passive info and right-aligns (`margin-left: auto`).
+   Filter behavior (single-select, Conflicts ∧ participant) unchanged.
+7. **STRICT / pinned scope de-warned.** Configuration facts render
+   muted (Packages consumer rows, unresolved rows, detail meta, and the
+   kit `.strict-marker` used by Remotes); warning tokens stay reserved
+   for actual conflicts and honest-state warnings.
