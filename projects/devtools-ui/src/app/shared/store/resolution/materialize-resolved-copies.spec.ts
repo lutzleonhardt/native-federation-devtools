@@ -328,6 +328,66 @@ describe('materializeResolvedCopies — corpus copy cardinality (T5-AC-01, T5-AC
   });
 });
 
+describe('materializeResolvedCopies — dense multi-entry witness (T7.8-AC-02, T7.8-AC-04)', () => {
+  function registrationsOfPackage(harness: Harness, packageName: string) {
+    const shared = harness.evidence.sharedExternals.filter(
+      (record) => record.packageName === packageName,
+    );
+    expect(shared).toHaveLength(1);
+    return harness.evidence.versionRegistrations.filter(
+      (registration) => registration.sharedExternalId === shared[0].id,
+    );
+  }
+
+  it('materializes one copy carrying both entrypoints from one dense registration', () => {
+    const harness = derive(FIXTURES['synthetic-dense-entries']);
+
+    expect(registrationsOfPackage(harness, '@nf-lab/dense-lib')).toHaveLength(1);
+    const copies = harness.copies.filter((copy) => copy.sourcePackage === '@nf-lab/dense-lib');
+    expect(copies).toHaveLength(1);
+    const copy = copies[0];
+    expect(copy.source).toEqual(sharedDeclarationSource(harness, 'mfe-dense', '@nf-lab/dense-lib'));
+    expect(copy.resolvedTag).toBe('1.2.0');
+    expect(copy.entrypoints).toEqual({
+      '@nf-lab/dense-lib':
+        'https://synthetic-fixture.example/dense-entries/mfe-dense/_nf_lab_dense_lib.h4PpYcAsEa.js',
+      '@nf-lab/dense-lib/secondary':
+        'https://synthetic-fixture.example/dense-entries/mfe-dense/_nf_lab_dense_lib_secondary.s3CnDaRyEa.js',
+    });
+    expect(consumersOf(harness, copy)).toEqual(['mfe-dense']);
+    expect(copy.resolutionContexts).toHaveLength(1);
+    expect(copy.resolutionContexts[0].claimIds).toHaveLength(2);
+    expect(copy.effectiveRoles).toEqual(['ordinary-shared']);
+  });
+
+  it('keeps separate copies when the deviating secondary splits under one registry key', () => {
+    const harness = derive(FIXTURES['synthetic-dense-entries']);
+
+    // One registry key, two registrations — the densification split.
+    const registrations = registrationsOfPackage(harness, '@nf-lab/split-lib');
+    expect(registrations.map((registration) => registration.tag).sort()).toEqual([
+      '3.0.0',
+      '3.1.4',
+    ]);
+
+    const copies = harness.copies.filter((copy) => copy.sourcePackage === '@nf-lab/split-lib');
+    expect(copies).toHaveLength(2);
+    const parentCopy = copyForTarget(
+      copies,
+      'https://synthetic-fixture.example/dense-entries/mfe-dense/_nf_lab_split_lib.p4R3nTcAsE.js',
+    );
+    expect(parentCopy.resolvedTag).toBe('3.0.0');
+    expect(Object.keys(parentCopy.entrypoints)).toEqual(['@nf-lab/split-lib']);
+    const secondaryCopy = copyForTarget(
+      copies,
+      'https://synthetic-fixture.example/dense-entries/mfe-dense/_nf_lab_split_lib_secondary.d3Vi4tInGa.js',
+    );
+    expect(secondaryCopy.resolvedTag).toBe('3.1.4');
+    // Never a merged lie: the deviating secondary stays its own copy.
+    expect(Object.keys(secondaryCopy.entrypoints)).toEqual(['@nf-lab/split-lib/secondary']);
+  });
+});
+
 describe('materializeResolvedCopies — hierarchical identity (T5-AC-03)', () => {
   it('groups all mapped entrypoints of one source declaration across consumer contexts', () => {
     const harness = derive(

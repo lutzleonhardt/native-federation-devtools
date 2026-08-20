@@ -13,6 +13,7 @@ import { selfFillFixture } from './self-fill.fixture';
 import { strictScopeFixture } from './strict-scope.fixture';
 import { strictSplitFixture } from './strict-split.fixture';
 import { syntheticCollisionFixture } from './synthetic-collision.fixture';
+import { syntheticDenseEntriesFixture } from './synthetic-dense-entries.fixture';
 import { syntheticEmptyPageFixture } from './synthetic-empty-page.fixture';
 import { syntheticHostileFixture } from './synthetic-hostile.fixture';
 import { syntheticMissingChannelFixture } from './synthetic-missing-channel.fixture';
@@ -44,6 +45,7 @@ export const FIXTURES = {
   'strict-scope': strictScopeFixture,
   'strict-split': strictSplitFixture,
   'synthetic-collision': syntheticCollisionFixture,
+  'synthetic-dense-entries': syntheticDenseEntriesFixture,
   'synthetic-hostile': syntheticHostileFixture,
   'synthetic-missing-channel': syntheticMissingChannelFixture,
   'synthetic-multi-version': syntheticMultiVersionFixture,
