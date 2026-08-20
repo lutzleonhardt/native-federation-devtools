@@ -13,6 +13,15 @@
   margin-bottom: 8px;
 }
 
+/* All/Conflicts + participant chips form one left-hand filter zone; the
+ * scopes summary is passive info and keeps to the right edge. */
+.filter-zone {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .filter-group {
   display: inline-flex;
   gap: 4px;
@@ -23,12 +32,17 @@
   color: var(--nf-color-accent);
 }
 
-/* Single-select participant filter: chips wrapped in toggle buttons. */
+/* Single-select participant filter: chips wrapped in toggle buttons.
+ * The divider separates the two filter kinds within the zone. */
 .participant-filter {
   display: inline-flex;
   align-items: baseline;
   gap: 4px;
   flex-wrap: wrap;
+  border-left-width: 1px;
+  border-left-style: solid;
+  border-left-color: var(--nf-color-border);
+  padding-left: 12px;
 }
 
 .participant-toggle {
@@ -46,7 +60,7 @@
 .scopes-summary {
   display: flex;
   gap: 12px;
-  margin: 0;
+  margin: 0 0 0 auto;
   padding: 0;
   list-style: none;
   color: var(--nf-color-text-muted);

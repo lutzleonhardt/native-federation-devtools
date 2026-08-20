@@ -41,8 +41,10 @@
   color: var(--nf-color-text-muted);
 }
 
+/* STRICT / pinned scope are configuration facts, not problems — muted, never
+ * warning-colored. Warning tokens stay reserved for actual conflicts. */
 .detail-strict {
-  color: var(--nf-color-warning-text);
+  color: var(--nf-color-text-muted);
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -125,11 +127,7 @@
   align-items: baseline;
   gap: 8px;
   flex-wrap: wrap;
-  padding: 1px 0;
-}
-
-.file-arrow {
-  color: var(--nf-color-text-muted);
+  padding: 1px 0 1px 12px;
 }
 
 .file-specifier {
@@ -156,12 +154,22 @@
 
 /* --- consumer rows ---------------------------------------------------- */
 
+/* Group labels (FILES / DECLARED BY / CHUNKS): the labels sit on one
+ * indent level under the copy head; only the rows inside a group indent. */
+.group-label {
+  margin: 2px 0 0;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--nf-color-text-muted);
+}
+
 .consumer-row {
   display: flex;
   align-items: baseline;
   gap: 8px;
   flex-wrap: wrap;
-  padding: 1px 0 1px 16px;
+  padding: 1px 0 1px 12px;
 }
 
 .consumer-declared {
@@ -169,7 +177,7 @@
 }
 
 .consumer-strict {
-  color: var(--nf-color-warning-text);
+  color: var(--nf-color-text-muted);
   font-size: 9px;
   letter-spacing: 0.04em;
 }
@@ -198,7 +206,7 @@
 /* --- chunks (nested per copy block) ----------------------------------- */
 
 .chunk-claim {
-  padding: 2px 0 0 16px;
+  padding: 1px 0 0 12px;
 }
 
 .chunk-claim-head {
@@ -208,12 +216,6 @@
   flex-wrap: wrap;
   margin: 0;
   color: var(--nf-color-text-muted);
-}
-
-.chunk-word {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 .chunk-status {

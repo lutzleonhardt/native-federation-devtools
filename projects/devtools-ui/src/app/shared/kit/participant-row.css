@@ -26,11 +26,12 @@
   cursor: help;
 }
 
+/* A configuration fact, not a problem — muted, never warning-colored. */
 .strict-marker {
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--nf-color-warning-text);
+  color: var(--nf-color-text-muted);
 }
 
 .arrow {
