@@ -231,6 +231,20 @@ describe('PackagesView', () => {
     expect(el.querySelector('.unresolved-heading')).toBeNull();
   });
 
+  // T7.9-AC-01 (DOM half): the outcome tooltip is the rendered title
+  // attribute and names the consumer's own registered file; the visible
+  // chip text stays the outcome label alone.
+  it('grounds the skipped-own tooltip in the own registered file', async () => {
+    const { fixture } = await createView({ fixture: 'clean-skip', select: CONFLICT_LIB });
+    const el = fixture.nativeElement as HTMLElement;
+
+    const skipChip = el.querySelector<HTMLElement>('.pkg-detail .state-chip')!;
+    expect(skipChip.textContent).toBe('skipped own 1.0.0');
+    expect(skipChip.title).toBe(
+      'own copy _nf_lab_conflict_lib.JF7uEdSVsN.js (1.0.0) is registered with action skip — the consumer resolves to the elected copy',
+    );
+  });
+
   // T7.5-AC-03 (DOM half): two blocks under the multiplicity header; the
   // row compresses to the ⚠ glyph with the rule in its tooltip.
   it('renders strict-split as two blocks under the ⚠ 2 resolved versions header', async () => {

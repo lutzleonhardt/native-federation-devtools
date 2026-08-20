@@ -18,6 +18,9 @@
  *    participant filter combines with the Conflicts filter.
  *  - T7.5-AC-06: canonical IDs chain through the façade; every annotation
  *    keeps a grounded note; purity.
+ *  - T7.9-AC-01/-02: the DECLARED BY outcome notes name the consumer's own
+ *    registered file when the claim's candidate evidence carries it; with
+ *    the evidence removed the outcome states itself alone.
  */
 import { FIXTURES, SnapshotV1 } from 'devtools-bridge';
 
@@ -109,6 +112,18 @@ describe('buildPackagesVm — one block, consumers as rows (T7.5-AC-02, co-decla
     expect(vm.detail!.conflict).toBeNull();
   });
 
+  it('grounds the not-selected note in the own registered file (T7.9-AC-01)', () => {
+    const [block] = vm.detail!.blocks;
+    // Capture-relative wording: the unselected own copy stays a legitimate
+    // registration that a different composition may select — never dead weight.
+    expect(consumerOf(block, 'mfe2').deviations).toEqual([
+      {
+        label: 'not selected',
+        note: 'own copy _nf_lab_conflict_lib.JF7uEdSVsN.js is registered but not selected in this capture — the binding resolves to this copy; a different composition may select it',
+      },
+    ]);
+  });
+
   it('chains the block and its consumers to the canonical projection by ID (T7.5-AC-06)', () => {
     const projection = model.resolutionProjection;
     expect(vm.detail!.blocks.map((block) => block.copyId)).toEqual(
@@ -126,6 +141,31 @@ describe('buildPackagesVm — one block, consumers as rows (T7.5-AC-02, co-decla
     for (const consumer of vm.detail!.blocks[0].consumers) {
       expect(declarationIds.has(consumer.declarationId as never)).toBe(true);
     }
+  });
+});
+
+describe('buildPackagesVm — outcome without an evidenced own file (T7.9-AC-02)', () => {
+  it('renders the outcome note without a file name when no candidate evidence exists', () => {
+    // Seeded absence at the vm boundary: the same capture with its canonical
+    // entrypoint-candidate evidence removed. The outcome must state itself
+    // alone — no file name is ever invented.
+    const base = modelOf('co-declared-share');
+    const model: FederationModel = {
+      ...base,
+      registryEvidence: { ...base.registryEvidence, entrypointCandidates: [] },
+    };
+    const vm = buildPackagesVm(model, {
+      filter: 'all',
+      selectedParticipant: null,
+      selectedId: CONFLICT_LIB,
+    });
+    const [block] = vm.detail!.blocks;
+    expect(consumerOf(block, 'mfe2').deviations).toEqual([
+      {
+        label: 'not selected',
+        note: 'the consumer’s own candidate is not selected in this capture — its binding resolves to this copy',
+      },
+    ]);
   });
 });
 
@@ -211,10 +251,11 @@ describe('buildPackagesVm — skip is a row annotation (T7.5-AC-02, clean-skip)'
     expect(block.source.display).toBe('mfe2');
     expect(consumerOf(block, 'mfe2').deviations).toEqual([]);
     const skip = consumerOf(block, 'mfe1').deviations;
+    // T7.9-AC-01: the outcome note names the consumer's own registered file.
     expect(skip).toEqual([
       {
         label: 'skipped own 1.0.0',
-        note: 'own copy 1.0.0 is registered with action skip — the consumer resolves to the elected copy',
+        note: 'own copy _nf_lab_conflict_lib.JF7uEdSVsN.js (1.0.0) is registered with action skip — the consumer resolves to the elected copy',
       },
     ]);
     // No separate skip section, no unresolved entry — the annotation IS the trace.
@@ -272,10 +313,11 @@ describe('buildPackagesVm — conflict = visibly two blocks (T7.5-AC-03, strict-
     expect(isolated.source.display).toBe('mfe3');
     const mfe3 = consumerOf(isolated, 'mfe3');
     expect(mfe3.strict).toBe(true);
+    // T7.9-AC-01: the outcome note names the consumer's own registered file.
     expect(mfe3.deviations).toEqual([
       {
         label: 'kept own copy',
-        note: 'registered with action scope — keeps its own copy, mapped only for its own declarers',
+        note: 'own copy _nf_lab_conflict_lib.JF7uEdSVsN.js is registered with action scope — the consumer keeps it, mapped only for its own declarers',
       },
     ]);
   });
