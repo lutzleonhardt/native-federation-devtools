@@ -6,7 +6,7 @@ External challenger: /home/lutz/Downloads/DEPENDENCY-GRAPH.md, SHA-256 5977479c3
 
 The work has three milestones: establish one canonical domain model, migrate the four consumers, then enforce and review the cutover. Tasks stay at independently reviewable boundaries; evidence acquisition, raw snapshot transport, and Store normalization are separate point tasks even though RM-AC-07 treats them as one ordered, traceable schema-gate chain.
 
-YAGNI boundary: no graph UI or pool graph, no network/runtime-use instrumentation, no UI redesign except the Task 7.5 Packages presentation redesign (frozen mock: `design/packages-view-redesign-mock.md`), the Task 7.6/7.7 presentation polish and the Task 7.9 outcome-evidence tooltips from its screenshot reviews, no general diagnostics rule engine, no new Playwright/Cypress/Storybook setup, and no screenshot goldens. The external challenger informs requirements but is not copied or treated as an oracle.
+YAGNI boundary: no graph UI or pool graph, no network/runtime-use instrumentation, no UI redesign except the Task 7.5 Packages presentation redesign (frozen mock: `design/packages-view-redesign-mock.md`), the Task 7.6/7.7 presentation polish, the Task 7.9 outcome-evidence tooltips from its screenshot reviews, and the Task 7.10 entrypoint-level presentation from the Task 7.8 review, no general diagnostics rule engine, no new Playwright/Cypress/Storybook setup, and no screenshot goldens. The external challenger informs requirements but is not copied or treated as an oracle.
 
 Tasks 2, 2.1, and 2.2 form the raw `pool`/`servedBy` schema gate. Task 2 produces evidence only; if its real witness cannot be produced, close Task 2 BLOCKED and do not start Tasks 2.1 or 2.2. Tasks 3–12 may still use null raw fields and source-backed canonical seeds, while the overall pooling acceptance remains incomplete.
 
@@ -743,6 +743,86 @@ T2-AC-02 through T2-AC-05 were retired by the approved task split. Their IDs are
 - The aggregate question ("which own copies stay unselected?") belongs
   to Diagnostics (Task 10), not to more Packages surface.
 
+## Task 7.10: Entrypoint-level presentation in Packages
+
+**Dependency:** Tasks 7.8, 7.9.
+
+### Instructions
+
+- Tree sub-rows: under every package leaf whose copies carry entrypoint
+  specifiers different from the registry key (dense secondaries), render
+  indented, muted entrypoint sub-rows: specifier, the tag of their own
+  registration, and a provenance annotation with a grounded tooltip
+  (e.g. `registered via the entries map of @nf-lab/split-lib@3.1.4 —
+  no own registry key in this capture`). The association is registry
+  EVIDENCE (the entries map), stronger than the name-derived linked
+  glyph — the rendering may be correspondingly confident, but must
+  never look like an own registry key.
+- Clicking a sub-row selects the parent package (existing select
+  convention); sub-rows are excluded from the `All (n)` count (which
+  counts registry keys) and follow their parent through the Conflicts
+  and participant filters.
+- Copy-head fact `secondary entrypoint only` when a copy's
+  `entrypoints` do NOT contain the package's own specifier — the
+  grounded tooltip names the specifiers actually served (fixes the
+  "tag reads as a full-package version" misreading); the happy dense
+  block (parent + secondary) carries no fact.
+- Level-vocabulary tooltips: list header (`one row per registry key of
+  the share register`), detail-head package name (`registry key in
+  share scope …`, verbatim scope), DECLARED BY group label
+  (`participants that declared this dependency and their requirements —
+  the registration itself is the version row under the registry key`).
+  The DECLARED BY label itself stays (decision recorded in the
+  task-7.8 log); wording follows the triad declare (participant
+  requirement) / register (registry bookkeeping) / resolve (outcome).
+- Decide the exact look (brackets vs. muted + annotation word, etc.)
+  via a rendered mock / screenshot review as in 7.5/7.6; record deltas
+  in the frozen mock's amendment section.
+- OUT of scope: no new count measures, no change to leaf semantics
+  (leaf = registry key), no graph-view groundwork.
+
+### Acceptance
+
+- **T7.10-AC-01** — a dense secondary renders as an indented, muted
+  sub-row under its parent (specifier + own tag + provenance tooltip
+  citing the entries-map evidence); sub-rows are excluded from the
+  `All (n)` count. Witness: `synthetic-dense-entries`.
+- **T7.10-AC-02** — clicking a sub-row selects the parent detail via
+  the existing select convention.
+- **T7.10-AC-03** — a copy without the package's own specifier in
+  `entrypoints` renders the head fact `secondary entrypoint only` with
+  a grounded tooltip; the happy dense block renders none.
+  **Contributes:** XC-06.
+- **T7.10-AC-04** — the three level-vocabulary tooltips render without
+  changing the visible text of their carriers (existing text pins pass
+  unmodified).
+- **T7.10-AC-05** — flat-generation captures (`non-dense`) keep their
+  current tree unchanged (own registry keys, linked glyph); sub-rows
+  appear only for entries-map-carried specifiers.
+
+### Key Locations
+
+- `projects/devtools-ui/src/app/views/packages/packages.html` / `.css`,
+  `packages-row-vm.ts` (sub-rows)
+- `projects/devtools-ui/src/app/views/packages/packages-detail-vm.ts`,
+  `package-detail.html` (head fact, tooltips)
+- `projects/devtools-ui/src/app/views/packages/packages.spec.ts`,
+  `packages-view-model.spec.ts`
+- `docs/work/resolution-model/design/packages-view-redesign-mock.md`
+  (amendment section)
+
+### Key Discoveries
+
+- Task-7.8 review (2026-08-20): the entrypoint level is
+  generation-stable while the registry-key level is not (flat: own
+  keys per specifier, dense: entries map) — sub-rows make the tree
+  semantically stable across generations; REGISTERED BY was rejected
+  as a label (co-declaration cardinality: one registration, many
+  declarations; word collision with registry bookkeeping).
+- VM groundwork exists: `copy.entrypoints` plus the `showSpecifier`
+  logic (Task 7.6); sub-row data is derivable from copies vs.
+  `group.packageName`.
+
 ## Task 8: Migrate Remotes to canonical resolutions
 
 **Dependency:** Task 6.
@@ -826,6 +906,7 @@ T2-AC-02 through T2-AC-05 were retired by the approved task split. Their IDs are
 - Keep classification and severity in canonical data; the view may format but must not reconstruct federation rules. Do not port the deferred V2 lint catalogue or introduce a rule engine.
 - Use small pure VM builders and honest-state components. Keep resolution-honest vocabulary and add only the layout needed to make the canonical comparisons inspectable.
 - Include the composition-relative observation `own copies not selected in this capture`: one row per declaration whose participant registers its own copy that no binding selects — package, participant, own file when evidenced. Info-level formatting, never a warning (standalone deployability makes the redundancy designed behavior); wording stays capture-relative and byte-free.
+- Include the finding category `package torn across entrypoint registrations` (warning-level): one registry key with ≥2 resolved copies whose entrypoint sets are disjoint and whose tags differ (the same declaring participant sharpens the finding). The description may explain the chunk-mixing risk as rationale (parent/secondary internals typically share build chunks), but the claimed evidence stays resolution-level (resolution ≠ delivery). Deliberately distinct from cross-remote tag multiplicity (strict-split) — the two categories must never collapse.
 
 ### Acceptance
 
@@ -835,6 +916,7 @@ T2-AC-02 through T2-AC-05 were retired by the approved task split. Their IDs are
 - **T10-AC-04** — Diagnostics cross-links use the same IDs exposed by the other views, and no view-local domain rule changes a comparison or severity. **Contributes:** XC-01, XC-03.
 - **T10-AC-05** — Route/app tests render the real Diagnostics component instead of `ViewPlaceholder`, with focused VM and DOM coverage. **Contributes:** XC-01.
 - **T10-AC-06** — `co-declared-share` lists the non-selected own copy under the observation (package, participant, file) with info/observation styling — no warning tokens — and capture-relative wording. **Contributes:** XC-06.
+- **T10-AC-07** — `synthetic-dense-entries` renders the torn-package finding (warning) for `@nf-lab/split-lib` naming both tags and the disjoint entrypoints; `@nf-lab/dense-lib` (happy dense) and strict-split's cross-remote multiplicity do NOT trigger this category. **Contributes:** XC-06.
 
 ### Key Locations
 
