@@ -10,6 +10,13 @@
  * with their own-copy claim. The conflict glyph counts the same set
  * (distinct resolved tags), so row and indicator can never diverge; copy
  * multiplicity with one resolved tag is never flagged.
+ *
+ * Entrypoint sub-rows (T7.10): dense secondaries — specifiers a leaf's
+ * copies carry beyond the registry key — render as muted sub-rows under
+ * their leaf. The association is registry EVIDENCE (an own registration's
+ * entries map carries the specifier), stronger than the name-derived linked
+ * glyph, but a sub-row is never an own registry key: it is excluded from
+ * the package count and follows its parent through both filters.
  */
 import type { TreeTableRow } from '../../shared/kit/tree-table';
 import type { ResolvedDependencyCopy } from '../../shared/store/resolution';
@@ -19,6 +26,7 @@ import {
   PackageGroup,
   copySourceRemote,
   noCopyNoteOf,
+  packageId,
   parentOf,
   participantDisplay,
 } from './packages-vm-shared';
@@ -57,6 +65,23 @@ export interface PackageRowVm {
   /** Present on subpath rows rendered under their parent package (tooltip data). */
   linked: { parentPackage: string; rule: 'name-derived' } | null;
 }
+
+/** One dense-secondary entrypoint sub-row under its parent package leaf. */
+export interface EntrypointRowVm {
+  kind: 'entrypoint';
+  /** Parent group id — a sub-row click selects the parent (row convention). */
+  packageId: string;
+  specifier: string;
+  /** Subpath suffix when the specifier extends the registry key, else full. */
+  displaySpecifier: string;
+  /** Tag(s) of the own registration(s) whose entries map carries the specifier. */
+  tags: string[];
+  /** Entries-map provenance — registry evidence, never an own registry key. */
+  provenance: { label: string; note: string };
+}
+
+/** Payload union of the flat tree — package leaves and entrypoint sub-rows. */
+export type PackagesRowPayload = PackageRowVm | EntrypointRowVm;
 
 /** Own-copy claim of one muted resolved tag, from its copies' sources. */
 function mutedNoteOf(copies: ResolvedDependencyCopy[], indexes: CanonicalIndexes): string {
@@ -131,12 +156,86 @@ function packageRowOf(
   };
 }
 
-/** Flatten to kit tree rows — base packages at depth 0, linked subpaths at depth 1. */
+/**
+ * Entrypoint sub-rows of one leaf: specifiers its copies carry beyond the
+ * registry key, grounded in an OWN registration's entries map (the
+ * candidates of the group's own declarations). A specifier that exists as
+ * its own (scope, package) group renders as a row, not a sub-row, and a
+ * specifier without own-registration evidence makes no claim at all —
+ * flat-generation captures therefore never grow sub-rows.
+ *
+ * The own-key check runs against ALL groups of the capture, not the
+ * filtered view: the provenance tooltip claims "no own registry key in
+ * this capture", so a registry key hidden by the participant filter must
+ * still suppress the sub-row.
+ */
+function entrypointRowsOf(
+  group: PackageGroup,
+  allGroupIds: ReadonlySet<string>,
+  indexes: CanonicalIndexes,
+): EntrypointRowVm[] {
+  const tagsBySpecifier = new Map<string, string[]>();
+  for (const { registration, declarations } of group.registrations) {
+    for (const declaration of declarations) {
+      for (const candidateId of declaration.entrypointCandidateIds) {
+        const specifier = indexes.candidateById.get(candidateId)?.specifier;
+        if (specifier === undefined || specifier === group.packageName) {
+          continue;
+        }
+        const tags = tagsBySpecifier.get(specifier) ?? [];
+        if (!tags.includes(registration.tag)) {
+          tagsBySpecifier.set(specifier, [...tags, registration.tag]);
+        }
+      }
+    }
+  }
+
+  const subRows: EntrypointRowVm[] = [];
+  const seen = new Set<string>();
+  for (const copy of group.copies) {
+    for (const specifier of Object.keys(copy.entrypoints)) {
+      if (specifier === group.packageName || seen.has(specifier)) {
+        continue;
+      }
+      seen.add(specifier);
+      if (allGroupIds.has(packageId(group.scope, specifier))) {
+        continue;
+      }
+      const tags = tagsBySpecifier.get(specifier);
+      if (tags === undefined) {
+        continue;
+      }
+      const registrations = tags.map((tag) => `${group.packageName}@${tag}`).join(', ');
+      subRows.push({
+        kind: 'entrypoint',
+        packageId: group.id,
+        specifier,
+        displaySpecifier: specifier.startsWith(`${group.packageName}/`)
+          ? specifier.slice(group.packageName.length)
+          : specifier,
+        tags,
+        provenance: {
+          label: 'entry',
+          note: `registered via the entries map of ${registrations} — no own registry key in this capture`,
+        },
+      });
+    }
+  }
+  return subRows;
+}
+
+/**
+ * Flatten to kit tree rows — base packages at depth 0, linked subpaths at
+ * depth 1. `groups` is the filtered view (hierarchy and rendering);
+ * `allGroupIds` covers the WHOLE capture and grounds the capture-level
+ * own-key check of the entrypoint sub-rows.
+ */
 export function buildRows(
   groups: PackageGroup[],
+  allGroupIds: ReadonlySet<string>,
   indexes: CanonicalIndexes,
   conflictsOnly: boolean,
-): TreeTableRow<PackageRowVm>[] {
+): TreeTableRow<PackagesRowPayload>[] {
   const byId = new Map(groups.map((group) => [group.id, group]));
   const linkedChildren = new Map<string, PackageGroup[]>();
   const bases: PackageGroup[] = [];
@@ -149,7 +248,7 @@ export function buildRows(
     }
   }
 
-  const rows: TreeTableRow<PackageRowVm>[] = [];
+  const rows: TreeTableRow<PackagesRowPayload>[] = [];
 
   const pushPackage = (
     group: PackageGroup,
@@ -163,6 +262,17 @@ export function buildRows(
       expanded: false,
       payload: packageRowOf(group, indexes, linked),
     });
+    // Sub-rows ride with their leaf: whenever the leaf renders (any filter
+    // combination), its dense secondaries render beneath it.
+    for (const entry of entrypointRowsOf(group, allGroupIds, indexes)) {
+      rows.push({
+        id: `${group.id}|entry|${entry.specifier}`,
+        depth: depth + 1,
+        expandable: false,
+        expanded: false,
+        payload: entry,
+      });
+    }
   };
 
   for (const base of bases) {

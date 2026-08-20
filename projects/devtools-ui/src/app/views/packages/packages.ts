@@ -7,7 +7,12 @@ import { ParticipantChip } from '../../shared/kit/participant-chip';
 import { TreeTable, TreeTableRow } from '../../shared/kit/tree-table';
 import { FederationStore } from '../../shared/store/federation-store';
 import { PackageDetail } from './package-detail';
-import { PackageRowVm, PackagesFilter, PackagesVm, buildPackagesVm } from './packages-view-model';
+import {
+  PackagesFilter,
+  PackagesRowPayload,
+  PackagesVm,
+  buildPackagesVm,
+} from './packages-view-model';
 
 /**
  * Packages tab — the V2 default view: which copies a package actually
@@ -70,6 +75,8 @@ export class PackagesView {
   }
 
   protected onSelect(row: TreeTableRow): void {
-    this.selectedId.set((row.payload as PackageRowVm).packageId);
+    // Both payload kinds carry the group id — an entrypoint sub-row click
+    // therefore selects its parent package (T7.10 select convention).
+    this.selectedId.set((row.payload as PackagesRowPayload).packageId);
   }
 }

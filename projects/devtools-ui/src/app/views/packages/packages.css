@@ -163,3 +163,22 @@
   color: var(--nf-color-text-muted);
   white-space: nowrap;
 }
+
+/* --- entrypoint sub-rows (dense secondaries, T7.10) ------------------- */
+
+/* Registry EVIDENCE (an own registration's entries map) — stronger than
+ * the name-derived linked glyph, but never an own registry key: the whole
+ * sub-row stays muted and carries an annotation word instead of a
+ * versions cell. */
+.entry-specifier,
+.entry-tags {
+  font-family: var(--nf-font-mono);
+  font-size: 11px;
+  color: var(--nf-color-text-muted);
+  white-space: nowrap;
+}
+
+.entry-annotation {
+  font-size: 10px;
+  color: var(--nf-color-text-muted);
+}

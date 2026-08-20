@@ -212,3 +212,58 @@ only; VM shapes, claim vocabulary, and grounded tooltips are unchanged.
    muted (Packages consumer rows, unresolved rows, detail meta, and the
    kit `.strict-marker` used by Remotes); warning tokens stay reserved
    for actual conflicts and honest-state warnings.
+
+## Task 7.10 amendment (2026-08-20, entrypoint level)
+
+The entrypoint level from the Task 7.8 screenshot review — the tree stays
+one row per registry key (leaf semantics unchanged), but dense secondaries
+now surface beneath their leaf, and the level vocabulary (registry key /
+registration / declaration / copy / entrypoint) is named where the UI
+shows it. VM claim vocabulary and all existing visible texts unchanged.
+
+1. **Entrypoint sub-rows.** Under a leaf whose copies carry specifiers
+   beyond the registry key (dense secondaries), one indented, muted
+   sub-row per specifier: subpath suffix, the tag of its own
+   registration, and the annotation word `entry` carrying the grounded
+   tooltip ("registered via the entries map of @nf-lab/split-lib@3.1.4 —
+   no own registry key in this capture"). Chosen look: muted + annotation
+   word; brackets were rejected (they read as syntax, and the annotation
+   word gives the tooltip a visible carrier). The association is registry
+   EVIDENCE (an own registration's entries map), stronger than the
+   name-derived linked glyph — but a sub-row must never look like an own
+   registry key: no linked glyph, no versions cell.
+
+   ```
+   @nf-lab/dense-lib        1.2.0
+     /secondary   1.2.0   entry
+   @nf-lab/split-lib  ⚠    3.0.0 · 3.1.4
+     /secondary   3.1.4   entry
+   ```
+
+2. **Sub-row rules.** Click selects the parent package (existing select
+   convention; the sub-row itself never becomes the selection). Excluded
+   from the `All (n)` count — that counts registry keys. Follows its
+   parent through the Conflicts and participant filters. Specifiers that
+   exist as their own registry key ANYWHERE in the capture keep rendering
+   as rows (linked glyph), never as sub-rows — the own-key suppression is
+   a capture-level check, so a key hidden by the participant filter still
+   suppresses its sub-row (the tooltip claims "no own registry key in
+   this capture"). A specifier without own-registration entries-map
+   evidence makes no claim at all (flat captures grow no sub-rows).
+
+3. **`secondary entrypoint only` head fact.** When a copy's entrypoints
+   do NOT contain the package's own specifier, the copy head carries the
+   fact chip with a grounded tooltip naming the specifiers actually
+   served — fixes the "tag reads as a full-package version" misreading.
+   The happy dense block (parent + secondary in one copy) carries none.
+
+4. **Level-vocabulary tooltips (three carriers, tooltip-only).**
+   - `All (n)` button: `one row per registry key of the share register`
+     (the list has no visible header; the count is exactly the registry-
+     key count, so the button is the carrier).
+   - Detail-head package name: `registry key in share scope <verbatim>`.
+   - `DECLARED BY` group label: "participants that declared this
+     dependency and their requirements — the registration itself is the
+     version row under the registry key". The label itself stays
+     (decision recorded in the task-7.8 log; vocabulary triad
+     declare / register / resolve).

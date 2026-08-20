@@ -616,15 +616,26 @@ function blocksOf(
     }
     const source = copySourceVmOf(copy, indexes);
     const consumers = consumersOf(copy, group, rows, indexes);
+    const specifiers = Object.keys(copy.entrypoints);
+    const deviations: AnnotationVm[] = copy.effectiveRoles
+      .filter((role) => role === 'unclassified')
+      .map((role) => ({ label: role, note: ROLE_NOTES[role] }));
+    // T7.10: without the package's own specifier among the entrypoints, the
+    // head tag would read as a full-package version — the fact names the
+    // specifiers actually served instead.
+    if (specifiers.length > 0 && !specifiers.includes(group.packageName)) {
+      deviations.push({
+        label: 'secondary entrypoint only',
+        note: `this copy serves ${specifiers.join(', ')} — the package’s own specifier ${group.packageName} does not resolve to it in this capture; the tag names the entrypoint’s registration, not a version of the whole package`,
+      });
+    }
     return {
       copyId: copy.id,
       resolvedTag: copy.resolvedTag,
       unknownTagNote: copy.resolvedTag === null ? UNKNOWN_TAG_NOTE : null,
       source,
       disposition: dispositionVmOf(copy, group, indexes, consumers),
-      deviations: copy.effectiveRoles
-        .filter((role) => role === 'unclassified')
-        .map((role) => ({ label: role, note: ROLE_NOTES[role] })),
+      deviations,
       files: Object.entries(copy.entrypoints).map(([specifier, targetUrl]) => ({
         specifier,
         showSpecifier: specifier !== group.packageName,

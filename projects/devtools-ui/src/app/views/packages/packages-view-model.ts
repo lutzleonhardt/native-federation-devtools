@@ -27,7 +27,7 @@ import type { TreeTableRow } from '../../shared/kit/tree-table';
 import type { FederationModel } from '../../shared/store/federation-model';
 import type { SharedExternalId } from '../../shared/store/resolution';
 import { PackageDetailVm, buildDetail } from './packages-detail-vm';
-import { PackageRowVm, buildRows } from './packages-row-vm';
+import { PackagesRowPayload, buildRows } from './packages-row-vm';
 import {
   CanonicalIndexes,
   GLOBAL_SCOPE,
@@ -42,7 +42,12 @@ import {
 } from './packages-vm-shared';
 
 export { packageId } from './packages-vm-shared';
-export type { PackageRowVm, RowVersionVm } from './packages-row-vm';
+export type {
+  EntrypointRowVm,
+  PackageRowVm,
+  PackagesRowPayload,
+  RowVersionVm,
+} from './packages-row-vm';
 export type {
   AnnotationVm,
   ConsumerRowVm,
@@ -87,7 +92,7 @@ export interface PackagesVm {
   conflictCount: number;
   /** Every participant involved anywhere in the capture — host first. */
   participants: ParticipantChipVm[];
-  rows: TreeTableRow<PackageRowVm>[];
+  rows: TreeTableRow<PackagesRowPayload>[];
   detail: PackageDetailVm | null;
   /** Honest empty note; null while the tree has rows. */
   emptyNote: string | null;
@@ -107,7 +112,10 @@ export function buildPackagesVm(model: FederationModel, ui: PackagesUiState): Pa
     selected === null ? groups : groups.filter((group) => involvement.get(group.id)!.has(selected));
   const conflictCount = visibleGroups.filter((group) => group.multiVersion).length;
 
-  const rows = buildRows(visibleGroups, indexes, ui.filter === 'conflicts');
+  // Capture-level id set: the sub-rows' own-key suppression must see keys
+  // the participant filter hides from the rendered hierarchy.
+  const allGroupIds = new Set(groups.map((group) => group.id));
+  const rows = buildRows(visibleGroups, allGroupIds, indexes, ui.filter === 'conflicts');
   const detail = buildDetail(groups, indexes, ui.selectedId);
 
   let emptyNote: string | null = null;

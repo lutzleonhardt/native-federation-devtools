@@ -9,6 +9,7 @@
             class="nf-button filter-button"
             [class.active]="filter() === 'all'"
             [attr.aria-pressed]="filter() === 'all'"
+            title="one row per registry key of the share register"
             (click)="setFilter('all')"
           >
             All ({{ vm.packageCount }})
@@ -67,50 +68,58 @@
           (selectRow)="onSelect($event)"
         >
           <ng-template let-payload>
-            @if (payload.linked) {
-              <span class="linked-glyph" aria-hidden="true">↳</span>
-            }
-            <span
-              class="pkg-name"
-              [attr.title]="
-                payload.linked
-                  ? 'secondary entry of ' +
-                    payload.linked.parentPackage +
-                    ' — rule: ' +
-                    payload.linked.rule
-                  : null
-              "
-              >{{ payload.displayName }}</span
-            >
-            @if (payload.scopeLabel) {
-              <span
-                class="pkg-scope"
-                [title]="'share scope — configured via shareScope: ' + payload.scopeLabel"
-                >{{ payload.scopeLabel }}</span
-              >
-            }
-            @if (payload.conflict) {
-              <span class="pkg-conflict tip" [title]="payload.conflict.note">{{
-                payload.conflict.label
+            @if (payload.kind === 'entrypoint') {
+              <span class="entry-specifier">{{ payload.displaySpecifier }}</span>
+              <span class="entry-tags">{{ payload.tags.join(' · ') }}</span>
+              <span class="entry-annotation tip" [title]="payload.provenance.note">{{
+                payload.provenance.label
               }}</span>
-            }
-            <span class="pkg-versions">
-              @for (version of payload.versions; track version.tag) {
+            } @else {
+              @if (payload.linked) {
+                <span class="linked-glyph" aria-hidden="true">↳</span>
+              }
+              <span
+                class="pkg-name"
+                [attr.title]="
+                  payload.linked
+                    ? 'secondary entry of ' +
+                      payload.linked.parentPackage +
+                      ' — rule: ' +
+                      payload.linked.rule
+                    : null
+                "
+                >{{ payload.displayName }}</span
+              >
+              @if (payload.scopeLabel) {
                 <span
-                  class="pkg-version"
-                  [class.pkg-version-muted]="version.muted"
-                  [class.tip]="version.note !== null"
-                  [attr.title]="version.note"
-                  >{{ version.tag }}</span
+                  class="pkg-scope"
+                  [title]="'share scope — configured via shareScope: ' + payload.scopeLabel"
+                  >{{ payload.scopeLabel }}</span
                 >
               }
-              @if (payload.unknownTagged; as unknown) {
-                <span class="pkg-version pkg-version-muted tip" [title]="unknown.note">?</span>
+              @if (payload.conflict) {
+                <span class="pkg-conflict tip" [title]="payload.conflict.note">{{
+                  payload.conflict.label
+                }}</span>
               }
-              @if (payload.noCopy; as noCopy) {
-                <span class="pkg-no-copy tip" [title]="noCopy.note">{{ noCopy.label }}</span>
-              }
-            </span>
+              <span class="pkg-versions">
+                @for (version of payload.versions; track version.tag) {
+                  <span
+                    class="pkg-version"
+                    [class.pkg-version-muted]="version.muted"
+                    [class.tip]="version.note !== null"
+                    [attr.title]="version.note"
+                    >{{ version.tag }}</span
+                  >
+                }
+                @if (payload.unknownTagged; as unknown) {
+                  <span class="pkg-version pkg-version-muted tip" [title]="unknown.note">?</span>
+                }
+                @if (payload.noCopy; as noCopy) {
+                  <span class="pkg-no-copy tip" [title]="noCopy.note">{{ noCopy.label }}</span>
+                }
+              </span>
+            }
           </ng-template>
         </nf-tree-table>
 
