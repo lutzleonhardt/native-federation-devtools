@@ -21,6 +21,7 @@ import {
   SnapshotV1,
 } from 'devtools-bridge';
 
+import { provideParticipantColors } from '../../shared/store/participant-colors-provider';
 import { ImportMapView } from './import-map';
 
 class StubSnapshotProvider implements SnapshotProvider {
@@ -99,6 +100,9 @@ async function createView(options: {
     imports: [ImportMapView],
     providers: [
       provideRouter([]),
+      // Mirrors the app.config.ts binding — identity-dot pins run against
+      // the real store-backed lookup.
+      provideParticipantColors(),
       { provide: SNAPSHOT_PROVIDER, useValue: new StubSnapshotProvider(snapshot) },
       {
         provide: ActivatedRoute,
@@ -138,6 +142,15 @@ describe('ImportMapView', () => {
     expect(ownerChip.title).toBe(NF_HOST);
     expect(el.textContent).not.toContain(NF_HOST);
 
+    // T7.7-AC-02/-AC-04: identity dots from the one sorted-name lookup —
+    // whiteboard keeps slot 2 (identical to Packages and Remotes); the host
+    // chip never carries a dot.
+    const whiteboardChip = Array.from(
+      el.querySelectorAll<HTMLElement>('.cell-attr .chip-remote'),
+    ).find((chip) => chip.textContent === 'whiteboard')!;
+    expect(whiteboardChip.querySelector('.dot')?.classList.contains('dot-2')).toBe(true);
+    expect(ownerChip.querySelector('.dot')).toBeNull();
+
     // Column discipline: the global table carries the provider column (no
     // norm to be quiet against); the owned scope section drops it — the
     // header claim suffices — and gains the bundle column instead.
@@ -161,8 +174,8 @@ describe('ImportMapView', () => {
   it('links package rows to /packages and chunk rows to their owning remote', async () => {
     const fixture = await createView({ fixture: 'frankenstein-live' });
     const el = fixture.nativeElement as HTMLElement;
-    const hrefs = Array.from(el.querySelectorAll<HTMLAnchorElement>('.map-row a')).map(
-      (anchor) => decodeURIComponent(anchor.getAttribute('href') ?? ''),
+    const hrefs = Array.from(el.querySelectorAll<HTMLAnchorElement>('.map-row a')).map((anchor) =>
+      decodeURIComponent(anchor.getAttribute('href') ?? ''),
     );
 
     expect(hrefs).toContain('/packages?select=__GLOBAL__|@angular/common');

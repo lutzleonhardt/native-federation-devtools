@@ -4,6 +4,7 @@ import { SNAPSHOT_PROVIDER } from 'devtools-bridge';
 
 import { environment } from '../environments/environment';
 import { routes } from './app.routes';
+import { provideParticipantColors } from './shared/store/participant-colors-provider';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -14,5 +15,7 @@ export const appConfig: ApplicationConfig = {
     // Environment-based DI: fixtures in dev (`ng serve`), the live
     // DevTools provider in the production/extension build.
     { provide: SNAPSHOT_PROVIDER, useFactory: environment.snapshotProviderFactory },
+    // Capture-backed participant identity colors for the kit chips.
+    provideParticipantColors(),
   ],
 };

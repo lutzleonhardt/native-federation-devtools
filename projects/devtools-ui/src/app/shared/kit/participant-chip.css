@@ -16,12 +16,65 @@
   color: var(--nf-color-text);
 }
 
+/* Inverted neutral badge (T7.7 amendment): the one special participant wears
+ * a filled muted chip — reserved styling, deliberately NOT a palette hue (no
+ * identity claim), not accent (that channel means selection/link-hover), not
+ * a warning tone. Longhand background-color: jsdom drops shorthands
+ * containing var(), and the spec pins at token level. */
 .chip-host {
-  color: var(--nf-color-text-muted);
+  font-family: var(--nf-font-mono);
+  background-color: var(--nf-color-text-muted);
+  color: var(--nf-color-bg);
+  border-color: transparent;
   /* Tooltip affordance (shell convention): the verbatim sentinel is the title. */
   text-decoration: underline dotted;
   text-underline-offset: 2px;
   cursor: help;
+}
+
+/* Identity dot: the color channel is the dot alone — a full background
+ * competes with warning colors at 10px, and the border belongs to the
+ * hover accent. Longhand background-color on purpose: jsdom drops
+ * shorthands containing var(), and the specs pin at token level. */
+.dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 4px;
+  border-radius: 50%;
+  vertical-align: middle;
+}
+
+.dot-1 {
+  background-color: var(--nf-participant-color-1);
+}
+
+.dot-2 {
+  background-color: var(--nf-participant-color-2);
+}
+
+.dot-3 {
+  background-color: var(--nf-participant-color-3);
+}
+
+.dot-4 {
+  background-color: var(--nf-participant-color-4);
+}
+
+.dot-5 {
+  background-color: var(--nf-participant-color-5);
+}
+
+.dot-6 {
+  background-color: var(--nf-participant-color-6);
+}
+
+.dot-7 {
+  background-color: var(--nf-participant-color-7);
+}
+
+.dot-8 {
+  background-color: var(--nf-participant-color-8);
 }
 
 /* Inside a link the chip is the navigation affordance: pointer + hover
