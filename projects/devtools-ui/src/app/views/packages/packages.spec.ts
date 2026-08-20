@@ -4,7 +4,10 @@
  * canonical IDs seed the selection through the Store façade, plus DOM-level
  * checks of the copy-block presentation: deviation-only annotations with
  * grounded tooltips, default qualifiers as tooltip data, per-file SRI, the
- * unresolved bucket, and cross-link hrefs.
+ * unresolved bucket, and cross-link hrefs. T7.10 adds the entrypoint level:
+ * muted sub-rows for dense secondaries (excluded from the All count, click
+ * selects the parent), the `secondary entrypoint only` head fact, and the
+ * three level-vocabulary tooltips.
  */
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, ParamMap, convertToParamMap, provideRouter } from '@angular/router';
@@ -332,6 +335,9 @@ describe('PackagesView', () => {
     // Both lines belong to the one copy: a single declaring consumer row.
     expect(block.querySelectorAll('.consumer-row')).toHaveLength(1);
     expect(block.querySelector('.consumer-row .chip')?.textContent).toBe('mfe-dense');
+    // T7.10-AC-03: the happy dense block (parent + secondary) carries no
+    // secondary-only head fact.
+    expect(block.querySelector('.copy-fact')).toBeNull();
   });
 
   // T7.8-AC-04 (DOM half): the deviating secondary split into its own
@@ -358,6 +364,101 @@ describe('PackagesView', () => {
     expect(secondaryBlock.querySelector('.file-specifier')?.textContent).toBe(
       '@nf-lab/split-lib/secondary',
     );
+  });
+
+  // T7.10-AC-01/-AC-02 (DOM half): dense secondaries render as muted,
+  // indented entrypoint sub-rows under their parent leaf — excluded from
+  // the All count — and a sub-row click selects the parent package.
+  it('renders entrypoint sub-rows under dense leaves and selects the parent on click', async () => {
+    const { fixture } = await createView({ fixture: 'synthetic-dense-entries' });
+    const el = fixture.nativeElement as HTMLElement;
+
+    // 2 registry keys + 2 sub-rows in the tree, but All counts keys only.
+    expect(el.querySelectorAll('.tree-row')).toHaveLength(4);
+    const allButton = Array.from(el.querySelectorAll<HTMLButtonElement>('.filter-button')).find(
+      (button) => button.textContent?.includes('All'),
+    )!;
+    expect(allButton.textContent?.trim()).toBe('All (2)');
+    // T7.10-AC-04 (carrier 1): the All button names the row semantics.
+    expect(allButton.title).toBe('one row per registry key of the share register');
+
+    const rows = Array.from(el.querySelectorAll<HTMLElement>('.tree-row'));
+    const subRow = rows[1];
+    expect(subRow.getAttribute('aria-level')).toBe('2');
+    // Never an own registry key: no linked glyph, no versions cell — a
+    // muted specifier, the tag of its own registration, and the grounded
+    // entries-map annotation.
+    expect(subRow.querySelector('.linked-glyph')).toBeNull();
+    expect(subRow.querySelector('.pkg-versions')).toBeNull();
+    expect(subRow.querySelector('.entry-specifier')?.textContent).toBe('/secondary');
+    expect(subRow.querySelector('.entry-tags')?.textContent).toBe('1.2.0');
+    const annotation = subRow.querySelector<HTMLElement>('.entry-annotation')!;
+    expect(annotation.textContent).toBe('entry');
+    expect(annotation.title).toBe(
+      'registered via the entries map of @nf-lab/dense-lib@1.2.0 — no own registry key in this capture',
+    );
+    // Muted at token level (jsdom keeps var() unresolved): the sub-row
+    // specifier shares the muted token of the versions cell.
+    expect(getComputedStyle(subRow.querySelector('.entry-specifier')!).color).toBe(
+      getComputedStyle(rows[0].querySelector('.pkg-version')!).color,
+    );
+
+    // Clicking the sub-row selects the PARENT package (existing convention).
+    subRow.click();
+    fixture.detectChanges();
+    expect(el.querySelector('.detail-name')?.textContent?.trim()).toBe('@nf-lab/dense-lib');
+    expect(rows[0].getAttribute('aria-selected')).toBe('true');
+    expect(subRow.getAttribute('aria-selected')).toBe('false');
+  });
+
+  // T7.10-AC-03/-AC-04 (DOM half): the secondary-only head fact renders with
+  // its grounded tooltip on the split block, and the detail-head/DECLARED BY
+  // level tooltips render without changing the visible text.
+  it('grounds the secondary-only head fact and the level-vocabulary tooltips', async () => {
+    const { fixture } = await createView({
+      fixture: 'synthetic-dense-entries',
+      select: '__GLOBAL__|@nf-lab/split-lib',
+    });
+    const el = fixture.nativeElement as HTMLElement;
+
+    const blocks = Array.from(el.querySelectorAll<HTMLElement>('.copy-block'));
+    const secondaryBlock = blocks.find(
+      (block) => block.querySelector('.copy-tag')?.textContent === '3.1.4',
+    )!;
+    const fact = secondaryBlock.querySelector<HTMLElement>('.copy-fact')!;
+    expect(fact.textContent).toBe('secondary entrypoint only');
+    expect(fact.title).toBe(
+      'this copy serves @nf-lab/split-lib/secondary — the package’s own specifier @nf-lab/split-lib does not resolve to it in this capture; the tag names the entrypoint’s registration, not a version of the whole package',
+    );
+    const parentBlock = blocks.find(
+      (block) => block.querySelector('.copy-tag')?.textContent === '3.0.0',
+    )!;
+    expect(parentBlock.querySelector('.copy-fact')).toBeNull();
+
+    // T7.10-AC-04 (carriers 2 + 3): tooltips only — visible text unchanged.
+    const name = el.querySelector<HTMLElement>('.detail-name-text')!;
+    expect(name.textContent).toBe('@nf-lab/split-lib');
+    expect(name.title).toBe('registry key in share scope __GLOBAL__');
+    const declaredByLabels = Array.from(el.querySelectorAll<HTMLElement>('.group-label')).filter(
+      (label) => label.textContent === 'declared by',
+    );
+    expect(declaredByLabels.length).toBeGreaterThan(0);
+    for (const label of declaredByLabels) {
+      expect(label.querySelector<HTMLElement>('.tip')?.title).toBe(
+        'participants that declared this dependency and their requirements — the registration itself is the version row under the registry key',
+      );
+    }
+  });
+
+  // T7.10-AC-05: flat-generation captures keep their tree — secondaries as
+  // own registry keys with the linked glyph, never entrypoint sub-rows.
+  it('keeps the flat-generation tree free of entrypoint sub-rows', async () => {
+    const { fixture } = await createView({ fixture: 'non-dense' });
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(el.querySelectorAll('.entry-specifier')).toHaveLength(0);
+    expect(el.querySelectorAll('.entry-annotation')).toHaveLength(0);
+    expect(el.querySelectorAll('.linked-glyph').length).toBeGreaterThan(0);
   });
 
   it('narrows the clean self-fill capture to the empty note under Conflicts', async () => {

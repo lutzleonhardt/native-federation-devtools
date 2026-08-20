@@ -1,6 +1,8 @@
 @if (detail(); as detail) {
   <h2 class="detail-name">
-    {{ detail.packageName }}
+    <span class="detail-name-text tip" [title]="'registry key in share scope ' + detail.scope">{{
+      detail.packageName
+    }}</span>
     @if (detail.conflict; as conflict) {
       <span class="detail-conflict tip" [title]="conflict.note">{{ conflict.label }}</span>
     }
@@ -118,7 +120,13 @@
           </ul>
         }
         @if (block.consumers.length > 0) {
-          <p class="group-label">declared by</p>
+          <p class="group-label">
+            <span
+              class="tip"
+              title="participants that declared this dependency and their requirements — the registration itself is the version row under the registry key"
+              >declared by</span
+            >
+          </p>
           <ul class="consumer-list">
             @for (consumer of block.consumers; track consumer.declarationId) {
               <li class="consumer-row">

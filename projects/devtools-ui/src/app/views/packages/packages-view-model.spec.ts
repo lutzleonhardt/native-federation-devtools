@@ -21,6 +21,11 @@
  *  - T7.9-AC-01/-02: the DECLARED BY outcome notes name the consumer's own
  *    registered file when the claim's candidate evidence carries it; with
  *    the evidence removed the outcome states itself alone.
+ *  - T7.10-AC-01/-02/-03/-05: dense secondaries render as entrypoint
+ *    sub-rows under their parent leaf (entries-map provenance, excluded
+ *    from the package count, parent id as select target); copies without
+ *    the package's own specifier carry the `secondary entrypoint only`
+ *    head fact; flat-generation captures grow no sub-rows.
  */
 import { FIXTURES, SnapshotV1 } from 'devtools-bridge';
 
@@ -51,7 +56,9 @@ function vmOf(name: keyof typeof FIXTURES, ui: Partial<PackagesUiState> = {}): P
 }
 
 function packageRows(vm: PackagesVm): PackageRowVm[] {
-  return vm.rows.map((row) => row.payload);
+  return vm.rows
+    .map((row) => row.payload)
+    .filter((payload): payload is PackageRowVm => payload.kind === 'package');
 }
 
 function consumerOf(block: CopyBlockVm, name: string): ConsumerRowVm {
@@ -1024,10 +1031,10 @@ describe('buildPackagesVm — flat list, links, filter, scopes (structure preser
     )!;
     expect(extraRow.depth).toBe(1);
     expect(vm.rows.indexOf(extraRow)).toBe(1);
-    expect(extraRow.payload.displayName).toBe('/extra');
-    expect(extraRow.payload.linked).toEqual({
-      parentPackage: '@nf-lab/conflict-lib',
-      rule: 'name-derived',
+    expect(extraRow.payload).toMatchObject({
+      kind: 'package',
+      displayName: '/extra',
+      linked: { parentPackage: '@nf-lab/conflict-lib', rule: 'name-derived' },
     });
   });
 
@@ -1051,6 +1058,198 @@ describe('buildPackagesVm — flat list, links, filter, scopes (structure preser
   });
 });
 
+describe('buildPackagesVm — entrypoint sub-rows and the secondary-only head fact (T7.10)', () => {
+  const DENSE_LIB = packageId('__GLOBAL__', '@nf-lab/dense-lib');
+  const SPLIT_LIB = packageId('__GLOBAL__', '@nf-lab/split-lib');
+
+  it('renders dense secondaries as sub-rows under their leaf, excluded from the count (T7.10-AC-01)', () => {
+    const vm = vmOf('synthetic-dense-entries');
+    // All (n) counts registry keys of the share register — never sub-rows.
+    expect(vm.packageCount).toBe(2);
+    expect(vm.rows.map((row) => [row.payload.kind, row.depth])).toEqual([
+      ['package', 0],
+      ['entrypoint', 1],
+      ['package', 0],
+      ['entrypoint', 1],
+    ]);
+    // The sub-row payload carries the PARENT group id (T7.10-AC-02: the
+    // existing select convention reads packageId, so a click selects the
+    // parent), the tag of its own registration, and entries-map provenance.
+    const subRows = vm.rows.filter((row) => row.payload.kind === 'entrypoint');
+    expect(subRows.map((row) => row.id)).toEqual([
+      `${DENSE_LIB}|entry|@nf-lab/dense-lib/secondary`,
+      `${SPLIT_LIB}|entry|@nf-lab/split-lib/secondary`,
+    ]);
+    expect(subRows.map((row) => row.payload)).toEqual([
+      {
+        kind: 'entrypoint',
+        packageId: DENSE_LIB,
+        specifier: '@nf-lab/dense-lib/secondary',
+        displaySpecifier: '/secondary',
+        tags: ['1.2.0'],
+        provenance: {
+          label: 'entry',
+          note: 'registered via the entries map of @nf-lab/dense-lib@1.2.0 — no own registry key in this capture',
+        },
+      },
+      {
+        kind: 'entrypoint',
+        packageId: SPLIT_LIB,
+        specifier: '@nf-lab/split-lib/secondary',
+        displaySpecifier: '/secondary',
+        tags: ['3.1.4'],
+        provenance: {
+          label: 'entry',
+          note: 'registered via the entries map of @nf-lab/split-lib@3.1.4 — no own registry key in this capture',
+        },
+      },
+    ]);
+  });
+
+  it('follows the parent through the Conflicts and participant filters (T7.10-AC-01)', () => {
+    // Conflicts: only split-lib flags multiplicity — its sub-row rides along,
+    // dense-lib and its sub-row disappear together.
+    const conflicts = vmOf('synthetic-dense-entries', { filter: 'conflicts' });
+    expect(conflicts.rows.map((row) => [row.payload.kind, row.payload.packageId])).toEqual([
+      ['package', SPLIT_LIB],
+      ['entrypoint', SPLIT_LIB],
+    ]);
+    // Participant: mfe-dense is involved in both groups — all rows stay.
+    const filtered = vmOf('synthetic-dense-entries', { selectedParticipant: 'mfe-dense' });
+    expect(filtered.rows).toHaveLength(4);
+  });
+
+  it('never turns a filtered-out own registry key into a sub-row (T7.10-AC-05)', () => {
+    // CROSS_SOURCE: lib-b's registration carries lib-a in its entries map
+    // AND lib-a exists as its own registry key. The mfe2 filter hides lib-a
+    // from the view (only mfe1 is involved there) — but "no own registry
+    // key in this capture" is a CAPTURE claim, so the suppression must not
+    // depend on the filtered hierarchy.
+    const model = ingestSnapshot(CROSS_SOURCE_SEED);
+    const filtered = buildPackagesVm(model, {
+      filter: 'all',
+      selectedParticipant: 'mfe2',
+      selectedId: null,
+    });
+    expect(filtered.rows.map((row) => [row.payload.kind, row.payload.packageId])).toEqual([
+      ['package', packageId('__GLOBAL__', 'lib-b')],
+    ]);
+    // Unfiltered, both keys render as rows — never as sub-rows.
+    const unfiltered = buildPackagesVm(model, {
+      filter: 'all',
+      selectedParticipant: null,
+      selectedId: null,
+    });
+    expect(unfiltered.rows.every((row) => row.payload.kind === 'package')).toBe(true);
+  });
+
+  it('witnesses several secondaries and multi-tag provenance under one leaf (T7.10-AC-01)', () => {
+    // One leaf, two dense secondaries; /alpha is additionally carried by a
+    // SECOND registration's entries map — the sub-row lists both tags and
+    // the provenance names both registrations, join order = registry order.
+    const seed = seedSnapshot({
+      remotes: SEED_REMOTES,
+      sharedExternals: {
+        __GLOBAL__: {
+          'ui-lib': {
+            dirty: false,
+            versions: [
+              {
+                tag: '1.0.0',
+                action: 'share',
+                host: false,
+                remotes: [
+                  declarationOf('mfe1', {
+                    'ui-lib': 'ui-lib.AAAA.js',
+                    'ui-lib/alpha': 'ui-lib-alpha.AAAA.js',
+                    'ui-lib/beta': 'ui-lib-beta.AAAA.js',
+                  }),
+                ],
+              },
+              {
+                tag: '2.0.0',
+                action: 'share',
+                host: false,
+                remotes: [declarationOf('mfe2', { 'ui-lib/alpha': 'ui-lib-alpha.BBBB.js' })],
+              },
+            ],
+          },
+        },
+      },
+      imports: [
+        { specifier: 'ui-lib', target: './mfe1/ui-lib.AAAA.js' },
+        { specifier: 'ui-lib/alpha', target: './mfe1/ui-lib-alpha.AAAA.js' },
+        { specifier: 'ui-lib/beta', target: './mfe1/ui-lib-beta.AAAA.js' },
+      ],
+    });
+    const vm = buildPackagesVm(ingestSnapshot(seed), {
+      filter: 'all',
+      selectedParticipant: null,
+      selectedId: null,
+    });
+    expect(vm.packageCount).toBe(1);
+    expect(vm.rows.map((row) => [row.payload.kind, row.depth])).toEqual([
+      ['package', 0],
+      ['entrypoint', 1],
+      ['entrypoint', 1],
+    ]);
+    const UI_LIB = packageId('__GLOBAL__', 'ui-lib');
+    expect(
+      vm.rows.filter((row) => row.payload.kind === 'entrypoint').map((row) => row.payload),
+    ).toEqual([
+      {
+        kind: 'entrypoint',
+        packageId: UI_LIB,
+        specifier: 'ui-lib/alpha',
+        displaySpecifier: '/alpha',
+        tags: ['1.0.0', '2.0.0'],
+        provenance: {
+          label: 'entry',
+          note: 'registered via the entries map of ui-lib@1.0.0, ui-lib@2.0.0 — no own registry key in this capture',
+        },
+      },
+      {
+        kind: 'entrypoint',
+        packageId: UI_LIB,
+        specifier: 'ui-lib/beta',
+        displaySpecifier: '/beta',
+        tags: ['1.0.0'],
+        provenance: {
+          label: 'entry',
+          note: 'registered via the entries map of ui-lib@1.0.0 — no own registry key in this capture',
+        },
+      },
+    ]);
+  });
+
+  it('flags copies without the package’s own specifier on the head (T7.10-AC-03)', () => {
+    const split = vmOf('synthetic-dense-entries', { selectedId: SPLIT_LIB }).detail!;
+    const secondary = split.blocks.find((block) => block.resolvedTag === '3.1.4')!;
+    expect(secondary.deviations).toEqual([
+      {
+        label: 'secondary entrypoint only',
+        note: 'this copy serves @nf-lab/split-lib/secondary — the package’s own specifier @nf-lab/split-lib does not resolve to it in this capture; the tag names the entrypoint’s registration, not a version of the whole package',
+      },
+    ]);
+    expect(split.blocks.find((block) => block.resolvedTag === '3.0.0')!.deviations).toEqual([]);
+    // The happy dense block (parent + secondary in one copy) carries no fact.
+    const dense = vmOf('synthetic-dense-entries', { selectedId: DENSE_LIB }).detail!;
+    expect(dense.blocks).toHaveLength(1);
+    expect(dense.blocks[0].deviations).toEqual([]);
+  });
+
+  it('grows no sub-rows on flat-generation captures (T7.10-AC-05)', () => {
+    // Flat builds register secondaries as their own registry keys — the
+    // linked presentation stays, and no entrypoint sub-row appears.
+    for (const fixture of ['non-dense', 'self-fill', 'frankenstein-live'] as const) {
+      const vm = vmOf(fixture);
+      expect(vm.rows.every((row) => row.payload.kind === 'package')).toBe(true);
+    }
+    const nonDense = vmOf('non-dense');
+    expect(packageRows(nonDense).some((row) => row.linked !== null)).toBe(true);
+  });
+});
+
 describe('buildPackagesVm — grounded annotations and purity (T7.5-AC-06)', () => {
   it('gives every annotation of the corpus details a non-empty grounded note', () => {
     const cases: [keyof typeof FIXTURES, string][] = [
@@ -1059,6 +1258,7 @@ describe('buildPackagesVm — grounded annotations and purity (T7.5-AC-06)', () 
       ['strict-split', CONFLICT_LIB],
       ['pooling-anchor', CONFLICT_LIB],
       ['synthetic-multi-version', packageId('__GLOBAL__', 'ui-lib')],
+      ['synthetic-dense-entries', packageId('__GLOBAL__', '@nf-lab/split-lib')],
       ['frankenstein-live', packageId('__GLOBAL__', '@angular/core/primitives/signals')],
     ];
     for (const [fixture, selectedId] of cases) {
