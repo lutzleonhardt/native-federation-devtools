@@ -17,6 +17,7 @@ import {
   SnapshotV1,
 } from 'devtools-bridge';
 
+import { provideParticipantColors } from '../../shared/store/participant-colors-provider';
 import { PackagesView } from './packages';
 
 class FixtureSnapshotProvider implements SnapshotProvider {
@@ -46,6 +47,9 @@ async function createView(options: { fixture: FixtureId | null; select?: string 
     imports: [PackagesView],
     providers: [
       provideRouter([]),
+      // Mirrors the app.config.ts binding — identity-dot pins run against
+      // the real store-backed lookup.
+      provideParticipantColors(),
       { provide: SNAPSHOT_PROVIDER, useValue: new FixtureSnapshotProvider(options.fixture) },
       {
         provide: ActivatedRoute,
@@ -90,6 +94,14 @@ describe('PackagesView', () => {
     // Linked secondaries render the glyph, no visible rule chip.
     expect(el.querySelectorAll('.linked-glyph').length).toBeGreaterThan(0);
     expect(el.textContent).not.toContain('name-derived');
+
+    // T7.7-AC-02 (cross-view witness): the live fixture's filter chips carry
+    // the exact slots remotes.spec and import-map.spec pin for these names
+    // (mermaid → 1, whiteboard → 2) — same lookup, same fixture, three views.
+    const chips = Array.from(el.querySelectorAll<HTMLElement>('.participant-toggle .chip-remote'));
+    const chipOf = (name: string) => chips.find((chip) => chip.textContent === name)!;
+    expect(chipOf('mermaid').querySelector('.dot')?.classList.contains('dot-1')).toBe(true);
+    expect(chipOf('whiteboard').querySelector('.dot')?.classList.contains('dot-2')).toBe(true);
   });
 
   // T7.5-AC-05: the participant filter renders every involved participant
@@ -103,6 +115,12 @@ describe('PackagesView', () => {
     const hostToggle = toggles[0];
     expect(hostToggle.querySelector<HTMLElement>('.chip-host')?.title).toBe('__NF-HOST__');
     expect(el.querySelectorAll('.tree-row')).toHaveLength(2);
+
+    // T7.7-AC-02/-AC-04: identity dots from the one sorted-name lookup
+    // (mfe1 → slot 1, mfe2 → slot 2); the host chip never carries a dot.
+    expect(toggles[1].querySelector('.chip .dot')?.classList.contains('dot-1')).toBe(true);
+    expect(toggles[2].querySelector('.chip .dot')?.classList.contains('dot-2')).toBe(true);
+    expect(hostToggle.querySelector('.dot')).toBeNull();
 
     // T7.6-AC-01: buttons + chips form one left filter zone with a visible
     // divider between them; the scopes summary sits outside the zone and is
@@ -358,6 +376,11 @@ describe('PackagesView', () => {
     expect(anchor.querySelector('.copy-disposition')?.textContent).toBe('skip-registration');
     expect(anchor.querySelector('.copy-head .source-word')?.textContent).toBe('from');
     expect(anchor.querySelector('.copy-head .chip-link .chip')?.textContent).toBe('mfe1');
+    // T7.7-AC-02: detail chips read the same lookup — mfe1 keeps palette
+    // slot 1, identical to its toolbar chip.
+    expect(
+      anchor.querySelector('.copy-head .chip-link .chip .dot')?.classList.contains('dot-1'),
+    ).toBe(true);
     for (const block of Array.from(el.querySelectorAll<HTMLElement>('.copy-block'))) {
       expect(block.textContent).not.toMatch(/(?<![\w-])source(?![\w-])/);
     }

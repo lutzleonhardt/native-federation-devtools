@@ -15,6 +15,7 @@ import {
   SnapshotV1,
 } from 'devtools-bridge';
 
+import { provideParticipantColors } from '../../shared/store/participant-colors-provider';
 import { RemotesView } from './remotes';
 
 class FixtureSnapshotProvider implements SnapshotProvider {
@@ -39,6 +40,9 @@ async function createView(options: { fixture: FixtureId | null; select?: string 
     imports: [RemotesView],
     providers: [
       provideRouter([]),
+      // Mirrors the app.config.ts binding — identity-dot pins run against
+      // the real store-backed lookup.
+      provideParticipantColors(),
       { provide: SNAPSHOT_PROVIDER, useValue: new FixtureSnapshotProvider(options.fixture) },
       {
         provide: ActivatedRoute,
@@ -73,6 +77,17 @@ describe('RemotesView', () => {
     expect(hostChip.title).toBe(NF_HOST);
     expect(el.textContent).not.toContain(NF_HOST);
     expect(el.textContent).toContain('cannot enumerate what the capture cannot see');
+
+    // T7.7-AC-02/-AC-04: identity dots from the one sorted-name lookup
+    // (mermaid → slot 1, whiteboard → slot 2 — the same slots Packages and
+    // Import Map render for these names); the host chip never carries one.
+    const chipOf = (name: string) =>
+      Array.from(el.querySelectorAll<HTMLElement>('.tree-row .chip-remote')).find(
+        (chip) => chip.textContent === name,
+      )!;
+    expect(chipOf('mermaid').querySelector('.dot')?.classList.contains('dot-1')).toBe(true);
+    expect(chipOf('whiteboard').querySelector('.dot')?.classList.contains('dot-2')).toBe(true);
+    expect(hostChip.querySelector('.dot')).toBeNull();
   });
 
   // T11-AC-01 (DOM half): capability badges of the selected remote —
@@ -155,9 +170,9 @@ describe('RemotesView', () => {
     expect(el.querySelector('.chunk-note')?.textContent).toContain(
       'package attribution is not derivable',
     );
-    const groupLabels = Array.from(
-      el.querySelectorAll<HTMLElement>('.chunk-package .mono'),
-    ).map((label) => label.textContent);
+    const groupLabels = Array.from(el.querySelectorAll<HTMLElement>('.chunk-package .mono')).map(
+      (label) => label.textContent,
+    );
     expect(groupLabels.some((label) => label?.startsWith('@nf-internal/'))).toBe(true);
   });
 
