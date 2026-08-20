@@ -6,7 +6,7 @@ External challenger: /home/lutz/Downloads/DEPENDENCY-GRAPH.md, SHA-256 5977479c3
 
 The work has three milestones: establish one canonical domain model, migrate the four consumers, then enforce and review the cutover. Tasks stay at independently reviewable boundaries; evidence acquisition, raw snapshot transport, and Store normalization are separate point tasks even though RM-AC-07 treats them as one ordered, traceable schema-gate chain.
 
-YAGNI boundary: no graph UI or pool graph, no network/runtime-use instrumentation, no UI redesign except the Task 7.5 Packages presentation redesign (frozen mock: `design/packages-view-redesign-mock.md`) and the Task 7.6/7.7 presentation polish from its screenshot review, no general diagnostics rule engine, no new Playwright/Cypress/Storybook setup, and no screenshot goldens. The external challenger informs requirements but is not copied or treated as an oracle.
+YAGNI boundary: no graph UI or pool graph, no network/runtime-use instrumentation, no UI redesign except the Task 7.5 Packages presentation redesign (frozen mock: `design/packages-view-redesign-mock.md`), the Task 7.6/7.7 presentation polish and the Task 7.9 outcome-evidence tooltips from its screenshot reviews, no general diagnostics rule engine, no new Playwright/Cypress/Storybook setup, and no screenshot goldens. The external challenger informs requirements but is not copied or treated as an oracle.
 
 Tasks 2, 2.1, and 2.2 form the raw `pool`/`servedBy` schema gate. Task 2 produces evidence only; if its real witness cannot be produced, close Task 2 BLOCKED and do not start Tasks 2.1 or 2.2. Tasks 3–12 may still use null raw fields and source-backed canonical seeds, while the overall pooling acceptance remains incomplete.
 
@@ -690,6 +690,59 @@ T2-AC-02 through T2-AC-05 were retired by the approved task split. Their IDs are
   entrypoint with the specifier shown when it differs from the package
   name — the DOM pin rides on that behavior.
 
+## Task 7.9: Declaration-outcome evidence tooltips
+
+**Dependency:** none.
+
+### Instructions
+
+- Give the DECLARED BY outcome tags in the Packages detail
+  (`skipped own <tag>`, `kept own copy`, `not selected`) grounded
+  tooltips naming the participant's own registered file as evidence,
+  e.g. `own copy rxjs.AbCdEf.js is registered but not selected in this
+  capture`.
+- Wording stays capture-relative: an unselected own copy is the price
+  of standalone deployability and may be selected under a different
+  composition — never "dead weight", never byte estimates, no delivery
+  claims.
+- Claim the file ONLY when the declaration evidence carries it; verify
+  the canonical declaration surface first (if the raw declaration
+  `file` is not preserved into `registryEvidence.participantDeclarations`,
+  extending the normalization is in scope). Without an evidenced file
+  the tooltip states the outcome alone.
+- Tooltip-only change: the visible DOM stays identical; existing pins
+  pass unmodified.
+
+### Acceptance
+
+- **T7.9-AC-01** — each of the three outcome kinds renders a grounded
+  `title` naming the own registered file on a witnessing fixture
+  (e.g. `co-declared-share` for `not selected`); wording is
+  capture-relative. **Contributes:** XC-06.
+- **T7.9-AC-02** — a declaration without an evidenced own file renders
+  the outcome tooltip without a file name — no invented evidence.
+- **T7.9-AC-03** — no visible-text change: existing Packages DOM pins
+  pass unmodified.
+
+### Key Locations
+
+- `projects/devtools-ui/src/app/views/packages/package-detail.html` +
+  `packages-detail-vm.ts` (DECLARED BY / consumer rows)
+- `projects/devtools-ui/src/app/shared/store/resolution/` — only if the
+  declaration file needs canonical preservation
+- `projects/devtools-ui/src/app/views/packages/packages.spec.ts`,
+  `packages-view-model.spec.ts`
+
+### Key Discoveries
+
+- Decision trail (2026-08-20): inline file display rejected (hashed
+  names are noise at the row level); per-skip tile rejected — copy
+  blocks are reserved for resolved copies, and a never-selected own
+  copy must not be promoted to copy status; the tooltip is the panel's
+  established grounded-evidence channel.
+- The aggregate question ("which own copies stay unselected?") belongs
+  to Diagnostics (Task 10), not to more Packages surface.
+
 ## Task 8: Migrate Remotes to canonical resolutions
 
 **Dependency:** Task 6.
@@ -772,6 +825,7 @@ T2-AC-02 through T2-AC-05 were retired by the approved task split. Their IDs are
 - Link facts to Packages, Remotes, and Import Map through the same canonical IDs and established routing/cross-link conventions.
 - Keep classification and severity in canonical data; the view may format but must not reconstruct federation rules. Do not port the deferred V2 lint catalogue or introduce a rule engine.
 - Use small pure VM builders and honest-state components. Keep resolution-honest vocabulary and add only the layout needed to make the canonical comparisons inspectable.
+- Include the composition-relative observation `own copies not selected in this capture`: one row per declaration whose participant registers its own copy that no binding selects — package, participant, own file when evidenced. Info-level formatting, never a warning (standalone deployability makes the redundancy designed behavior); wording stays capture-relative and byte-free.
 
 ### Acceptance
 
@@ -780,6 +834,7 @@ T2-AC-02 through T2-AC-05 were retired by the approved task split. Their IDs are
 - **T10-AC-03** — Missing registry or import-map evidence renders a partial/unknown state rather than hiding the record or throwing. **Contributes:** XC-02, XC-06.
 - **T10-AC-04** — Diagnostics cross-links use the same IDs exposed by the other views, and no view-local domain rule changes a comparison or severity. **Contributes:** XC-01, XC-03.
 - **T10-AC-05** — Route/app tests render the real Diagnostics component instead of `ViewPlaceholder`, with focused VM and DOM coverage. **Contributes:** XC-01.
+- **T10-AC-06** — `co-declared-share` lists the non-selected own copy under the observation (package, participant, file) with info/observation styling — no warning tokens — and capture-relative wording. **Contributes:** XC-06.
 
 ### Key Locations
 
@@ -852,6 +907,7 @@ T2-AC-02 through T2-AC-05 were retired by the approved task split. Their IDs are
 - Review only the relevant Packages, Remotes, Import Map, and Diagnostics states for each witness. Check terminology, selected/not-selected distinction, shared canonical IDs/cross-links, hierarchy, clipping, and visible unknown/ambiguous states.
 - Treat screenshots as UX evidence, not the semantic oracle. Do not commit screenshots as pixel goldens unless separately requested.
 - Keep this task review-only. Small copy/layout defects may be fixed with focused assertions in the same task; larger semantic or redesign findings become new planned follow-ups rather than expanding this acceptance task.
+- Judge master-list scanability during the walkthrough: rows deliberately carry name + versions only (T7.5 trade — the participant axis lives in the filter zone). Record a verdict on whether a per-row participant dot strip (reusing the T7.7 color lookup; dots only, no text chips, neutral above the palette threshold) is warranted — if yes, it becomes a planned follow-up task, not an in-walkthrough fix.
 
 ### Acceptance
 
@@ -859,6 +915,7 @@ T2-AC-02 through T2-AC-05 were retired by the approved task split. Their IDs are
 - **T12-AC-02** — Each reviewed case records counts/terms, selected/not-selected treatment, canonical cross-links, visual hierarchy/clipping, unknown/ambiguous rendering, screenshot reference, and verdict.
 - **T12-AC-03** — No unresolved semantic or visual contradiction remains across the four views; larger discoveries are represented by explicit follow-up tasks rather than hidden in the walkthrough.
 - **T12-AC-04** — No Playwright, Cypress, Storybook, pixel-golden, or production semantic-oracle infrastructure is added. **Contributes:** XC-06.
+- **T12-AC-05** — the walkthrough records an explicit master-list scanability verdict (per-row participant dot strip: adopt as follow-up / reject).
 
 ### Key Locations
 
