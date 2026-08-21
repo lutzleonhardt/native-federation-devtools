@@ -34,7 +34,8 @@ h3 {
 
 .expose-list,
 .chunk-packages,
-.scoped-list {
+.scoped-list,
+.relation-list {
   margin: 0;
   padding: 0;
   list-style: none;
@@ -42,7 +43,8 @@ h3 {
 
 .expose-item,
 .chunk-package,
-.scoped-item {
+.scoped-item,
+.relation-item {
   display: flex;
   align-items: baseline;
   gap: 8px;
@@ -51,8 +53,15 @@ h3 {
 }
 
 .expose-file,
-.scoped-file {
+.scoped-file,
+.scoped-specifier,
+.relation-binding {
   overflow-wrap: anywhere;
+  color: var(--nf-color-text-muted);
+}
+
+.relation-note {
+  font-size: 10px;
   color: var(--nf-color-text-muted);
 }
 
@@ -88,20 +97,31 @@ h3 {
   white-space: nowrap;
 }
 
-.dep-scope,
-.dep-no-election {
+.dep-scope {
   padding: 0 4px;
   border: 1px solid var(--nf-color-border);
   border-radius: 3px;
   font-size: 10px;
   color: var(--nf-color-text-muted);
-}
-
-.dep-scope {
   font-family: var(--nf-font-mono);
   text-decoration: underline dotted;
   text-underline-offset: 2px;
   cursor: help;
+}
+
+.dep-states {
+  display: inline-flex;
+  gap: 4px;
+}
+
+/* Mapping-state chip — same look as the Packages detail (T7 vocabulary). */
+.state-chip {
+  padding: 0 4px;
+  border: 1px solid var(--nf-color-border);
+  border-radius: 3px;
+  font-size: 10px;
+  color: var(--nf-color-text-muted);
+  white-space: nowrap;
 }
 
 .chunk-bundle,
@@ -109,7 +129,15 @@ h3 {
   color: var(--nf-color-text-muted);
 }
 
-.chunk-mapped,
+/* Qualified bundle-claim status — dashed border marks the uncertainty. */
+.chunk-status {
+  padding: 0 4px;
+  border: 1px dashed var(--nf-color-border);
+  border-radius: 3px;
+  font-size: 10px;
+  color: var(--nf-color-text-muted);
+}
+
 .scoped-tag {
   padding: 0 4px;
   border: 1px solid var(--nf-color-border);

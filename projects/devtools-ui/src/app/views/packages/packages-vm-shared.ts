@@ -12,44 +12,40 @@
  * knowledge (T7).
  *
  * The cross-view vocabulary (scope constants, select ids, sentinel
- * display) lives in `shared/view-conventions.ts` since T11; the re-exports
- * keep this module's import sites stable.
+ * display) lives in `shared/view-conventions.ts` since T11, joined by the
+ * canonical-façade join helpers (indexes, copy-source attribution, target
+ * file display) lifted there with their second consumer (T8 Remotes); the
+ * re-exports keep this module's import sites stable.
  */
-import { NF_HOST } from 'devtools-bridge';
-
-import type { FederationModel } from '../../shared/store/federation-model';
 import type {
-  BundleClaim,
-  BundleClaimId,
-  ChunkGroupId,
-  ChunkGroupProjection,
-  ConsumerCopyRelation,
   DeclarationResolutionClaim,
-  DeclarationResolutionClaimId,
-  EffectiveConsumerResolution,
-  EffectiveConsumerResolutionId,
-  EntrypointCandidate,
-  EntrypointCandidateId,
   ParticipantDeclaration,
-  ParticipantDeclarationId,
-  PrivateRegistration,
-  PrivateRegistrationId,
   ResolvedDependencyCopy,
-  ResolvedDependencyCopyId,
   SharedExternalId,
-  SharedExternalRecord,
   VersionRegistration,
-  VersionRegistrationId,
 } from '../../shared/store/resolution';
 
 export {
   GLOBAL_SCOPE,
   STRICT_SCOPE,
+  buildCanonicalIndexes,
   chunkFileClaim,
+  copySourceDisplay,
+  copySourceRemote,
+  copySourceVmOf,
+  isHostRemote,
   packageId,
   participantDisplay,
+  targetFileName,
+  type CanonicalIndexes,
+  type CopySourceVm,
 } from '../../shared/view-conventions';
-import { STRICT_SCOPE, packageId, participantDisplay } from '../../shared/view-conventions';
+import {
+  CanonicalIndexes,
+  STRICT_SCOPE,
+  copySourceRemote,
+  packageId,
+} from '../../shared/view-conventions';
 
 /** One version registration of the group with its declarations, registry order. */
 export interface RegistrationGroup {
@@ -84,102 +80,6 @@ export interface PackageGroup {
    * shares side by side by design and never flags.
    */
   multiVersion: boolean;
-}
-
-/** ID-keyed lookups over the canonical read surface; built once per vm. */
-export interface CanonicalIndexes {
-  sharedExternalById: Map<SharedExternalId, SharedExternalRecord>;
-  declarationById: Map<ParticipantDeclarationId, ParticipantDeclaration>;
-  registrationById: Map<VersionRegistrationId, VersionRegistration>;
-  privateRegistrationById: Map<PrivateRegistrationId, PrivateRegistration>;
-  candidateById: Map<EntrypointCandidateId, EntrypointCandidate>;
-  resolutionById: Map<EffectiveConsumerResolutionId, EffectiveConsumerResolution>;
-  claimsByDeclaration: Map<ParticipantDeclarationId, DeclarationResolutionClaim[]>;
-  /** Every attached claim (shared and private subjects), by canonical ID. */
-  claimById: Map<DeclarationResolutionClaimId, DeclarationResolutionClaim>;
-  copyById: Map<ResolvedDependencyCopyId, ResolvedDependencyCopy>;
-  relationsByCopy: Map<ResolvedDependencyCopyId, ConsumerCopyRelation[]>;
-  bundleClaimById: Map<BundleClaimId, BundleClaim>;
-  chunkGroupById: Map<ChunkGroupId, ChunkGroupProjection>;
-}
-
-export function buildCanonicalIndexes(model: FederationModel): CanonicalIndexes {
-  const projection = model.resolutionProjection;
-  const claimsByDeclaration = new Map<ParticipantDeclarationId, DeclarationResolutionClaim[]>();
-  for (const claim of projection.declarationResolutionClaims) {
-    if (claim.subject.kind !== 'shared') {
-      continue;
-    }
-    const declarationId = claim.subject.participantDeclarationId;
-    claimsByDeclaration.set(declarationId, [
-      ...(claimsByDeclaration.get(declarationId) ?? []),
-      claim,
-    ]);
-  }
-  const relationsByCopy = new Map<ResolvedDependencyCopyId, ConsumerCopyRelation[]>();
-  for (const relation of projection.consumerRelations) {
-    relationsByCopy.set(relation.copyId, [
-      ...(relationsByCopy.get(relation.copyId) ?? []),
-      relation,
-    ]);
-  }
-  return {
-    sharedExternalById: new Map(
-      model.registryEvidence.sharedExternals.map((record) => [record.id, record]),
-    ),
-    declarationById: new Map(
-      model.registryEvidence.participantDeclarations.map((record) => [record.id, record]),
-    ),
-    registrationById: new Map(
-      model.registryEvidence.versionRegistrations.map((record) => [record.id, record]),
-    ),
-    privateRegistrationById: new Map(
-      model.registryEvidence.privateRegistrations.map((record) => [record.id, record]),
-    ),
-    candidateById: new Map(
-      model.registryEvidence.entrypointCandidates.map((record) => [record.id, record]),
-    ),
-    resolutionById: new Map(
-      model.effectiveConsumerResolutions.map((resolution) => [resolution.id, resolution]),
-    ),
-    claimsByDeclaration,
-    claimById: new Map(projection.declarationResolutionClaims.map((claim) => [claim.id, claim])),
-    copyById: new Map(projection.copies.map((copy) => [copy.id, copy])),
-    relationsByCopy,
-    bundleClaimById: new Map(projection.bundleClaims.map((claim) => [claim.id, claim])),
-    chunkGroupById: new Map(projection.chunkGroups.map((group) => [group.id, group])),
-  };
-}
-
-/**
- * Source remote of a copy — the participant/owner of its uniquely evidenced
- * source record; null for URL-identified copies (no source claim is made).
- */
-export function copySourceRemote(
-  copy: ResolvedDependencyCopy,
-  indexes: CanonicalIndexes,
-): string | null {
-  switch (copy.source.kind) {
-    case 'shared-declaration':
-      return indexes.declarationById.get(copy.source.declarationId)?.participant ?? null;
-    case 'private-registration':
-      return indexes.privateRegistrationById.get(copy.source.registrationId)?.ownerRemote ?? null;
-    case 'target-url':
-      return null;
-  }
-}
-
-/** Display form of a copy's source remote; null when no source is evidenced. */
-export function copySourceDisplay(
-  copy: ResolvedDependencyCopy,
-  indexes: CanonicalIndexes,
-): string | null {
-  const remote = copySourceRemote(copy, indexes);
-  return remote === null ? null : participantDisplay(remote);
-}
-
-export function isHostRemote(name: string | null): boolean {
-  return name === NF_HOST;
 }
 
 /**
@@ -265,13 +165,6 @@ export function involvedParticipantsOf(
     }
   }
   return names;
-}
-
-/** Display file name of a target URL — its last path segment (query/hash stripped). */
-export function targetFileName(targetUrl: string): string {
-  const withoutQuery = targetUrl.split(/[?#]/, 1)[0];
-  const segments = withoutQuery.split('/').filter((segment) => segment.length > 0);
-  return segments.length > 0 ? segments[segments.length - 1] : targetUrl;
 }
 
 /** Whether the group flags resolved-version multiplicity (never in `strict`). */

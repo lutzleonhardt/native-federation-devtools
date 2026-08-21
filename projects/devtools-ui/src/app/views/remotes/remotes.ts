@@ -34,11 +34,10 @@ export class RemotesView {
 
   protected readonly vm = computed<RemotesVm | null>(() => {
     const model = this.store.model();
-    const derived = this.store.derived();
-    if (model === null || derived === null) {
+    if (model === null) {
       return null;
     }
-    return buildRemotesVm(model, derived, { selectedName: this.selectedName() });
+    return buildRemotesVm(model, { selectedName: this.selectedName() });
   });
 
   protected onSelect(row: TreeTableRow): void {
