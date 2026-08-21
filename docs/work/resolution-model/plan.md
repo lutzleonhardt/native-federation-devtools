@@ -1033,6 +1033,7 @@ capability tooltips without the config suffix).
 - `projects/devtools-ui/src/app/shared/kit/participant-row.{ts,html}`
 - `projects/devtools-ui/src/app/shared/view-conventions.ts`
 - `docs/work/resolution-model/design/remotes-view-redesign-mock.md` (reference, read-only)
+- `docs/work/resolution-model/design/pooling-anchor-explainer.md` (reference, read-only — source-verified skip+`servedBy` semantics and term table; grounds the T8.6-AC-03 pooling-anchor proof case and the registration-tooltip wording)
 
 ### Key Discoveries
 
@@ -1085,6 +1086,7 @@ capability tooltips without the config suffix).
 - `projects/devtools-ui/src/app/views/import-map/import-map.html`
 - `projects/devtools-ui/src/app/views/import-map/import-map.spec.ts`
 - `projects/devtools-ui/src/app/shared/chunk-map-join.ts`
+- `docs/work/resolution-model/design/pooling-anchor-explainer.md` (reference, read-only — source-verified `servedBy` → consumer-scope generation and `cached` semantics, for annotating scoped map rows without delivery claims)
 
 ### Key Discoveries
 
@@ -1123,11 +1125,13 @@ capability tooltips without the config suffix).
 - `projects/devtools-ui/src/app/app.spec.ts`
 - `projects/devtools-ui/src/app/shared/honest-state/`
 - Existing cross-link/routing helpers used by Packages, Remotes, and Import Map
+- `docs/work/resolution-model/design/pooling-anchor-explainer.md` (reference, read-only — source-verified ground text for anchor/skip/`cached` wording)
 
 ### Key Discoveries
 
 - Diagnostics is currently only a placeholder.
 - A secondary-entry registry-slot mismatch can be expected when a later declaration supplies the selected specifier; diagnostics must remain entrypoint-aware.
+- The pooling-anchor explainer (design/, 2026-08-21) supersedes the 7.10-session skip/anchor explanation carried in the Task-8 log's open issues: `skip` is a registration disposition, not the effective browser resolution; `cached` is set during import-map generation (effect, not trigger); anchor-vs-observed findings must keep both dimensions separate.
 
 ## Task 11: Enforce the single-truth cutover
 
