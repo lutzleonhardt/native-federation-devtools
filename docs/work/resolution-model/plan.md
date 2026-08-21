@@ -6,7 +6,7 @@ External challenger: /home/lutz/Downloads/DEPENDENCY-GRAPH.md, SHA-256 5977479c3
 
 The work has three milestones: establish one canonical domain model, migrate the four consumers, then enforce and review the cutover. Tasks stay at independently reviewable boundaries; evidence acquisition, raw snapshot transport, and Store normalization are separate point tasks even though RM-AC-07 treats them as one ordered, traceable schema-gate chain.
 
-YAGNI boundary: no graph UI or pool graph, no network/runtime-use instrumentation, no UI redesign except the Task 7.5 Packages presentation redesign (frozen mock: `design/packages-view-redesign-mock.md`), the Task 7.6/7.7 presentation polish, the Task 7.9 outcome-evidence tooltips from its screenshot reviews, and the Task 7.10 entrypoint-level presentation from the Task 7.8 review, no general diagnostics rule engine, no new Playwright/Cypress/Storybook setup, and no screenshot goldens. The external challenger informs requirements but is not copied or treated as an oracle.
+YAGNI boundary: no graph UI or pool graph, no network/runtime-use instrumentation, no UI redesign except the Task 7.5 Packages presentation redesign (frozen mock: `design/packages-view-redesign-mock.md`), the Task 7.6/7.7 presentation polish, the Task 7.9 outcome-evidence tooltips from its screenshot reviews, and the Task 7.10 entrypoint-level presentation from the Task 7.8 review, the Task 8.6 Remotes presentation redesign (frozen mock: `design/remotes-view-redesign-mock.md`) with the Task 8.5 capability-config provenance research, no general diagnostics rule engine, no new Playwright/Cypress/Storybook setup, and no screenshot goldens. The external challenger informs requirements but is not copied or treated as an oracle.
 
 Tasks 2, 2.1, and 2.2 form the raw `pool`/`servedBy` schema gate. Task 2 produces evidence only; if its real witness cannot be produced, close Task 2 BLOCKED and do not start Tasks 2.1 or 2.2. Tasks 3–12 may still use null raw fields and source-backed canonical seeds, while the overall pooling acceptance remains incomplete.
 
@@ -858,6 +858,204 @@ T2-AC-02 through T2-AC-05 were retired by the approved task split. Their IDs are
 - The current Remotes projection reconstructs share counts and provider-like outcomes independently of Packages.
 - A remote is a consumer context; its declaration action is registry evidence, not its per-specifier mapping result.
 
+## Task 8.5: Verify capability config provenance
+
+**Dependency:** Task 8.
+
+### Instructions
+
+- Research-only task; no UI or production code changes. Goal: a
+  source-verified mapping from each of the three Remotes capability
+  evidences to the Native Federation config that produces it — never
+  guessed, never inferred from capture shape alone.
+- The three evidences and their canonical grounding (from the Remotes
+  VM, unchanged by this task): dense chunking ← projection
+  `shared-chunks` chunk groups per emitter (per-bundle chunk lists in
+  the registry); dense externals ← canonical participant declarations
+  carrying a `bundle`; SRI ← the remote's recorded integrity map.
+- Verify against the public Native Federation source
+  (angular-architects/native-federation on GitHub; clone or fetch
+  read-only). For each evidence, find the config option(s) that switch
+  the emitting code path on: exact flag name, default value, and the
+  release that introduced it. Known priors to CONFIRM, not assume:
+  `denseExternals` and `convertFlatSharedInfo` are both opt-in
+  (default false); the `entries` spelling arrived in v4.5.0 (secondary
+  entrypoints); the released version is v4.6.0.
+- Record the result as a dated "Task 8.5 amendment" section in
+  `docs/work/resolution-model/design/remotes-view-redesign-mock.md`:
+  per capability the final English tooltip string in the established
+  config-naming convention (precedent: `(config: strictVersion: true)`,
+  `(config: shareScope: 'strict')`), e.g. `dense externals — shared
+  participants carry their serving bundle (config: <flag>: true,
+  default false, since v<X>)`, each with a concrete source reference
+  (repo file path + version/tag).
+- Honesty rule: a mapping that cannot be pinned in source is recorded
+  as "not derivable from source" — that tooltip then ships WITHOUT a
+  `(config: …)` suffix. Never write a speculative flag name.
+- If the sandbox blocks the checkout, ask for the network bypass
+  rather than substituting memory for source.
+
+### Acceptance
+
+- **T8.5-AC-01** — the mock amendment lists, for each of dense
+  chunking / dense externals / SRI, either a final tooltip string with
+  exact flag name, default, and since-version plus a concrete source
+  reference (file path + version), or an explicit "not derivable from
+  source" entry.
+- **T8.5-AC-02** — no tooltip string in the amendment contains an
+  unverified flag name: every `(config: …)` claim traces to a cited
+  source location.
+
+### Key Locations
+
+- `docs/work/resolution-model/design/remotes-view-redesign-mock.md` (amendment target)
+- Native Federation source checkout (external, read-only; not committed)
+
+### Key Discoveries
+
+- The capability detection logic lives in `remotes-detail-vm.ts`
+  `capabilitiesOf` (rules: shared-chunks-lists, participant-bundle,
+  integrity-map-present); this task changes none of it — it only
+  grounds the future wording.
+- Generation labels in older docs ('v4'/'dev') are semantically stale;
+  speak in NF release versions.
+
+## Task 8.6: Redesign the Remotes presentation around provides/consumes
+
+**Dependency:** Task 8.5 (ordering only — it delivers the
+`(config: …)` tooltip strings; if Task 8.5 closes BLOCKED, ship the
+capability tooltips without the config suffix).
+
+### Instructions
+
+- Presentation-only redesign of the Remotes view; the Task-8 canonical
+  façade consumption, VM purity, claim-state vocabulary, and grounded
+  reason-tooltips stay intact. Layout/wording reference is the frozen
+  mock `docs/work/resolution-model/design/remotes-view-redesign-mock.md`;
+  UI strings are English.
+- Replace the flat "Shared dependencies" section and its arrow doctrine
+  with three zones decided PER CLAIM:
+  - `provides` — resolved copies whose source qualifier is
+    `exact-target-source` or `explicit-anchor` with this remote as
+    target. Block head: package name (link → /packages) · resolved
+    tag · the remote's own declared range + muted STRICT (the head
+    folds the remote's own DECLARED-BY row into the block); deviation
+    chips after the head (`isolated` + audience `mapped only for X`,
+    `anchored`, `self-filled`) — the norm renders none, and there is
+    NO `kept own copy` chip (zone + disposition already say it).
+    FILES group per entrypoint with `mapped` link and `SRI ✓` / muted
+    `no SRI`. Secondaries indent under their parent block as compact
+    sub-rows (name-derived parent rule from the Packages list —
+    presentational grouping of REAL registry keys, not the 7.10
+    entries-map `entry` semantics).
+  - `consumes` — claims resolving to ANOTHER remote's copy: row =
+    package · declared range · deviation chips (`skipped own <tag>`,
+    `not selected`, …) · winner arrow to the file with `from` +
+    colored participant chip (link → /remotes). Secondary-specifier
+    claims prefix `via <specifier>`. Qualified source attributions
+    (`ambiguous source`, `observed target source`, `unknown source`)
+    NEVER form provides blocks — they render here with their qualifier
+    chip visible. The relation-only rows (T8-H2) render inside this
+    zone under their own muted note, wording verbatim.
+  - `unresolved` — claims without a copy (`not mapped`, `blocked`,
+    `unknown`, plus candidate-less `declared`), Packages bucket
+    grammar with `offered <tag>`.
+  - Each zone carries a one-line muted note; honest-empty zones render
+    one muted line (`no copies sourced by this remote in this capture`
+    / `nothing from other remotes in this capture`).
+- Registry action ≠ zone: share/scope/skip stay registry-evidence
+  tooltips only (T8-H4 doctrine). Remove the `→ own copy` arrow, the
+  glyph column, the visible action chips, and the glyph legend.
+  pooling-anchor is the proof case: skip + anchored → a provides block
+  with an `anchored` chip, the skip action visible only in the
+  registration tooltip.
+- CHUNKS stays its own section: one row per bundle, deduped across the
+  copies claiming it, muted `serves <packages>` tail, chunk-file list;
+  `source-only`/`ambiguous` keep their qualified wording and notes.
+  Chunks are never nested into blocks and never shown under consumes —
+  a chunk group renders exactly once, provider-side.
+- Section order: identity meta → exposes → provides → consumes →
+  unresolved → private registrations → chunks → diagnostics footer
+  (divergence-only, Packages pattern). Section headers use the
+  Packages `.group-label` channel; identity uses colon meta
+  (`scope URL: …` · `resolved: …`); capabilities collapse from a badge
+  section to one muted meta line whose tooltips carry the Task-8.5
+  `(config: …)` strings when available.
+- Rename "Scoped externals" → `private registrations` (row anatomy
+  unchanged, chunk carriers stay excluded); expose lines adopt the
+  file-line grammar (qualified name, file, `mapped` link, `SRI ✓` /
+  muted `no SRI`). List rows keep their counts
+  (`N exposes · N declarations · N private registrations`) and gain a
+  `⚠` marker with a count tooltip only when the remote has unresolved
+  declarations; the boundary note stays verbatim.
+- Kit cleanup: the participant-row own-arrow branch loses its last
+  consumer — remove it (winner/none arrows stay for consumes rows);
+  drop `NEGOTIATION_LEGEND`/`ACTION_SYMBOLS` from the Remotes surface
+  and from `view-conventions.ts` if no consumer remains (kit-demo may
+  keep a reduced demo). Components keep templateUrl/styleUrl with
+  separate .html/.css files.
+
+### Acceptance
+
+- **T8.6-AC-01** — frankenstein-live host: provides blocks render
+  head (name · tag · own range · muted STRICT) with secondaries
+  indented under their parents; no `→ own copy`, no glyphs, no action
+  chips, no legend; consumes renders the honest-empty line; CHUNKS
+  renders exactly one `browser-angular_core` row (not six) with a
+  `serves` tail, `source-only` bundles stay qualified.
+  **Contributes:** XC-06.
+- **T8.6-AC-02** — clean-skip mfe1: provides honest-empty, one
+  consumes row with `skipped own 1.0.0` chip and winner file `from`
+  the colored mfe2 chip linking to /remotes; co-declared-share mfe2:
+  consumes row `not selected` from mfe1. **Contributes:** XC-03, XC-06.
+- **T8.6-AC-03** — strict-split mfe3: provides block `isolated ·
+  mapped only for mfe3` with no `kept own copy` chip; pooling-anchor:
+  provides block with `anchored` chip while the skip action appears
+  only in the registration tooltip. **Contributes:** XC-03.
+- **T8.6-AC-04** — synthetic-multi-version: both zones honest-empty,
+  `unresolved` bucket rows with `not mapped` + `offered <tag>`; the
+  list row carries `⚠` with a count tooltip, and remotes without
+  unresolved declarations carry none.
+- **T8.6-AC-05** — seed witnesses: a declaration with an own main
+  claim and a foreign-resolving secondary renders in BOTH zones with
+  the consumes row `via`-prefixed; an ambiguous-source seed produces
+  no provides block but a consumes row with the qualifier chip
+  visible. **Contributes:** XC-02.
+- **T8.6-AC-06** — templates stay VM-only with canonical-ID render
+  tracking; every annotation keeps a grounded tooltip; cross-links
+  (package → /packages, from-chip → /remotes, mapped → /import-map)
+  survive; the section reads `private registrations`, capabilities are
+  one meta line, expose lines carry SRI. **Contributes:** XC-01.
+
+### Key Locations
+
+- `projects/devtools-ui/src/app/views/remotes/` — `remotes-view-model.ts`, `remotes-detail-vm.ts`, `remotes.ts`, `remote-detail.ts`, templates/styles, both specs
+- `projects/devtools-ui/src/app/shared/kit/participant-row.{ts,html}`
+- `projects/devtools-ui/src/app/shared/view-conventions.ts`
+- `docs/work/resolution-model/design/remotes-view-redesign-mock.md` (reference, read-only)
+
+### Key Discoveries
+
+- All data exists post-Task-8: zones re-group the existing `depsOf`
+  claims via `copySourceRemote`/`copySourceVmOf`; chunk rows re-group
+  the existing bundle-claim VM by bundle — this task re-groups
+  presentation, it derives nothing new.
+- Zone membership per claim is mandatory: the T8 round-2 seed
+  witnesses a declaration whose main claim is own while a secondary
+  resolves foreign — collapsing zones per declaration would hide a
+  confirmed-HIGH class of qualification.
+- Provides folds self-consumption: the remote consumes its own copies
+  in place unless a chip says otherwise — that is why consumes is
+  strictly foreign-resolving and why no fact renders twice.
+- Seed harness for edge witnesses exists in
+  `remotes-view-model.spec.ts` (ambiguous-scope / host-fallback /
+  unknown-source / relation-only seeds) plus the DOM-side seed-capable
+  FixtureSnapshotProvider.
+- Deliberately deferred (do not build): sub-row depth (compact vs.
+  full FILES group) and chunk lists expanded-vs-count are
+  screenshot-review items; zone counts in list rows and scale
+  collapses are not built.
+
 ## Task 9: Migrate Import Map to canonical annotations
 
 **Dependency:** Task 6.
@@ -1013,9 +1211,9 @@ T2-AC-02 through T2-AC-05 were retired by the approved task split. Their IDs are
 
 ## Cross-Cutting Acceptance
 
-- **XC-01** — Raw normalization, effective lookup, claim/source explanation, copy identity, and chunk attribution each have one canonical owner; views only project Store data and no production consumer uses `sharedRows` after cutover. **Touches:** T1, T2.2, T3, T4, T5, T6, T7, T7.5, T8, T9, T10, T11.
-- **XC-02** — Every derived candidate, claim, resolution, source attribution, comparison, copy, relation, and chunk claim has deterministic collision-safe identity plus complete evidence/rule provenance; unknown and ambiguous evidence remains representable. **Touches:** T1, T2, T2.1, T2.2, T3, T4, T5, T6, T8, T9, T10, T11.
-- **XC-03** — Packages, Remotes, Import Map, and Diagnostics share canonical IDs and cardinalities: declarations never become registrations/copies, claims never duplicate bindings, and the four package counts keep their distinct meanings. **Touches:** T1, T2.2, T3, T4, T5, T6, T7, T7.5, T8, T9, T10, T11.
+- **XC-01** — Raw normalization, effective lookup, claim/source explanation, copy identity, and chunk attribution each have one canonical owner; views only project Store data and no production consumer uses `sharedRows` after cutover. **Touches:** T1, T2.2, T3, T4, T5, T6, T7, T7.5, T8, T8.6, T9, T10, T11.
+- **XC-02** — Every derived candidate, claim, resolution, source attribution, comparison, copy, relation, and chunk claim has deterministic collision-safe identity plus complete evidence/rule provenance; unknown and ambiguous evidence remains representable. **Touches:** T1, T2, T2.1, T2.2, T3, T4, T5, T6, T8, T8.6, T9, T10, T11.
+- **XC-03** — Packages, Remotes, Import Map, and Diagnostics share canonical IDs and cardinalities: declarations never become registrations/copies, claims never duplicate bindings, and the four package counts keep their distinct meanings. **Touches:** T1, T2.2, T3, T4, T5, T6, T7, T7.5, T8, T8.6, T9, T10, T11.
 - **XC-04** — Old/new snapshot compatibility, hostile-page safety, privacy/passivity, all 12 lab captures plus two live phases, and byte-stable fixture derivation survive the migration. **Touches:** T2, T2.1, T2.2, T3, T11.
 - **XC-05** — The resolution phase exports one raw-free canonical projection with consumer-copy relations, selected artifact claims, and filterable completeness; it implements no graph UI and permits no downstream raw-data resolver. **Touches:** T6, T11.
-- **XC-06** — All product text distinguishes declaration/mapping/selection from request, download, execution, cache hit, or wire cost, and the final manual fixture walkthrough confirms the distinction is understandable and visible. **Touches:** T2.2, T3, T4, T6, T7, T7.5, T7.6, T8, T9, T10, T11, T12.
+- **XC-06** — All product text distinguishes declaration/mapping/selection from request, download, execution, cache hit, or wire cost, and the final manual fixture walkthrough confirms the distinction is understandable and visible. **Touches:** T2.2, T3, T4, T6, T7, T7.5, T7.6, T8, T8.6, T9, T10, T11, T12.
