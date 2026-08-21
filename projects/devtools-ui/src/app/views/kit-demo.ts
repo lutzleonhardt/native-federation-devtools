@@ -4,11 +4,7 @@ import { StateBadge } from '../shared/honest-state/state-badge';
 import { CapabilityBadge } from '../shared/kit/capability-badge';
 import { KvItem, KvList } from '../shared/kit/kv-list';
 import { MasterDetail } from '../shared/kit/master-detail';
-import {
-  DeclaredVersion,
-  ParticipantArrow,
-  ParticipantRow,
-} from '../shared/kit/participant-row';
+import { DeclaredVersion, ParticipantArrow, ParticipantRow } from '../shared/kit/participant-row';
 import { TreeTable, TreeTableRow, TreeTableToggle } from '../shared/kit/tree-table';
 
 interface DemoNode {
@@ -143,11 +139,10 @@ export class KitDemo {
       link: true,
     },
     {
-      caption: 'own copy + scope',
+      caption: 'quiet norm + scope (no arrow)',
       name: 'mfe2',
       declared: { kind: 'range', range: '^18.0.0' },
       strict: false,
-      arrow: { kind: 'own' },
       action: 'scope',
       actionNote: 'keeps its own copy inside a package scope',
     },
@@ -156,7 +151,6 @@ export class KitDemo {
       name: 'shell',
       declared: { kind: 'pinned', tag: '1.2.3' },
       strict: true,
-      arrow: { kind: 'own' },
     },
     {
       caption: 'winner-less honest state',

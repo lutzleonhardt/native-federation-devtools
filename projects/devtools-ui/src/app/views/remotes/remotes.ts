@@ -6,7 +6,12 @@ import { ParticipantChip } from '../../shared/kit/participant-chip';
 import { TreeTable, TreeTableRow } from '../../shared/kit/tree-table';
 import { FederationStore } from '../../shared/store/federation-store';
 import { RemoteDetail } from './remote-detail';
-import { RemoteRowVm, RemotesVm, buildRemotesVm } from './remotes-view-model';
+import {
+  REMOTES_BOUNDARY_NOTE,
+  RemoteRowVm,
+  RemotesVm,
+  buildRemotesVm,
+} from './remotes-view-model';
 
 /**
  * Remotes tab — the per-remote perspective: what is the state of this
@@ -27,6 +32,9 @@ import { RemoteRowVm, RemotesVm, buildRemotesVm } from './remotes-view-model';
 })
 export class RemotesView {
   private readonly store = inject(FederationStore);
+
+  /** Heading tooltip — the list's capture-boundary claim (screenshot review). */
+  protected readonly boundaryNote = REMOTES_BOUNDARY_NOTE;
 
   protected readonly selectedName = signal<string | null>(
     inject(ActivatedRoute).snapshot.queryParamMap.get('select'),

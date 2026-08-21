@@ -1,7 +1,7 @@
 /**
  * Cross-view vm conventions — the vocabulary every V2 view renders
- * identically: sentinel display mapping, action glyphs and their grounded
- * notes, select-payload builders of the cross-link convention (see
+ * identically: sentinel display mapping, grounded registry-action notes,
+ * select-payload builders of the cross-link convention (see
  * `app.routes.ts`), and the canonical-façade join helpers shared by the
  * migrated views (ID-keyed indexes, copy-source attribution, target file
  * display). Established with the Packages view (T10, T10.5), lifted here
@@ -56,30 +56,18 @@ export function participantDisplay(name: string): string {
 }
 
 /**
- * Action glyphs distinguish by SHAPE, not fill pattern (T10.5): filled =
- * a mapped copy exists, circle = takes part in the election, diamond =
- * isolated outside it, open = no own mapped copy.
- */
-export const ACTION_SYMBOLS: Record<string, string> = { share: '●', skip: '○', scope: '◆' };
-
-/**
  * Grounded action vocabulary (rule: registry-election). Verbatim action
  * stays the label. Notes state REGISTRY evidence only — where a binding
- * actually resolves is the claim's business (arrow/state chips), never the
- * action's: an anchored skip consumer can resolve to its own copy.
+ * actually resolves is the claim's business (zone/state chips), never the
+ * action's: an anchored skip consumer can resolve to its own copy. Since
+ * T8.6 these notes render as registration tooltips only — the glyph
+ * column, action chips, and glyph legend are gone with the zone redesign.
  */
 export const ACTION_NOTES: Record<string, string> = {
   share: 'offers this copy to the version election',
   skip: 'registered with action skip — the registry election does not take this copy',
   scope: 'registered with action scope — an isolated registration outside the version election',
 };
-
-/** Glyph legend of an action section — single source with the symbols/notes above. */
-export const NEGOTIATION_LEGEND: { symbol: string; action: string; note: string }[] = [
-  'share',
-  'scope',
-  'skip',
-].map((action) => ({ symbol: ACTION_SYMBOLS[action], action, note: ACTION_NOTES[action] }));
 
 /**
  * Pluralizing count claim of an observed quantity — `3 files`,

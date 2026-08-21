@@ -1,27 +1,27 @@
 /**
- * Remotes view-model specs — fixture-driven acceptance (T8): the remote as
- * a CONSUMER of the canonical resolution model.
- *  - T8-AC-01: co-declared-share — both remotes retain exactly one
- *    declaration and resolve to the same effective target/copy while their
- *    claim states differ (own arrow vs `not selected`).
- *  - T8-AC-02: clean-skip — the skip consumer draws an evidenced fallback
- *    arrow to the selected copy's source without a universal-provider
- *    claim; the selected consumer draws its own-copy arrow.
- *  - T8-AC-03: scoped — two complete private registration → claim →
- *    resolution → copy paths with retained `PrivateRegistrationId` and no
- *    fabricated share action or share scope.
- *  - T8-AC-04: pooling-anchor anchors, not-selected and unknown/unmapped
- *    evidence stay visible; the chunk section renders exclusively from
- *    canonical bundle claims and chunk groups.
- *  - T8-AC-05 (builder half): no `DerivedFederation` input; pure — same
- *    inputs, same output; inputs stay unmodified.
- * List/expose/badge behavior carried over from T11 is re-pinned on the
- * canonical grounding (declaration counts, projection-backed badges).
- *
- * The seed section (T8 review round) witnesses what the fixture corpus
- * cannot: the qualified-source ladder (ambiguous scope, host fallback,
- * unknown source — H1), relation-only consumers (H2), and private
- * not-selected / multi-entrypoint claims (H3).
+ * Remotes view-model specs — fixture-driven acceptance for the zone
+ * redesign (T8.6): three zones decided PER CLAIM.
+ *  - T8.6-AC-01: frankenstein-live host — provides blocks fold the own
+ *    DECLARED-BY row into the head, secondaries indent under their
+ *    name-derived parents, consumes stays honest-empty, and the chunk
+ *    section dedupes to ONE row per bundle with a `serves` tail.
+ *  - T8.6-AC-02: clean-skip / co-declared-share — foreign-resolving claims
+ *    render as consumes rows with `skipped own <tag>` / `own <tag> not selected`
+ *    chips and the winner file `from` the source remote.
+ *  - T8.6-AC-03: strict-split isolated audience without a `kept own copy`
+ *    chip; pooling-anchor as the registry-action ≠ zone proof case
+ *    (skip + anchored → provides block, skip only in the registration
+ *    tooltip).
+ *  - T8.6-AC-04: synthetic-multi-version — both zones honest-empty, the
+ *    unresolved bucket in Packages grammar with `offered <tag>`, and the
+ *    list `⚠` marker with its count tooltip.
+ *  - T8.6-AC-05: seed witnesses — one declaration rendering in BOTH zones
+ *    (`via`-prefixed consumes row) and qualified attributions that never
+ *    form provides blocks.
+ *  - T8.6-AC-06 (builder half): capability meta notes carry the T8.5
+ *    `(config: …)` provenance verbatim; purity stays pinned.
+ * The T8 seed harness (qualified-source ladder, relation-only, private
+ * claims) carries over with zone-shaped expectations.
  */
 import { FIXTURES, NF_HOST, SnapshotV1 } from 'devtools-bridge';
 
@@ -40,6 +40,10 @@ function vmOf(name: keyof typeof FIXTURES, ui: Partial<RemotesUiState> = {}): Re
 function detailOf(name: keyof typeof FIXTURES, selectedName: string): RemoteDetailVm {
   return vmOf(name, { selectedName }).detail!;
 }
+
+const SKIP_NOTE = 'registered with action skip — the registry election does not take this copy';
+const SCOPE_NOTE =
+  'registered with action scope — an isolated registration outside the version election';
 
 describe('buildRemotesVm — left list', () => {
   it('lists the three live remotes in model order with the host marked', () => {
@@ -79,6 +83,25 @@ describe('buildRemotesVm — left list', () => {
     expect(nonDense.get('mfe3')).not.toContain('private registration');
   });
 
+  // T8.6-AC-04: the ⚠ marker exists exactly for remotes with unresolved
+  // declarations, and its tooltip carries the count.
+  it('marks only remotes with unresolved declarations, count in the tooltip', () => {
+    const multi = vmOf('synthetic-multi-version');
+    const markers = new Map(multi.rows.map((row) => [row.payload.name, row.payload.unresolved]));
+    expect(markers.get('calendar')).toEqual({
+      count: 1,
+      note: '1 declaration of this remote resolves nowhere in this capture',
+    });
+    expect(markers.get('chat')).toEqual({
+      count: 1,
+      note: '1 declaration of this remote resolves nowhere in this capture',
+    });
+
+    // Remotes whose declarations all resolve carry no marker.
+    const live = vmOf('frankenstein-live');
+    expect(live.rows.map((row) => row.payload.unresolved)).toEqual([null, null, null]);
+  });
+
   it('renders an honest empty note when the capture holds no remotes', () => {
     const vm = vmOf('synthetic-empty-page');
 
@@ -97,15 +120,8 @@ describe('buildRemoteDetail — identity, selection, capabilities', () => {
     expect(detail.host).toBe(true);
     // Scope URL as recorded (live registries keep relative URLs) plus the
     // resolved form.
-    expect(detail.identity).toEqual([
-      { label: 'scope URL', value: './', mono: true },
-      {
-        label: 'resolved',
-        value: 'https://lutzleonhardt.de/frankenstein-meeting-room/',
-        mono: true,
-        href: 'https://lutzleonhardt.de/frankenstein-meeting-room/',
-      },
-    ]);
+    expect(detail.scopeUrl).toBe('./');
+    expect(detail.resolvedScopeUrl).toBe('https://lutzleonhardt.de/frankenstein-meeting-room/');
   });
 
   it('yields no detail without a selection or for an unknown remote', () => {
@@ -113,15 +129,24 @@ describe('buildRemoteDetail — identity, selection, capabilities', () => {
     expect(vmOf('frankenstein-live', { selectedName: 'display name' }).detail).toBeNull();
   });
 
-  it('grounds the live badge matrix canonically: host fully dense, others SRI only', () => {
-    // dense chunking ← projection `shared-chunks` groups of this emitter;
-    // dense externals ← canonical declarations carrying a bundle; SRI ←
-    // the remote's recorded integrity map.
+  // T8.6-AC-06: the capability tooltips carry the source-verified
+  // `(config: …)` provenance verbatim (T8.5 amendment) — both dense facets
+  // deliberately cite the SAME flag.
+  it('grounds the live capability matrix with the verified config provenance', () => {
     const host = detailOf('frankenstein-live', NF_HOST);
-    expect(host.capabilities.map((capability) => capability.label)).toEqual([
-      'dense chunking',
-      'dense externals',
-      'SRI',
+    expect(host.capabilities).toEqual([
+      {
+        label: 'dense chunking',
+        note: 'the registry records per-bundle chunk lists for this remote (config: features.denseChunking: true, default false, since core v4.0.0)',
+      },
+      {
+        label: 'dense externals',
+        note: 'shared participants carry their serving bundle (config: features.denseChunking: true, default false, since core v4.0.0)',
+      },
+      {
+        label: 'SRI',
+        note: `integrity hashes recorded for this remote's files (config: features.integrityHashes: true, default false, since core v4.1.2)`,
+      },
     ]);
 
     for (const remote of ['whiteboard', 'mermaid']) {
@@ -131,81 +156,321 @@ describe('buildRemoteDetail — identity, selection, capabilities', () => {
   });
 });
 
-describe('buildRemoteDetail — co-declared share (T8-AC-01)', () => {
-  it('keeps one declaration per remote, same effective copy, different claim states', () => {
-    const mfe1 = detailOf('co-declared-share', 'mfe1');
-    const mfe2 = detailOf('co-declared-share', 'mfe2');
+describe('buildRemoteDetail — provides zone (T8.6-AC-01)', () => {
+  it('folds the own DECLARED-BY row into the block head and indents secondaries', () => {
+    const detail = detailOf('frankenstein-live', NF_HOST);
 
-    // Each remote retains exactly ONE declaration row.
-    expect(mfe1.deps).toHaveLength(1);
-    expect(mfe2.deps).toHaveLength(1);
-    const [dep1] = mfe1.deps;
-    const [dep2] = mfe2.deps;
-    expect(dep1.declarationId).not.toBe(dep2.declarationId);
-
-    // Shared registry facts, verbatim.
-    for (const dep of [dep1, dep2]) {
-      expect(dep.packageName).toBe('@nf-lab/conflict-lib');
-      expect(dep.packageSelect).toBe('__GLOBAL__|@nf-lab/conflict-lib');
-      expect(dep.scopeLabel).toBeNull();
-      expect(dep.declared).toEqual({ kind: 'range', range: '>=1.0.0 <3.0.0' });
-      expect(dep.action).toBe('share');
-      expect(dep.symbol).toBe('●');
-    }
-
-    // Same effective target/copy: mfe1's own copy serves both bindings —
-    // mfe2's arrow names exactly mfe1's file. The claim states differ.
-    expect(dep1.arrow).toEqual({ kind: 'own' });
-    expect(dep1.states).toEqual([]);
-    expect(dep2.arrow).toEqual({
-      kind: 'winner',
-      target: '_nf_lab_conflict_lib.JF7uEdSVsN.js',
-      provider: 'mfe1',
-    });
-    expect(dep2.states).toEqual([
-      {
-        label: 'not selected',
-        note: 'the own candidate is not selected in this capture — the binding resolves to the selected copy; a different composition may select it',
-      },
+    // Top-level blocks in registry order; secondaries grouped under their
+    // name-derived parents (REAL registry keys, not entries-map sub-rows).
+    expect(detail.provides.map((block) => block.packageName)).toEqual([
+      '@angular/common',
+      '@angular/platform-browser',
+      'rxjs',
+      'tslib',
+      '@angular/core',
     ]);
+
+    const common = detail.provides[0];
+    expect(common.resolvedTag).toBe('21.2.12');
+    expect(common.declared).toEqual({
+      text: '^21.2.0',
+      pinned: false,
+      note: 'offers this copy to the version election',
+    });
+    expect(common.strict).toBe(true);
+    expect(common.scopeLabel).toBeNull();
+    // The norm renders no deviation chips — and never a `kept own copy`.
+    expect(common.deviations).toEqual([]);
+    expect(common.packageSelect).toBe('__GLOBAL__|@angular/common');
+    expect(common.files).toHaveLength(1);
+    expect(common.files[0].specifier).toBe('@angular/common');
+    expect(common.files[0].showSpecifier).toBe(false);
+    expect(common.secondaries.map((secondary) => secondary.suffix)).toEqual(['/http']);
+    expect(common.secondaries[0].packageName).toBe('@angular/common/http');
+    expect(common.secondaries[0].resolvedTag).toBe('21.2.12');
+    expect(common.secondaries[0].strict).toBe(true);
+
+    const core = detail.provides[4];
+    expect(core.secondaries.map((secondary) => secondary.suffix)).toEqual([
+      '/event-dispatch-contract.min.js',
+      '/primitives/di',
+      '/primitives/event-dispatch',
+      '/primitives/signals',
+      '/rxjs-interop',
+    ]);
+
+    // Self-consumption folds into the blocks — nothing else renders.
+    expect(detail.consumes).toEqual([]);
+    expect(detail.relationOnly).toEqual([]);
+    expect(detail.unresolved).toEqual([]);
+    expect(detail.diagnostics).toEqual([]);
+  });
+
+  it('keeps the strict share scope pinned with its scope chip on the block head', () => {
+    for (const [remote, tag] of [
+      ['mfe1', '1.0.0'],
+      ['mfe2', '2.0.0'],
+    ] as const) {
+      const detail = detailOf('strict-scope', remote);
+      expect(detail.provides).toHaveLength(1);
+      const [block] = detail.provides;
+      expect(block.scopeLabel).toBe('strict');
+      expect(block.resolvedTag).toBe(tag);
+      expect(block.declared.text).toBe(tag);
+      expect(block.declared.pinned).toBe(true);
+      expect(block.declared.note).toContain('exact tag');
+      expect(block.declared.note).toContain('offers this copy to the version election');
+      expect(block.deviations).toEqual([]);
+      expect(detail.consumes).toEqual([]);
+    }
   });
 });
 
-describe('buildRemoteDetail — evidenced fallback (T8-AC-02)', () => {
-  it('draws the skip consumer’s fallback to the selected copy without a provider claim', () => {
+describe('buildRemoteDetail — consumes zone (T8.6-AC-02)', () => {
+  it('renders the skip consumer as a consumes row with the skipped-own chip', () => {
     const detail = detailOf('clean-skip', 'mfe1');
 
-    expect(detail.deps).toHaveLength(1);
-    const [dep] = detail.deps;
-    expect(dep.action).toBe('skip');
-    expect(dep.symbol).toBe('○');
-    // The arrow names the selected copy's file and its evidenced source —
-    // a per-binding fact, not a universal provider.
-    expect(dep.arrow).toEqual({
-      kind: 'winner',
-      target: '_nf_lab_conflict_lib.jvcc6K1csg.js',
-      provider: 'mfe2',
-    });
-    // Fallback stays chip-less: the arrow speaks. The action note states
-    // registry evidence only — never a mapping outcome (T8 review H4).
-    expect(dep.states).toEqual([]);
-    expect(dep.actionNote).toBe(
-      'registered with action skip — the registry election does not take this copy',
-    );
+    // The own copy lost the election — nothing is sourced by this remote.
+    expect(detail.provides).toEqual([]);
+    expect(detail.consumes).toHaveLength(1);
+    const [row] = detail.consumes;
+    expect(row.packageName).toBe('@nf-lab/conflict-lib');
+    expect(row.packageSelect).toBe('__GLOBAL__|@nf-lab/conflict-lib');
+    expect(row.declared.text).toBe('>=1.0.0 <3.0.0');
+    expect(row.declared.pinned).toBe(false);
+    // Registry action lives in the registration tooltip only (T8-H4).
+    expect(row.declared.note).toBe(SKIP_NOTE);
+    expect(row.via).toBeNull();
+    expect(row.deviations.map((state) => state.label)).toEqual(['skipped own 1.0.0']);
+    expect(row.deviations[0].note).toContain('registered with action skip');
+    expect(row.deviations[0].note).toContain('resolves to the elected copy');
+    // Winner file for the own file line — no arrow (screenshot review 3).
+    expect(row.file).toBe('_nf_lab_conflict_lib.jvcc6K1csg.js');
+    expect(row.source.label).toBe('mfe2');
+    expect(row.source.remoteSelect).toBe('mfe2');
+    expect(row.source.host).toBe(false);
+    expect(row.source.note).toContain('exact target source');
+    expect(detail.unresolved).toEqual([]);
   });
 
-  it('keeps the selected consumer on its own-copy arrow', () => {
+  it('keeps the selected consumer entirely on the provides side', () => {
     const detail = detailOf('clean-skip', 'mfe2');
 
-    expect(detail.deps).toHaveLength(1);
-    const [dep] = detail.deps;
-    expect(dep.action).toBe('share');
-    expect(dep.arrow).toEqual({ kind: 'own' });
-    expect(dep.states).toEqual([]);
+    expect(detail.provides).toHaveLength(1);
+    expect(detail.provides[0].packageName).toBe('@nf-lab/conflict-lib');
+    expect(detail.provides[0].resolvedTag).toBe('2.0.0');
+    expect(detail.provides[0].deviations).toEqual([]);
+    expect(detail.consumes).toEqual([]);
+  });
+
+  it('renders the co-declared consumer with the not-selected chip from the source', () => {
+    const detail = detailOf('co-declared-share', 'mfe2');
+
+    expect(detail.provides).toEqual([]);
+    expect(detail.consumes).toHaveLength(1);
+    const [row] = detail.consumes;
+    expect(row.declared.note).toBe('offers this copy to the version election');
+    // The chip names its subject — a bare `not selected` next to the
+    // winner file read as a statement about the elected copy (review 4).
+    expect(row.deviations.map((state) => state.label)).toEqual(['own 1.0.0 not selected']);
+    expect(row.deviations[0].note).toContain('a different composition may select it');
+    expect(row.file).toBe('_nf_lab_conflict_lib.JF7uEdSVsN.js');
+    expect(row.source.label).toBe('mfe1');
+    expect(row.source.remoteSelect).toBe('mfe1');
   });
 });
 
-describe('buildRemoteDetail — private registrations (T8-AC-03)', () => {
+describe('buildRemoteDetail — registry action ≠ zone (T8.6-AC-03)', () => {
+  it('renders the isolated copy with its audience and no kept-own-copy chip', () => {
+    const detail = detailOf('strict-split', 'mfe3');
+
+    expect(detail.provides).toHaveLength(1);
+    const [block] = detail.provides;
+    expect(block.resolvedTag).toBe('1.0.0');
+    expect(block.deviations).toEqual([
+      {
+        label: 'isolated',
+        note: 'the evidenced source is registered with action scope — an isolated copy',
+      },
+      {
+        label: 'mapped only for mfe3',
+        note: 'the scope registration’s own declarers — the isolated copy is mapped for them alone',
+      },
+    ]);
+    // The scope action stays in the registration tooltip.
+    expect(block.declared.note).toBe(SCOPE_NOTE);
+    const labels = [
+      ...block.deviations.map((deviation) => deviation.label),
+      ...detail.consumes.flatMap((row) => row.deviations.map((state) => state.label)),
+    ];
+    expect(labels).not.toContain('kept own copy');
+  });
+
+  it('keeps the pooling anchor a provides block: anchored chip, skip in the tooltip', () => {
+    const mfe1 = detailOf('pooling-anchor', 'mfe1');
+
+    // skip + anchored → the copy still sits in PROVIDES; the skip action is
+    // visible ONLY through the registration tooltip.
+    expect(mfe1.provides).toHaveLength(1);
+    const [block] = mfe1.provides;
+    expect(block.packageName).toBe('@nf-lab/conflict-lib');
+    expect(block.deviations).toEqual([
+      {
+        label: 'anchored',
+        note: "explicit servedBy anchor: mfe1 — the binding resolves through the anchor's copy",
+      },
+    ]);
+    expect(block.declared.note).toBe(SKIP_NOTE);
+    // The secondary registry key indents under its parent block.
+    expect(block.secondaries.map((secondary) => secondary.suffix)).toEqual(['/extra']);
+    expect(block.secondaries[0].deviations).toEqual([]);
+    // Both own claims fold into the blocks — no consumes row, no unresolved.
+    expect(mfe1.consumes).toEqual([]);
+    expect(mfe1.unresolved).toEqual([]);
+  });
+
+  it('renders the pooled consumer with anchored and not-selected consumes rows', () => {
+    const mfe2 = detailOf('pooling-anchor', 'mfe2');
+
+    expect(mfe2.provides).toEqual([]);
+    expect(mfe2.consumes).toHaveLength(2);
+    const [anchor, extra] = mfe2.consumes;
+    expect(anchor.packageName).toBe('@nf-lab/conflict-lib');
+    expect(anchor.deviations.map((state) => state.label)).toEqual(['anchored']);
+    expect(anchor.file).toBe('_nf_lab_conflict_lib.JF7uEdSVsN.js');
+    expect(anchor.source.label).toBe('mfe1');
+    expect(anchor.declared.note).toBe(SKIP_NOTE);
+    expect(extra.packageName).toBe('@nf-lab/conflict-lib/extra');
+    expect(extra.deviations.map((state) => state.label)).toEqual(['own 1.0.0 not selected']);
+    expect(extra.file).toBe('_nf_lab_conflict_lib_extra.GWjTDmPaoo.js');
+    expect(extra.source.label).toBe('mfe1');
+  });
+});
+
+describe('buildRemoteDetail — unresolved bucket (T8.6-AC-04)', () => {
+  it('keeps both zones honest-empty and buckets the unmapped claim with its offer', () => {
+    for (const [remote, tag] of [
+      ['calendar', '1.2.3'],
+      ['chat', '2.0.0'],
+    ] as const) {
+      const detail = detailOf('synthetic-multi-version', remote);
+      expect(detail.provides).toEqual([]);
+      expect(detail.consumes).toEqual([]);
+      expect(detail.unresolved).toHaveLength(1);
+      const [row] = detail.unresolved;
+      expect(row.packageName).toBe('ui-lib');
+      expect(row.strict).toBe(true);
+      expect(row.specifier).toBeNull();
+      expect(row.state).toEqual({
+        label: 'not mapped',
+        note: 'no applicable import-map binding for this specifier in this capture',
+      });
+      expect(row.offered).toEqual({
+        label: `offered ${tag}`,
+        note: 'the tag of the remote’s own version registration — this claim’s binding does not resolve in this capture',
+      });
+    }
+  });
+});
+
+describe('buildRemoteDetail — deduped chunk section (T8.6-AC-01)', () => {
+  it('dedupes the dense host to one row per bundle with a serves tail', () => {
+    const chunks = detailOf('frankenstein-live', NF_HOST).chunks;
+
+    expect(chunks.level).toBe('bundle-claims');
+    if (chunks.level !== 'bundle-claims') {
+      return;
+    }
+    expect(chunks.rule).toBe('canonical-bundle-claims');
+    expect(chunks.note).toContain('one row per bundle');
+
+    // Six copies claim browser-angular_core — the section renders it ONCE.
+    const coreRows = chunks.rows.filter((row) => row.bundle === 'browser-angular_core');
+    expect(coreRows).toHaveLength(1);
+    const [core] = coreRows;
+    expect(core.status).toBe('mapped-source');
+    expect(core.fileClaim).toBe('5 chunk files');
+    expect(core.files).toHaveLength(5);
+    expect(core.serves).toBe('serves @angular/core +5 entries');
+    expect(core.servesNote).toContain('@angular/core/rxjs-interop');
+
+    // Two-package bundles list both keys, the secondary as its suffix.
+    const common = chunks.rows.find((row) => row.bundle === 'browser-angular_common')!;
+    expect(common.serves).toBe('serves @angular/common, /http');
+    expect(common.fileClaim).toBe('1 chunk file');
+    const rxjs = chunks.rows.find((row) => row.bundle === 'browser-rxjs')!;
+    expect(rxjs.serves).toBe('serves rxjs, /operators');
+    // A suffix-shortened tail keeps its grounded full-list tooltip…
+    expect(rxjs.servesNote).toContain('rxjs/operators');
+
+    // source-only bundles stay visibly qualified with the explicit absence.
+    const tslib = chunks.rows.find((row) => row.bundle === 'browser-tslib')!;
+    expect(tslib.status).toBe('source-only');
+    expect(tslib.statusNote).toBe(
+      'the source names this bundle, but the capture registers no chunk list for it',
+    );
+    expect(tslib.fileClaim).toBe('no chunk list recorded in this capture');
+    expect(tslib.serves).toBe('serves tslib');
+    // …while a tail that already names everything drops the noise tooltip
+    // (screenshot review 2).
+    expect(tslib.servesNote).toBeNull();
+    // Presentation order: rows with a recorded chunk list precede the
+    // list-less rows, bundle order within each group (screenshot review 2).
+    expect(chunks.rows.map((row) => row.bundle)).toEqual([
+      'browser-angular_common',
+      'browser-angular_core',
+      'browser-rxjs',
+      'browser-angular_platform_browser',
+      'browser-tslib',
+    ]);
+  });
+
+  it('states explicit chunk absence for the v4 live remotes', () => {
+    const chunks = detailOf('frankenstein-live', 'whiteboard').chunks;
+
+    expect(chunks.level).toBe('none');
+    if (chunks.level !== 'none') {
+      return;
+    }
+    // Short visible line; the grounded explanation rides the tooltip
+    // (screenshot review 3).
+    expect(chunks.label).toBe('none in this capture');
+    expect(chunks.note).toContain('no chunk evidence recorded');
+    expect(chunks.note).toContain('dense-chunking capability absent');
+  });
+
+  it('renders reclassified carrier groups at their own level, never as scoped packages', () => {
+    const detail = detailOf('non-dense', 'mfe3');
+
+    expect(detail.scoped).toEqual([]);
+    expect(detail.chunks.level).toBe('carrier-groups');
+    if (detail.chunks.level !== 'carrier-groups') {
+      return;
+    }
+    expect(detail.chunks.note).toContain('package attribution is not derivable');
+    expect(detail.chunks.groups).toHaveLength(7);
+    for (const group of detail.chunks.groups) {
+      expect(group.groupId).toContain('chunk-group');
+      expect(group.label.startsWith('@nf-internal/')).toBe(true);
+      expect(group.fileClaim).toBe('1 file');
+    }
+  });
+
+  it('attributes the private-sourced bundle claim with its serves tail', () => {
+    const chunks = detailOf('scoped', 'mfe1').chunks;
+
+    expect(chunks.level).toBe('bundle-claims');
+    if (chunks.level !== 'bundle-claims') {
+      return;
+    }
+    expect(chunks.rows).toHaveLength(1);
+    expect(chunks.rows[0].bundle).toBe('browser-shared');
+    expect(chunks.rows[0].status).toBe('source-only');
+    expect(chunks.rows[0].serves).toBe('serves @nf-lab/conflict-lib');
+  });
+});
+
+describe('buildRemoteDetail — private registrations (T8-AC-03 carry-over)', () => {
   it('renders two complete private registration → claim → resolution → copy paths', () => {
     const expectations = [
       ['mfe1', '1.0.0', '_nf_lab_conflict_lib.JF7uEdSVsN.js'],
@@ -214,8 +479,9 @@ describe('buildRemoteDetail — private registrations (T8-AC-03)', () => {
     for (const [remote, tag, file] of expectations) {
       const detail = detailOf('scoped', remote);
 
-      // Private registrations never leak into the shared declaration rows.
-      expect(detail.deps).toEqual([]);
+      // Private registrations never leak into the shared zones.
+      expect(detail.provides).toEqual([]);
+      expect(detail.consumes).toEqual([]);
       expect(detail.scoped).toHaveLength(1);
       const [scoped] = detail.scoped;
       // The canonical PrivateRegistrationId is retained as the identity.
@@ -249,134 +515,6 @@ describe('buildRemoteDetail — private registrations (T8-AC-03)', () => {
   });
 });
 
-describe('buildRemoteDetail — anchor, not-selected, unknown evidence (T8-AC-04)', () => {
-  it('keeps the explicit servedBy anchor visible on both sides of the pool', () => {
-    const mfe1 = detailOf('pooling-anchor', 'mfe1');
-    const mfe2 = detailOf('pooling-anchor', 'mfe2');
-
-    // The anchor's own row: own-copy arrow plus the anchored chip. The
-    // action tooltip must NOT contradict them with a mapping claim — this
-    // skip consumer resolves to its OWN copy through the anchor (H4).
-    const anchor1 = mfe1.deps.find((dep) => dep.packageName === '@nf-lab/conflict-lib')!;
-    expect(anchor1.action).toBe('skip');
-    expect(anchor1.arrow).toEqual({ kind: 'own' });
-    expect(anchor1.actionNote).toBe(
-      'registered with action skip — the registry election does not take this copy',
-    );
-    expect(anchor1.states).toEqual([
-      {
-        label: 'anchored',
-        note: "explicit servedBy anchor: mfe1 — the binding resolves through the anchor's copy",
-      },
-    ]);
-
-    // The pooled consumer: anchored chip plus the arrow to the anchor copy.
-    const anchor2 = mfe2.deps.find((dep) => dep.packageName === '@nf-lab/conflict-lib')!;
-    expect(anchor2.arrow).toEqual({
-      kind: 'winner',
-      target: '_nf_lab_conflict_lib.JF7uEdSVsN.js',
-      provider: 'mfe1',
-    });
-    expect(anchor2.states.map((state) => state.label)).toEqual(['anchored']);
-
-    // The secondary external keeps its own not-selected evidence.
-    const extra2 = mfe2.deps.find((dep) => dep.packageName === '@nf-lab/conflict-lib/extra')!;
-    expect(extra2.arrow).toEqual({
-      kind: 'winner',
-      target: '_nf_lab_conflict_lib_extra.GWjTDmPaoo.js',
-      provider: 'mfe1',
-    });
-    expect(extra2.states.map((state) => state.label)).toEqual(['not selected']);
-  });
-
-  it('keeps unresolved declarations visible with an honest none-arrow', () => {
-    // synthetic-multi-version carries no import maps — the canonical claims
-    // resolve nowhere; the old view's local election marker is gone.
-    for (const remote of ['calendar', 'chat']) {
-      const detail = detailOf('synthetic-multi-version', remote);
-      expect(detail.deps).toHaveLength(1);
-      const [dep] = detail.deps;
-      expect(dep.arrow).toEqual({
-        kind: 'none',
-        reason: 'no import-map binding in this capture',
-      });
-      expect(dep.states.map((state) => state.label)).toEqual(['not mapped']);
-      expect(dep.strict).toBe(true);
-    }
-  });
-
-  it('renders the strict scope side by side with pinned tags and no exception', () => {
-    for (const [remote, tag] of [
-      ['mfe1', '1.0.0'],
-      ['mfe2', '2.0.0'],
-    ] as const) {
-      const detail = detailOf('strict-scope', remote);
-      expect(detail.deps).toHaveLength(1);
-      const [dep] = detail.deps;
-      expect(dep.scopeLabel).toBe('strict');
-      expect(dep.declared).toEqual({ kind: 'pinned', tag });
-      expect(dep.arrow).toEqual({ kind: 'own' });
-      expect(dep.states).toEqual([]);
-    }
-  });
-});
-
-describe('buildRemoteDetail — canonical chunk section (T8-AC-04)', () => {
-  it('renders the dense host from canonical bundle claims, qualification intact', () => {
-    const chunks = detailOf('frankenstein-live', NF_HOST).chunks;
-
-    expect(chunks.level).toBe('bundle-claims');
-    if (chunks.level !== 'bundle-claims') {
-      return;
-    }
-    expect(chunks.rule).toBe('canonical-bundle-claims');
-    expect(chunks.note).toContain('canonical bundle claims');
-    // Registered chunk evidence presents its count; a bundle without a
-    // recorded chunk list claims the absence and stays visibly qualified.
-    expect(chunks.claims).toContainEqual({
-      claimId: expect.stringContaining('bundle-claim'),
-      packageName: '@angular/common',
-      bundle: 'browser-angular_common',
-      status: 'mapped-source',
-      statusNote: `registered chunk list of this source's bundle — capture evidence, not proof of delivery`,
-      fileClaim: '1 chunk file',
-    });
-    expect(chunks.claims).toContainEqual({
-      claimId: expect.stringContaining('bundle-claim'),
-      packageName: 'tslib',
-      bundle: 'browser-tslib',
-      status: 'source-only',
-      statusNote: 'the source names this bundle, but the capture registers no chunk list for it',
-      fileClaim: 'no chunk list recorded in this capture',
-    });
-  });
-
-  it('states explicit chunk absence for the v4 live remotes', () => {
-    const chunks = detailOf('frankenstein-live', 'whiteboard').chunks;
-
-    expect(chunks.level).toBe('none');
-    expect(chunks.note).toContain('no chunk evidence recorded');
-    expect(chunks.note).toContain('dense-chunking capability absent');
-  });
-
-  it('renders reclassified carrier groups at their own level, never as scoped packages', () => {
-    const detail = detailOf('non-dense', 'mfe3');
-
-    expect(detail.scoped).toEqual([]);
-    expect(detail.chunks.level).toBe('carrier-groups');
-    if (detail.chunks.level !== 'carrier-groups') {
-      return;
-    }
-    expect(detail.chunks.note).toContain('package attribution is not derivable');
-    expect(detail.chunks.groups).toHaveLength(7);
-    for (const group of detail.chunks.groups) {
-      expect(group.groupId).toContain('chunk-group');
-      expect(group.label.startsWith('@nf-internal/')).toBe(true);
-      expect(group.fileClaim).toBe('1 file');
-    }
-  });
-});
-
 describe('buildRemoteDetail — exposes', () => {
   it('qualifies exposes with the remote name and joins the live /./ map target', () => {
     const detail = detailOf('frankenstein-live', 'whiteboard');
@@ -388,6 +526,8 @@ describe('buildRemoteDetail — exposes', () => {
         file: 'Bootstrap-7COJRA5I.js',
         mapTarget:
           'https://lutzleonhardt.de/frankenstein-meeting-room/whiteboard/Bootstrap-7COJRA5I.js',
+        // T8.6-AC-06: the expose line carries the recorded integrity fact.
+        hasIntegrity: true,
       },
     ]);
     expect(detail.exposes[0].qualified).toContain('/./');
@@ -398,7 +538,7 @@ describe('buildRemoteDetail — exposes', () => {
   });
 });
 
-describe('buildRemotesVm — capture boundary and purity (T8-AC-05)', () => {
+describe('buildRemotesVm — capture boundary and purity (T8.6-AC-06)', () => {
   it('claims the enumeration boundary as a capture limit in registry language', () => {
     const vm = vmOf('frankenstein-live');
 
@@ -424,7 +564,11 @@ describe('buildRemotesVm — capture boundary and purity (T8-AC-05)', () => {
 });
 
 /** One seeded shared-external declaration (v4.5 spelling). */
-function declarationOf(name: string, entries: Record<string, string>) {
+function declarationOf(
+  name: string,
+  entries: Record<string, string>,
+  bundle: string | null = null,
+) {
   return {
     name,
     requiredVersion: '^1.0.0',
@@ -432,7 +576,7 @@ function declarationOf(name: string, entries: Record<string, string>) {
     file: null,
     entries,
     cached: true,
-    bundle: null,
+    bundle,
     servedFiles: Object.entries(entries).map(([entry, file]) => ({ entry, file })),
     generation: 'v4.5',
   } as const;
@@ -496,8 +640,8 @@ function seededDetail(seed: SnapshotV1, selectedName: string): RemoteDetailVm {
 /**
  * Two equally specific remote scope prefixes match the resolved target and
  * no exact candidate does — the canonical attribution is `ambiguous-scope`
- * and the row must render it as an AMBIGUOUS source, never as unknown and
- * never as a bare "no evidenced source" (T8 review H1).
+ * and it must NEVER form a provides block: the row renders on the consumes
+ * side with the AMBIGUOUS qualifier chip visible (T8-H1, T8.6-AC-05).
  */
 const AMBIGUOUS_SCOPE_SEED = seedSnapshot({
   remotes: {
@@ -526,7 +670,7 @@ const AMBIGUOUS_SCOPE_SEED = seedSnapshot({
 /**
  * The resolved target lives under the HOST scope only — the observed
  * attribution is the host as least-specific fallback and must render as an
- * observed (not exact, not own) source (T8 review H1).
+ * observed (not exact, not own) source on the consumes side (T8-H1).
  */
 const HOST_FALLBACK_SEED = seedSnapshot({
   remotes: {
@@ -554,7 +698,7 @@ const HOST_FALLBACK_SEED = seedSnapshot({
 /**
  * The resolved target lives on a foreign origin — no source record and no
  * scope prefix matches; the source must stay a QUALIFIED unknown
- * (T8 review H1).
+ * (T8-H1).
  */
 const UNKNOWN_SOURCE_SEED = seedSnapshot({
   remotes: {
@@ -579,17 +723,21 @@ const UNKNOWN_SOURCE_SEED = seedSnapshot({
   imports: [{ specifier: 'cdn-lib', target: 'https://cdn.example/lib.js' }],
 });
 
-describe('buildRemoteDetail — qualified source ladder (T8 review H1)', () => {
-  it('renders an ambiguous-scope attribution as an ambiguous source, never unknown', () => {
+describe('buildRemoteDetail — qualified attributions never provide (T8.6-AC-05)', () => {
+  it('renders an ambiguous-scope attribution as a consumes row, never a provides block', () => {
     const detail = seededDetail(AMBIGUOUS_SCOPE_SEED, 'r1');
 
-    expect(detail.deps).toHaveLength(1);
-    const [dep] = detail.deps;
-    expect(dep.arrow).toEqual({ kind: 'winner', target: 'b.js', provider: 'ambiguous source' });
-    expect(dep.states).toEqual([
+    expect(detail.provides).toEqual([]);
+    expect(detail.consumes).toHaveLength(1);
+    const [row] = detail.consumes;
+    expect(row.file).toBe('b.js');
+    expect(row.source.label).toBe('ambiguous source');
+    expect(row.source.remoteSelect).toBeNull();
+    // The outcome note names the remote's own registered file (T7.9).
+    expect(row.deviations).toEqual([
       {
-        label: 'not selected',
-        note: 'the own candidate is not selected in this capture — the binding resolves to the selected copy; a different composition may select it',
+        label: 'own 1.0.0 not selected',
+        note: 'own copy a.js is registered but not selected in this capture — the binding resolves to the selected copy; a different composition may select it',
       },
       {
         label: 'ambiguous source',
@@ -601,14 +749,18 @@ describe('buildRemoteDetail — qualified source ladder (T8 review H1)', () => {
   it('renders a host-fallback attribution as an observed target source', () => {
     const detail = seededDetail(HOST_FALLBACK_SEED, 'r1');
 
-    expect(detail.deps).toHaveLength(1);
-    const [dep] = detail.deps;
-    expect(dep.arrow).toEqual({ kind: 'winner', target: 'host-lib.js', provider: 'host' });
-    expect(dep.states.map((state) => state.label)).toEqual([
-      'not selected',
+    expect(detail.provides).toEqual([]);
+    expect(detail.consumes).toHaveLength(1);
+    const [row] = detail.consumes;
+    expect(row.file).toBe('host-lib.js');
+    expect(row.source.label).toBe('host');
+    expect(row.source.remoteSelect).toBe(NF_HOST);
+    expect(row.source.host).toBe(true);
+    expect(row.deviations.map((state) => state.label)).toEqual([
+      'own 1.0.0 not selected',
       'observed target source',
     ]);
-    const observed = dep.states.find((state) => state.label === 'observed target source')!;
+    const observed = row.deviations.find((state) => state.label === 'observed target source')!;
     expect(observed.note).toContain('host as least-specific fallback');
     expect(observed.note).toContain('not an exact candidate match');
   });
@@ -616,13 +768,199 @@ describe('buildRemoteDetail — qualified source ladder (T8 review H1)', () => {
   it('keeps a source-less foreign target a QUALIFIED unknown source', () => {
     const detail = seededDetail(UNKNOWN_SOURCE_SEED, 'r1');
 
-    expect(detail.deps).toHaveLength(1);
-    const [dep] = detail.deps;
-    expect(dep.arrow).toEqual({ kind: 'winner', target: 'lib.js', provider: 'unknown source' });
-    expect(dep.states.map((state) => state.label)).toEqual(['not selected', 'unknown source']);
-    const unknown = dep.states.find((state) => state.label === 'unknown source')!;
+    expect(detail.provides).toEqual([]);
+    expect(detail.consumes).toHaveLength(1);
+    const [row] = detail.consumes;
+    expect(row.file).toBe('lib.js');
+    expect(row.source.label).toBe('unknown source');
+    expect(row.deviations.map((state) => state.label)).toEqual([
+      'own 1.0.0 not selected',
+      'unknown source',
+    ]);
+    const unknown = row.deviations.find((state) => state.label === 'unknown source')!;
     expect(unknown.note).toBe(
       'only the resolved URL is evidenced — no source record or scope prefix matches',
+    );
+  });
+});
+
+/**
+ * One declaration, TWO entrypoint claims with DIFFERENT outcomes: the main
+ * specifier selects the own copy (→ provides block), the secondary
+ * resolves to a foreign target no source or scope explains (→ consumes
+ * row). The declaration renders in BOTH zones, the consumes row
+ * `via`-prefixed — collapsing zones per declaration would hide a
+ * confirmed-HIGH class of qualification (T8 round 2, T8.6-AC-05).
+ */
+const MULTI_ENTRY_QUALIFIER_SEED = seedSnapshot({
+  remotes: {
+    '__NF-HOST__': 'https://seed.example/',
+    r1: 'https://seed.example/r1/',
+  },
+  sharedExternals: {
+    __GLOBAL__: {
+      'me-lib': {
+        dirty: false,
+        versions: [
+          {
+            tag: '1.0.0',
+            action: 'share',
+            host: false,
+            remotes: [declarationOf('r1', { 'me-lib': 'main.js', 'me-lib/extra': 'x.js' })],
+          },
+        ],
+      },
+    },
+  },
+  imports: [{ specifier: 'me-lib/extra', target: 'https://cdn.example/extra.js' }],
+  scopes: [{ scope: './r1/', imports: [{ specifier: 'me-lib', target: './r1/main.js' }] }],
+});
+
+/**
+ * A scope-action registration whose own claim is selected: the provides
+ * block carries `isolated` + audience, the scope action stays in the
+ * registration tooltip, and NO `kept own copy` chip exists anywhere
+ * (T8 round 2 grounding, T8.6 zone doctrine).
+ */
+const SCOPE_ACTION_SEED = seedSnapshot({
+  remotes: {
+    '__NF-HOST__': 'https://seed.example/',
+    r1: 'https://seed.example/r1/',
+  },
+  sharedExternals: {
+    __GLOBAL__: {
+      'iso-lib': {
+        dirty: false,
+        versions: [
+          {
+            tag: '1.0.0',
+            action: 'scope',
+            host: false,
+            remotes: [declarationOf('r1', { 'iso-lib': 'iso.js' })],
+          },
+        ],
+      },
+    },
+  },
+  scopes: [{ scope: './r1/', imports: [{ specifier: 'iso-lib', target: './r1/iso.js' }] }],
+});
+
+describe('buildRemoteDetail — one declaration, both zones (T8.6-AC-05)', () => {
+  it('renders the own main claim as a provides block and the foreign secondary via-prefixed', () => {
+    const detail = seededDetail(MULTI_ENTRY_QUALIFIER_SEED, 'r1');
+
+    // Main claim: own copy → provides block (quiet head, no chips).
+    expect(detail.provides).toHaveLength(1);
+    expect(detail.provides[0].packageName).toBe('me-lib');
+    expect(detail.provides[0].deviations).toEqual([]);
+    // Secondary claim: foreign-resolving → consumes row, via-prefixed, with
+    // its mapping state AND its source qualification visible.
+    expect(detail.consumes).toHaveLength(1);
+    const [row] = detail.consumes;
+    expect(row.via).toBe('me-lib/extra');
+    expect(row.deviations.map((state) => state.label)).toEqual([
+      'own 1.0.0 not selected',
+      'unknown source',
+    ]);
+    expect(row.file).toBe('extra.js');
+    expect(row.source.label).toBe('unknown source');
+    expect(detail.unresolved).toEqual([]);
+  });
+
+  it('keeps the isolated own copy a provides block with the scope note in the tooltip', () => {
+    const detail = seededDetail(SCOPE_ACTION_SEED, 'r1');
+
+    expect(detail.provides).toHaveLength(1);
+    const [block] = detail.provides;
+    expect(block.declared.note).toBe(SCOPE_NOTE);
+    expect(block.deviations.map((deviation) => deviation.label)).toEqual([
+      'isolated',
+      'mapped only for r1',
+    ]);
+    expect(block.deviations.map((deviation) => deviation.label)).not.toContain('kept own copy');
+    expect(detail.consumes).toEqual([]);
+  });
+});
+
+/**
+ * One remote, one bundle name, two DIFFERENTLY qualified claims: r1's own
+ * copy claims `bundle-x` exactly (source-only — no chunk list recorded)
+ * while an ambiguous-source copy lists r1 as one candidate for the SAME
+ * bundle. The chunk section keeps one row PER QUALIFICATION — merging
+ * would either hide the ambiguity or contaminate the exact claim
+ * (Codex review 2).
+ */
+const MIXED_BUNDLE_SEED = seedSnapshot({
+  remotes: {
+    '__NF-HOST__': 'https://seed.example/',
+    r1: 'https://seed.example/shared/',
+    r2: 'https://seed.example/shared/',
+  },
+  sharedExternals: {
+    __GLOBAL__: {
+      'own-lib': {
+        dirty: false,
+        versions: [
+          {
+            tag: '1.0.0',
+            action: 'share',
+            host: false,
+            remotes: [declarationOf('r1', { 'own-lib': 'own.js' }, 'bundle-x')],
+          },
+        ],
+      },
+      'dup-lib': {
+        dirty: false,
+        versions: [
+          {
+            tag: '1.0.0',
+            action: 'share',
+            host: false,
+            remotes: [
+              declarationOf('r1', { 'dup-lib': 'dup.js' }, 'bundle-x'),
+              declarationOf('r2', { 'dup-lib': 'dup.js' }, 'bundle-y'),
+            ],
+          },
+        ],
+      },
+    },
+  },
+  scopes: [
+    {
+      scope: './shared/',
+      imports: [
+        { specifier: 'own-lib', target: './shared/own.js' },
+        { specifier: 'dup-lib', target: './shared/dup.js' },
+      ],
+    },
+  ],
+});
+
+describe('buildRemoteDetail — mixed bundle qualifications stay separate rows', () => {
+  it('keeps an exact and an ambiguous claim of one bundle as two qualified rows', () => {
+    const detail = seededDetail(MIXED_BUNDLE_SEED, 'r1');
+
+    // The ambiguous copy forms no provides block; only the own copy does.
+    expect(detail.provides.map((block) => block.packageName)).toEqual(['own-lib']);
+
+    const chunks = detail.chunks;
+    expect(chunks.level).toBe('bundle-claims');
+    if (chunks.level !== 'bundle-claims') {
+      return;
+    }
+    const rows = chunks.rows.filter((row) => row.bundle === 'bundle-x');
+    expect(rows.map((row) => row.status).sort()).toEqual(['ambiguous', 'source-only']);
+    const ambiguous = rows.find((row) => row.status === 'ambiguous')!;
+    expect(ambiguous.statusNote).toBe(
+      'ambiguous source — this remote is one candidate for the bundle; chunks are not attributed',
+    );
+    expect(ambiguous.files).toEqual([]);
+    const sourceOnly = rows.find((row) => row.status === 'source-only')!;
+    expect(sourceOnly.fileClaim).toBe('no chunk list recorded in this capture');
+    expect(sourceOnly.serves).toBe('serves own-lib');
+    // The zone note says so explicitly.
+    expect(chunks.note).toContain(
+      'a differently qualified claim of the same bundle keeps its own row',
     );
   });
 });
@@ -631,7 +969,7 @@ describe('buildRemoteDetail — qualified source ladder (T8 review H1)', () => {
  * r1 and r2 share one scope URL; r1's candidate is selected, r2 declares
  * WITHOUT entrypoint candidates. The canonical projection still records a
  * consumer-copy relation for r2 (a claim-less binding still relates) — the
- * detail must surface it instead of dropping it (T8 review H2).
+ * consumes zone must surface it instead of dropping it (T8-H2).
  */
 const RELATION_ONLY_SEED = seedSnapshot({
   remotes: {
@@ -662,17 +1000,20 @@ const RELATION_ONLY_SEED = seedSnapshot({
   ],
 });
 
-describe('buildRemoteDetail — relation-only consumers stay visible (T8 review H2)', () => {
+describe('buildRemoteDetail — relation-only consumers stay visible (T8-H2)', () => {
   it('surfaces the claim-less consumer relation with copy, source, and binding', () => {
     const detail = seededDetail(RELATION_ONLY_SEED, 'r2');
 
-    // The candidate-less declaration row stays honest…
-    expect(detail.deps).toHaveLength(1);
-    expect(detail.deps[0].arrow).toEqual({
-      kind: 'none',
-      reason: 'no resolution claim derivable',
+    // The candidate-less declaration lands in the unresolved bucket…
+    expect(detail.unresolved).toHaveLength(1);
+    expect(detail.unresolved[0].state).toEqual({
+      label: 'declared',
+      note: 'declaration without entrypoint candidates — no resolution claim derivable',
     });
-    expect(detail.deps[0].states.map((state) => state.label)).toEqual(['declared']);
+    expect(detail.unresolved[0].offered).toEqual({
+      label: 'offered 1.0.0',
+      note: 'the tag of the remote’s own version registration — no resolution claim is derivable for this declaration',
+    });
 
     // …while the canonical relation shows where the binding resolves.
     expect(detail.relationOnly).toHaveLength(1);
@@ -698,8 +1039,8 @@ describe('buildRemoteDetail — relation-only consumers stay visible (T8 review 
   it('keeps the claim-backed consumer free of relation-only rows', () => {
     const detail = seededDetail(RELATION_ONLY_SEED, 'r1');
 
-    expect(detail.deps).toHaveLength(1);
-    expect(detail.deps[0].arrow).toEqual({ kind: 'own' });
+    expect(detail.provides).toHaveLength(1);
+    expect(detail.consumes).toEqual([]);
     expect(detail.relationOnly).toEqual([]);
   });
 
@@ -764,7 +1105,7 @@ const PRIVATE_MULTI_SEED = seedSnapshot({
   ],
 });
 
-describe('buildRemoteDetail — private claim states ground on mappingState (T8 review H3)', () => {
+describe('buildRemoteDetail — private claim states ground on mappingState (T8-H3)', () => {
   it('renders a mapped-but-not-own private claim as NOT selected, never own mapping', () => {
     const detail = seededDetail(PRIVATE_NOT_SELECTED_SEED, 'mfe1');
 
@@ -792,104 +1133,5 @@ describe('buildRemoteDetail — private claim states ground on mappingState (T8 
       expect(claim.copyTag).toBe('2.0.0');
     }
     expect(scoped.claims.map((claim) => claim.file)).toEqual(['main.js', 'extra.js']);
-  });
-});
-
-/**
- * One declaration, TWO entrypoint claims with DIFFERENT source outcomes:
- * the main specifier selects the own copy, the secondary resolves to a
- * foreign target no source or scope explains. The secondary's source
- * qualification must stay visible beside the main claim's quiet own arrow
- * (T8 review round 2, finding 1).
- */
-const MULTI_ENTRY_QUALIFIER_SEED = seedSnapshot({
-  remotes: {
-    '__NF-HOST__': 'https://seed.example/',
-    r1: 'https://seed.example/r1/',
-  },
-  sharedExternals: {
-    __GLOBAL__: {
-      'me-lib': {
-        dirty: false,
-        versions: [
-          {
-            tag: '1.0.0',
-            action: 'share',
-            host: false,
-            remotes: [declarationOf('r1', { 'me-lib': 'main.js', 'me-lib/extra': 'x.js' })],
-          },
-        ],
-      },
-    },
-  },
-  imports: [{ specifier: 'me-lib/extra', target: 'https://cdn.example/extra.js' }],
-  scopes: [{ scope: './r1/', imports: [{ specifier: 'me-lib', target: './r1/main.js' }] }],
-});
-
-/**
- * A scope-action registration whose own claim is selected: the action note
- * and the kept-own-copy chip must both stay registry-/claim-grounded — no
- * universal "mapped only for" audience claim (T8 review round 2, finding 2).
- */
-const SCOPE_ACTION_SEED = seedSnapshot({
-  remotes: {
-    '__NF-HOST__': 'https://seed.example/',
-    r1: 'https://seed.example/r1/',
-  },
-  sharedExternals: {
-    __GLOBAL__: {
-      'iso-lib': {
-        dirty: false,
-        versions: [
-          {
-            tag: '1.0.0',
-            action: 'scope',
-            host: false,
-            remotes: [declarationOf('r1', { 'iso-lib': 'iso.js' })],
-          },
-        ],
-      },
-    },
-  },
-  scopes: [{ scope: './r1/', imports: [{ specifier: 'iso-lib', target: './r1/iso.js' }] }],
-});
-
-describe('buildRemoteDetail — per-claim source qualification (T8 review round 2)', () => {
-  it('keeps a secondary claim’s source qualification beside the quiet main claim', () => {
-    const detail = seededDetail(MULTI_ENTRY_QUALIFIER_SEED, 'r1');
-
-    expect(detail.deps).toHaveLength(1);
-    const [dep] = detail.deps;
-    // Main claim: own copy — quiet arrow, no chip of its own.
-    expect(dep.arrow).toEqual({ kind: 'own' });
-    // Secondary claim: its mapping state AND its source qualification stay
-    // visible, specifier-prefixed.
-    expect(dep.states.map((state) => state.label)).toEqual([
-      'me-lib/extra: not selected',
-      'me-lib/extra: unknown source',
-    ]);
-    const unknown = dep.states.find((state) => state.label === 'me-lib/extra: unknown source')!;
-    expect(unknown.note).toBe(
-      'only the resolved URL is evidenced — no source record or scope prefix matches',
-    );
-  });
-
-  it('keeps the scope action note and kept-own-copy chip registry-grounded', () => {
-    const detail = seededDetail(SCOPE_ACTION_SEED, 'r1');
-
-    expect(detail.deps).toHaveLength(1);
-    const [dep] = detail.deps;
-    expect(dep.action).toBe('scope');
-    // Registry evidence only — no mapping/audience claim in the action note.
-    expect(dep.actionNote).toBe(
-      'registered with action scope — an isolated registration outside the version election',
-    );
-    expect(dep.arrow).toEqual({ kind: 'own' });
-    expect(dep.states).toEqual([
-      {
-        label: 'kept own copy',
-        note: 'registered with action scope — the consumer’s own isolated copy is its effective binding in this capture',
-      },
-    ]);
   });
 });

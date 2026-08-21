@@ -17,8 +17,25 @@
   white-space: nowrap;
 }
 
-/* Capture-boundary claim under the list — observation styling, not error. */
+/* Unresolved-declarations marker — count and grounding one hover away. */
+.row-warn {
+  margin-left: 6px;
+  font-size: 10px;
+  color: var(--nf-color-warning-text);
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+}
+
+/* Capture-boundary claim in the EMPTY state — observation, not error. */
 .boundary-note {
   margin: 8px 2px 0;
   font-size: 10px;
+}
+
+/* Tooltip affordance (shell convention): dotted underline + help cursor. */
+.tip {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
 }

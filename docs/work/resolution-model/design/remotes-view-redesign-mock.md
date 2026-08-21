@@ -399,3 +399,123 @@ carrying a `bundle`):
 - The plan's "angular-architects/native-federation" pointer is stale:
   the source of truth is the `native-federation` GitHub org
   (`native-federation-core`, `orchestrator`).
+
+## Iteration 2 amendment (2026-08-21): screenshot review
+
+Panel screenshot review of the implemented T8.6 view (frankenstein-live
+host + fixture cases), agreed Lutz + Claude. Zones, vocabulary, chips,
+and every grounded tooltip stay; this amendment relocates prose and
+settles the two deferred presentation questions.
+
+1. **Zone notes become header tooltips.** The visible one-line zone
+   notes (provides / consumes / chunks) and the unresolved note move
+   into the `.group-label` title (tip affordance); the doctrine
+   sentences stay verbatim, one hover away. The chunks header composes
+   `<note> (rule: <rule>)`; the `none` level keeps its visible honest
+   observation — there the note IS the content. The list's boundary
+   note likewise moves to the "Remotes" heading tooltip in the
+   populated state (the empty state keeps it visible — load-bearing
+   there). Rationale: permanently visible epistemology reads as noise
+   after the first visit; the tooltip grammar already carries every
+   other grounding.
+2. **CONSUMES header carries its semantics.** Header renamed
+   `consumes from other remotes`; the honest-empty lines of exposes /
+   provides / consumes unify to `none in this capture` (the qualifier
+   no longer needs to live in the empty line). The relation-only veto
+   of the consumes empty line (Codex review 1) is unchanged.
+3. **Secondaries render as two-line mini-blocks — deferred question
+   settled.** Head line: `↳` + suffix + tag + range + STRICT +
+   deviation chips; the file lines render beneath in the shared
+   file-line grammar, one step deeper indented. Version facts are
+   deliberately KEPT on the sub-row head — decided AGAINST
+   inherit-by-absence: absence would mean "same as parent" here but
+   "not recorded / not applicable" everywhere else, and two meanings of
+   absence are worse than repetition; each secondary is a REAL registry
+   key whose version is its own fact. The parent's `FILES` label is
+   dropped — parent and secondary share one anatomy (head line + file
+   lines).
+4. **Chunk rows calm down — deferred question settled.** A row whose
+   chunk list renders drops the file count (the listed files ARE the
+   claim); the explicit `no chunk list recorded in this capture`
+   wording stays on list-less rows, where the status chip carries the
+   qualified note. The mapped-source status note leaves the row (the
+   header tooltip's attribution sentence covers the claim); count and
+   `serves` tail align to the bundle name's 11px size — one text size
+   per chunk row.
+5. **Host chip legible in the selected row (bug fix).**
+   `.tree-row.selected` additionally re-points `--nf-color-bg` to the
+   accent: the inverted host chip paints its fill with the muted token
+   (→ accent-contrast) and its text with the bg token — without the
+   re-point both went dark and the chip text vanished.
+
+Round 2 of the same review (2026-08-22, after the first amendment
+landed in the panel):
+
+6. **Provides blocks separate as tiles.** The block rail thickens to 3px
+   and the gap between blocks grows to 14px — with a 2px rail and 8px
+   gaps, adjacent blocks read as one continuous strip. The rail keeps
+   the border token (structure channel): a brighter color would compete
+   with the accent/warning channels.
+7. **Chunk rows, second pass.** Rows with a recorded chunk list render
+   first, list-less rows after (bundle order within each — presentation
+   order only, every claim stays qualified). On status-chipped rows the
+   chip ALONE claims the absence (its grounded note one hover away) —
+   the redundant `no chunk list recorded in this capture` text drops
+   and remains only for the chip-less empty case. The `serves` tooltip
+   (and with it the tip underline) renders only when it ADDS something
+   the visible tail does not say — truncated (`+N entries`) or
+   suffix-shortened tails; `serves tslib` carries no affordance.
+
+Round 3 of the same review (2026-08-22):
+
+8. **Consumes rows drop the arrow and adopt the provides anatomy.** Each
+   row is a two-line mini-block: head line (name link · scope · `via` ·
+   declared + registration tooltip · STRICT · state chips), winner file
+   on its own file line `from` the colored source chip (Packages
+   `source-word` grammar; remote-less qualified sources keep their
+   muted provider text). No `→` glyph anywhere; the fixed aria
+   vocabulary `resolves to X (source: Y)` moves onto the file line.
+   The `participant-row` kit thereby loses its last production consumer
+   — its winner-arrow surface is parked in kit-demo (allowed by the
+   implementation notes), not removed.
+9. **Chunks `none` level: short line + tooltip.** The visible line
+   shrinks to the unified empty grammar (`none in this capture`, or
+   `none claimed in this capture` for recorded-but-unclaimed lists);
+   the full grounded sentence (`no chunk evidence recorded … dense-
+   chunking capability absent` / `chunk lists are recorded … no
+   resolved copy claims them`) moves into the line's tooltip with the
+   rule.
+10. **PROVIDES terminology stays — the offer question answers in the
+    tooltip.** Reviewed against the co-declared case (own registration
+    offered, foreign copy elected): renaming (e.g. `use own copy`) would
+    misdescribe the zone's main job — copies here are consumed by OTHER
+    remotes too, not just in place — and duplicating not-selected offers
+    into provides would break zone-membership-IS-the-resolution-statement
+    and a-fact-renders-once. Instead the provides header tooltip states
+    the boundary explicitly: "an offered version that is not selected
+    renders on its consumes row, never here". The offer itself stays
+    visible as `skipped own X` / `not selected` chips and `offered X`
+    in the unresolved bucket. (A tag-carrying `own X not selected` chip
+    would need the same change in Packages — deferred as a cross-view
+    vocabulary decision. Superseded by round 4, item 11.)
+
+Round 4 of the same review (2026-08-22):
+
+11. **The not-selected chip names its subject: `own <tag> not
+    selected`.** On the two-line consumes row the bare `not selected`
+    chip sits next to the winner file `from <source>` and read as a
+    statement about the ELECTED copy ("not selected from mfe1") —
+    false. The chip now mirrors the `skipped own <tag>` grammar; the
+    grounded note is unchanged. Deliberate, documented divergence from
+    Packages' consumer-row `not selected`: there the row subject IS the
+    consumer (the chip hangs on the declarer inside the winning copy's
+    block), so the bare form stays unambiguous. The private-registration
+    `not selected` chip also keeps its bare form (the row subject is the
+    own registration).
+12. **`.group-label` headers render bold + full text color —
+    cross-view.** With tooltip affordances (dotted underlines) on
+    ordinary content everywhere, headers need their own channel. Weight
+    alone (600, then 700) barely renders at 10px caps on the system-ui
+    stack, and the muted tone drowned among muted content — so headers
+    keep 700 AND take the full text color. Applied in BOTH detail views
+    (Remotes + Packages) to keep the one visual grammar.

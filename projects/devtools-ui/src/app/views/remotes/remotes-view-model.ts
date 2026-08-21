@@ -14,20 +14,24 @@
 import type { TreeTableRow } from '../../shared/kit/tree-table';
 import type { FederationModel } from '../../shared/store/federation-model';
 import { buildCanonicalIndexes, countClaim } from '../../shared/view-conventions';
-import { RemoteDetailVm, buildRemoteDetail } from './remotes-detail-vm';
+import { RemoteDetailVm, buildRemoteDetail, unresolvedDeclarationCount } from './remotes-detail-vm';
 
-export { NEGOTIATION_LEGEND } from '../../shared/view-conventions';
 export type {
   AnnotationVm,
   CapabilityVm,
+  ConsumesRowVm,
+  ConsumesSourceVm,
+  DeclaredDisplayVm,
   ExposeVm,
+  ProvidesBlockVm,
   RelationConsumerVm,
-  RemoteBundleClaimVm,
+  RemoteChunkRowVm,
   RemoteChunkSectionVm,
-  RemoteDepVm,
   RemoteDetailVm,
+  RemoteUnresolvedRowVm,
   ScopedClaimVm,
   ScopedPackageVm,
+  ZoneFileVm,
 } from './remotes-detail-vm';
 
 /** Caller-owned UI state — selection lives in the view. */
@@ -44,6 +48,12 @@ export interface RemoteRowVm {
   host: boolean;
   /** Quiet scan tail, e.g. "1 expose · 12 declarations". */
   summary: string;
+  /**
+   * `⚠` marker with its count tooltip — only when the remote has
+   * declarations whose claims resolve nowhere in this capture; null is the
+   * norm. Conflict involvement stays the package pivot's job.
+   */
+  unresolved: { count: number; note: string } | null;
 }
 
 export interface RemotesVm {
@@ -97,6 +107,7 @@ export function buildRemotesVm(model: FederationModel, ui: RemotesUiState): Remo
     const summary =
       `${countClaim(remote.exposes.length, 'expose')} · ${countClaim(declarationCount, 'declaration')}` +
       (privateCount > 0 ? ` · ${countClaim(privateCount, 'private registration')}` : '');
+    const unresolvedCount = unresolvedDeclarationCount(remote.name, model, indexes);
     return {
       id: remote.name,
       depth: 0,
@@ -107,6 +118,15 @@ export function buildRemotesVm(model: FederationModel, ui: RemotesUiState): Remo
         name: remote.name,
         host: remote.isHost,
         summary,
+        unresolved:
+          unresolvedCount === 0
+            ? null
+            : {
+                count: unresolvedCount,
+                note: `${countClaim(unresolvedCount, 'declaration')} of this remote ${
+                  unresolvedCount === 1 ? 'resolves' : 'resolve'
+                } nowhere in this capture`,
+              },
       },
     };
   });
