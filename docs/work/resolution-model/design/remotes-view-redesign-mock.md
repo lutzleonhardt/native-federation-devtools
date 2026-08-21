@@ -285,3 +285,117 @@ Divergence-only, like Packages (e.g. `unknown states: 1`). Silent otherwise.
 2. **Task 8.6 — remotes presentation redesign (implementation):** this
    mock, frozen; fixture cases above as acceptance reference; screenshot
    review + amendment loop like 7.6.
+
+## Task 8.5 amendment (2026-08-21): capability config provenance
+
+Source-verified against the official Native Federation repos (GitHub org
+`native-federation`; local read-only checkouts). Versions are per-package:
+"core" = `@softarc/native-federation` (verified at tag v4.4.0 — the
+version the orchestrator v4.6.0 lockfile resolves), "orchestrator" =
+`@softarc/native-federation-orchestrator` (verified at tag v4.6.0).
+Every flag name below was read at the cited tag + file path, with the
+introducing commit located via `git log -S` and its first release via
+`git tag --contains`. No flag name is inferred.
+
+### Final tooltip strings
+
+- **dense chunking** — `the registry records per-bundle chunk lists for
+  this remote (config: features.denseChunking: true, default false,
+  since core v4.0.0)`
+- **dense externals** — `shared participants carry their serving bundle
+  (config: features.denseChunking: true, default false, since core
+  v4.0.0)`
+- **SRI** — `integrity hashes recorded for this remote's files (config:
+  features.integrityHashes: true, default false, since core v4.1.2)`
+
+Both dense capabilities citing the SAME flag is deliberate, not a
+copy-paste error: `features.denseChunking` is one build feature with two
+observable facets (see below). `features.denseExternals` does NOT belong
+in either tooltip.
+
+### Source references
+
+**dense chunking** (evidence: projection `shared-chunks` chunk groups
+per emitter ← runtime `shared-chunks` repository ← `remoteEntry.json`
+`chunks` map):
+
+- Gate + emission: core v4.4.0 `src/lib/core/build/bundle-shared.ts`
+  L275–281 — `if (buildOptions.chunks && config.features.denseChunking)`
+  exports `{ [bundleName]: chunkFiles }`; same gate for the
+  `mapping-or-exposed` group in
+  `src/lib/core/build/bundle-exposed-and-mappings.ts` L157–163;
+  aggregated into `federationInfo.chunks` in
+  `src/lib/core/build/build-for-federation.ts` L79–84 (no further flag).
+- Defaults: core v4.4.0 `src/lib/config/with-native-federation.ts` L23
+  (`chunks ?? true` — prerequisite, on by default, per-package
+  overridable) and L41 (`denseChunking ?? false`).
+- Since: released core v4.0.0 (commit `86819a3` "Added 'dense-chunk'
+  feature and made it opt-out", then `2663997` "Changed to opt-in …
+  bundle-names" — both contained in tag v4.0.0; the v4.0.0 tag's
+  `with-native-federation.ts` already defaults it to false).
+- Runtime storage (no config): orchestrator v4.6.0
+  `src/lib/core/2.app/steps/store-remote-entry.ts` `addSharedChunksToStorage`
+  → `src/lib/core/3.adapters/storage/chunk.repository.ts`; storage
+  exists since orchestrator 4.0.0-RC3 (commit `defebf7`).
+
+**dense externals** (evidence: canonical participant declarations
+carrying a `bundle`):
+
+- The `bundle` field is stamped ONLY under the dense-chunking gate:
+  core v4.4.0 `src/lib/core/build/bundle-shared.ts` L275–277 —
+  `external.bundle = buildOptions.bundleName` inside
+  `if (buildOptions.chunks && config.features.denseChunking)`. No other
+  non-test code path in core v4.4.0 assigns `bundle` (repo-wide sweep);
+  shared mappings never receive one.
+- Since: released core v4.0.0 (commit `2663997`, contained in tag
+  v4.0.0; verified in the tag's `bundle-shared.ts` L154–156).
+- Explicitly NOT the producer — recorded to prevent the prior
+  assumption from resurfacing: `features.denseExternals` (default false,
+  since core v4.3.0, commit `71ad9ec`; gate at v4.3.0
+  `src/lib/core/build/build-for-federation.ts` L145) only switches the
+  `remoteEntry.json` `shared` wire format to dense registrations
+  (`entries` maps via `densifyExternals`,
+  `src/lib/core/output/densify-externals.ts`) — it preserves an
+  existing `bundle` but never creates one. Host-side
+  `feature.convertFlatSharedInfo` (orchestrator, default false at
+  v4.6.0 `src/lib/core/4.config/mode/mode.config.ts` L29; since
+  orchestrator v4.5.0, commit `400503f`; applied in
+  `src/lib/core/3.adapters/http/remote-entry-provider.ts` L29–31)
+  densifies flat shared info at fetch — likewise bundle-preserving
+  only. On the default host path `toDenseSharedInfoFormat`
+  (`densify-externals.ts` L72–83) spreads all props including `bundle`,
+  so the stamped bundle reaches the runtime registry regardless of host
+  config. Orchestrator stores provider `bundle` since 4.0.0-RC3
+  (commit `2e01ea9`).
+
+**SRI** (evidence: the remote's recorded integrity map):
+
+- Gate + emission: core v4.4.0
+  `src/lib/core/build/build-for-federation.ts` L86–91 —
+  `if (config.features.integrityHashes) federationInfo.integrity = …`;
+  hash computation equally gated in
+  `src/lib/core/build/bundle-shared.ts` L289–291 and
+  `src/lib/core/build/bundle-exposed-and-mappings.ts` L166–168.
+- Default: core v4.4.0 `src/lib/config/with-native-federation.ts` L43
+  (`integrityHashes ?? false`).
+- Since: as a `federation.config` feature flag core v4.1.2 (commit
+  `b88224b` "Changed SRI option to feature flag" — replaced the builder
+  option `fedOptions.integrity`, which had introduced the capability in
+  core v4.1.0, commit `0952e1f`). The tooltip says v4.1.2 because that
+  is when the cited flag name came to exist.
+- Runtime storage (no config): orchestrator v4.6.0
+  `src/lib/core/2.app/steps/store-remote-entry.ts` L90–97 —
+  `remoteInfoRepo.addOrUpdate(name, { …, ...(integrity ? { integrity } : {}) })`.
+
+### Consequences for this mock
+
+- All three capabilities were derivable from source — no "not derivable
+  from source" entry; every capability line ships WITH its
+  `(config: …)` suffix.
+- Version prefix convention in tooltips: `core v<X>` (the
+  `@softarc/native-federation` build package). Orchestrator versions
+  never appear in these three tooltips — runtime storage has no config
+  and is older than every emitting flag.
+- The plan's "angular-architects/native-federation" pointer is stale:
+  the source of truth is the `native-federation` GitHub org
+  (`native-federation-core`, `orchestrator`).
