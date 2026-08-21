@@ -53,7 +53,7 @@
     <p class="deps-note">
       this remote's own declarations — each package's full negotiation is one click away
     </p>
-    @for (dep of detail.deps; track dep.packageSelect + dep.action) {
+    @for (dep of detail.deps; track dep.declarationId) {
       <div class="dep-row">
         <span class="dep-symbol" aria-hidden="true">{{ dep.symbol }}</span>
         <nf-participant-row
@@ -79,61 +79,84 @@
               >
             }
           </span>
-          @if (dep.noElection) {
-            <span nfRowLinks class="dep-no-election tip" [title]="dep.noElection.note"
-              >no single elected version</span
-            >
+          @if (dep.states.length > 0) {
+            <span nfRowLinks class="dep-states">
+              @for (state of dep.states; track state.label) {
+                <span class="state-chip tip" [title]="state.note">{{ state.label }}</span>
+              }
+            </span>
           }
         </nf-participant-row>
       </div>
     }
     <p class="glyph-legend" aria-label="glyph legend">
       @for (item of legend; track item.action) {
-        <span class="legend-item tip" [title]="item.note"
-          >{{ item.symbol }} {{ item.action }}</span
-        >
+        <span class="legend-item tip" [title]="item.note">{{ item.symbol }} {{ item.action }}</span>
       }
     </p>
   } @else {
     <p class="view-observation">no shared declarations recorded for this remote</p>
   }
+  @if (detail.relationOnly.length > 0) {
+    <p
+      class="deps-note tip"
+      title="consumer-copy relations of the canonical projection — bindings this remote consumes without an own resolution claim"
+    >
+      resolved bindings without an own resolution claim
+    </p>
+    <ul class="relation-list">
+      @for (relation of detail.relationOnly; track relation.relationId) {
+        <li class="relation-item">
+          @if (relation.packageName !== null) {
+            <span class="mono">{{ relation.packageName }}</span>
+          }
+          @if (relation.copyTag !== null) {
+            <span class="scoped-tag mono">{{ relation.copyTag }}</span>
+          }
+          <span class="state-chip tip" [title]="relation.source.note">{{
+            relation.source.label
+          }}</span>
+          @for (binding of relation.bindings; track binding.resolutionId) {
+            <span class="relation-binding mono tip" [attr.title]="binding.targetUrl"
+              >{{ binding.specifier }} → {{ binding.file }}</span
+            >
+          }
+          <span class="relation-note tip" [title]="relation.note">consumer relation</span>
+        </li>
+      }
+    </ul>
+  }
 
   <h3>Chunks</h3>
   @switch (detail.chunks.level) {
-    @case ('package') {
-      <p class="chunk-note" [attr.title]="'rule: ' + detail.chunks.rule">
-        {{ detail.chunks.note }}
-      </p>
-      @if (detail.chunks.packages.length > 0) {
-        <ul class="chunk-packages">
-          @for (chunkPackage of detail.chunks.packages; track chunkPackage.packageName) {
-            <li class="chunk-package">
-              <span class="mono">{{ chunkPackage.packageName }}</span>
-              <span class="chunk-bundle mono">{{ chunkPackage.bundleName }}</span>
-              <span class="chunk-count">{{ chunkPackage.fileClaim }}</span>
-            </li>
-          }
-        </ul>
-      } @else {
-        <p class="view-observation">chunk lists recorded, but no package entries</p>
-      }
-    }
-    @case ('remote') {
+    @case ('bundle-claims') {
       <p class="chunk-note" [attr.title]="'rule: ' + detail.chunks.rule">
         {{ detail.chunks.note }}
       </p>
       <ul class="chunk-packages">
-        @for (group of detail.chunks.groups; track group.label) {
+        @for (claim of detail.chunks.claims; track claim.claimId) {
+          <li class="chunk-package">
+            @if (claim.packageName !== null) {
+              <span class="mono">{{ claim.packageName }}</span>
+            }
+            <span class="chunk-bundle mono">{{ claim.bundle }}</span>
+            @if (claim.status !== 'mapped-source') {
+              <span class="chunk-status tip" [title]="claim.statusNote">{{ claim.status }}</span>
+            }
+            <span class="chunk-count tip" [title]="claim.statusNote">{{ claim.fileClaim }}</span>
+          </li>
+        }
+      </ul>
+    }
+    @case ('carrier-groups') {
+      <p class="chunk-note" [attr.title]="'rule: ' + detail.chunks.rule">
+        {{ detail.chunks.note }}
+      </p>
+      <ul class="chunk-packages">
+        @for (group of detail.chunks.groups; track group.groupId) {
           <li class="chunk-package">
             <span class="mono">{{ group.label }}</span>
             <span class="chunk-count">{{ group.fileClaim }}</span>
-            @if (group.mapped) {
-              <span
-                class="chunk-mapped tip"
-                title="every file of this group resolves to a target of the effective map"
-                >mapped</span
-              >
-            }
           </li>
         }
       </ul>
@@ -148,12 +171,27 @@
   @if (detail.scoped.length > 0) {
     <h3>Scoped externals</h3>
     <ul class="scoped-list">
-      @for (scopedPackage of detail.scoped; track scopedPackage.packageName) {
+      @for (scopedPackage of detail.scoped; track scopedPackage.registrationId) {
         <li class="scoped-item">
-          <span class="mono">{{ scopedPackage.packageName }}</span>
+          <span class="mono tip" [title]="scopedPackage.domainNote">{{
+            scopedPackage.packageName
+          }}</span>
           <span class="scoped-tag mono">{{ scopedPackage.tag }}</span>
-          @for (file of scopedPackage.files; track file) {
-            <span class="scoped-file mono">{{ file }}</span>
+          @for (claim of scopedPackage.claims; track claim.claimId) {
+            @if (claim.specifier !== scopedPackage.packageName) {
+              <span class="scoped-specifier mono">{{ claim.specifier }}</span>
+            }
+            <span class="state-chip tip" [title]="claim.state.note">{{ claim.state.label }}</span>
+            @if (claim.file !== null) {
+              <span class="scoped-file mono" [attr.title]="claim.targetUrl">{{ claim.file }}</span>
+            }
+            @if (claim.copyTag !== null && claim.copyTag !== scopedPackage.tag) {
+              <span
+                class="scoped-tag mono tip"
+                title="resolved tag of the copy this claim’s binding materializes — not the registration’s own tag"
+                >{{ claim.copyTag }}</span
+              >
+            }
           }
         </li>
       }

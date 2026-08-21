@@ -26,16 +26,19 @@ import type {
 import { ChunkClaimVm, buildCopyChunkClaims } from './packages-chunk-vm';
 import {
   CanonicalIndexes,
+  CopySourceVm,
   GLOBAL_SCOPE,
   PackageGroup,
   STRICT_SCOPE,
-  copySourceRemote,
+  copySourceVmOf,
   isHostRemote,
   noCopyNoteOf,
   parentOf,
   participantDisplay,
   targetFileName,
 } from './packages-vm-shared';
+
+export type { CopySourceVm } from './packages-vm-shared';
 
 /** One annotated fact — deviation chip, bucket state, or diagnostics line. */
 export interface AnnotationVm {
@@ -81,23 +84,6 @@ export interface CopyFileVm {
   hasIntegrity: boolean;
   /** `select` payload for the /import-map cross-link. */
   importMapSelect: string;
-}
-
-/** Qualified source wording of one resolved copy (T7 vocabulary). */
-export interface CopySourceVm {
-  /** Display form of the source remote; null when no source is evidenced. */
-  display: string | null;
-  host: boolean;
-  /** `select` payload for the /remotes cross-link; null without a remote. */
-  remoteSelect: string | null;
-  qualifier:
-    | 'exact-target-source'
-    | 'explicit-anchor'
-    | 'observed-target-source'
-    | 'ambiguous-source'
-    | 'unknown-source';
-  label: string;
-  note: string;
 }
 
 /** Header disposition of a copy block (`shared`/`isolated`, else verbatim). */
@@ -188,97 +174,6 @@ const ROLE_NOTES: Record<ResolvedCopyEffectiveRole, string> = {
 };
 
 const UNKNOWN_TAG_NOTE = 'no uniquely evidenced source tag for this copy';
-
-/**
- * Qualified source wording of one copy: explicit anchor when the copy
- * serves through `servedBy`, exact target source for a uniquely evidenced
- * record, observed target source for scope-prefix attribution, ambiguous
- * and unknown stay qualified. The registry-slot comparison rides along in
- * the note when slot evidence exists.
- */
-function copySourceVmOf(copy: ResolvedDependencyCopy, indexes: CanonicalIndexes): CopySourceVm {
-  const remote = copySourceRemote(copy, indexes);
-  const display = remote === null ? null : participantDisplay(remote);
-  const base = { display, host: isHostRemote(remote), remoteSelect: remote };
-
-  let vm: CopySourceVm;
-  if (copy.source.kind !== 'target-url') {
-    if (copy.effectiveRoles.includes('anchor-source')) {
-      vm = {
-        ...base,
-        qualifier: 'explicit-anchor',
-        label: 'explicit anchor',
-        note: 'selected through an explicit servedBy anchor of the registry evidence',
-      };
-    } else {
-      vm = {
-        ...base,
-        qualifier: 'exact-target-source',
-        label: 'exact target source',
-        note: 'uniquely evidenced source record — its candidate URL matches the resolved target exactly',
-      };
-    }
-  } else if (copy.sourceDisposition === 'ambiguous-source') {
-    vm = {
-      ...base,
-      qualifier: 'ambiguous-source',
-      label: 'ambiguous source',
-      note: 'several candidate sources match this target — none is chosen',
-    };
-  } else if (
-    copy.observedTargetProviders.some((provider) => provider.outcome === 'ambiguous-scope')
-  ) {
-    // Scope-level ambiguity chooses no remote (`remote: null`) — it must
-    // stay a qualified ambiguity, never fall through to "unknown source".
-    vm = {
-      ...base,
-      qualifier: 'ambiguous-source',
-      label: 'ambiguous source',
-      note: 'equally specific remote scope prefixes match this target — none is chosen',
-    };
-  } else {
-    const observed = copy.observedTargetProviders.find(
-      (provider) =>
-        provider.remote !== null &&
-        (provider.outcome === 'scope-derived' || provider.outcome === 'host-fallback'),
-    );
-    if (observed !== undefined) {
-      vm = {
-        display: participantDisplay(observed.remote!),
-        host: isHostRemote(observed.remote),
-        remoteSelect: observed.remote,
-        qualifier: 'observed-target-source',
-        label: 'observed target source',
-        note:
-          observed.outcome === 'host-fallback'
-            ? 'attributed by scope-prefix match with the host as least-specific fallback — not an exact candidate match'
-            : 'attributed by scope-prefix match — not an exact candidate match',
-      };
-    } else {
-      vm = {
-        ...base,
-        qualifier: 'unknown-source',
-        label: 'unknown source',
-        note: 'only the resolved URL is evidenced — no source record or scope prefix matches',
-      };
-    }
-  }
-
-  const slots = copy.registryServingSlotClaims.filter((slot) => slot.status === 'basis-slot');
-  if (slots.length > 0 && copy.source.kind === 'shared-declaration') {
-    const declarationId = copy.source.declarationId;
-    const matches = slots.some((slot) => slot.declarationId === declarationId);
-    vm = {
-      ...vm,
-      note: `${vm.note}; ${
-        matches
-          ? 'matches the registry serving slot'
-          : 'the registry serving slot names another declaration'
-      }`,
-    };
-  }
-  return vm;
-}
 
 /**
  * Header disposition: `share-registration` reads as `shared`,
