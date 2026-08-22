@@ -58,8 +58,7 @@
 
 .import-table td {
   padding: 0.28rem 0.75rem 0.28rem 0;
-  border-bottom: 1px solid
-    color-mix(in srgb, var(--nf-color-border) 45%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--nf-color-border) 45%, transparent);
   vertical-align: baseline;
 }
 
@@ -91,11 +90,16 @@
   white-space: nowrap;
 }
 
+/* Annotations wrap instead of truncating: an ellipsis would swallow
+ * exactly the qualification (e.g. `source-only`) that must stay visible.
+ * Each annotation is an inline-flex unit, so chip and status wrap
+ * together. */
 .cell-attr {
   width: 15rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  /* A single mono token (long bundle name) can exceed the column; break
+   * inside the token rather than overflow the table. */
+  overflow-wrap: anywhere;
 }
 
 .cell-attr > * + * {
@@ -152,7 +156,34 @@
   text-decoration: none !important;
 }
 
-.row-unattributable {
+/* Qualified annotation channel: non-exact source qualifiers and bundle
+ * statuses render dashed — uncertainty stays visible, grounded one hover
+ * away. */
+.row-qualifier {
+  font-size: 0.7rem;
+  color: var(--nf-color-text-muted);
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+}
+
+.row-claim,
+.row-bundle,
+.row-expose {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+}
+
+.claim-state,
+.expose-word {
+  font-size: 0.7rem;
+  color: var(--nf-color-text-muted);
+}
+
+.row-blocked {
+  font-size: 0.7rem;
+  color: var(--nf-color-warning-text);
   text-decoration: underline dotted;
   text-underline-offset: 2px;
   cursor: help;

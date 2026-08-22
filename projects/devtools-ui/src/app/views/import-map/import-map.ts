@@ -10,21 +10,21 @@ import {
 import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { ParticipantChip } from '../../shared/kit/participant-chip';
-import { StateBadge } from '../../shared/honest-state/state-badge';
 import { FederationStore } from '../../shared/store/federation-store';
 import { ImportMapVm, buildImportMapVm } from './import-map-view-model';
 
 /**
  * Import Map tab — the raw evidence view: the effective map verbatim, in
- * map order, every row annotated back into the model (owning package,
- * provider remote, chunk group). Dumb component over the pure
- * `buildImportMapVm` builder; the `select` query param seeds row
- * highlighting (specifier payload, `/./` infix tolerated — cross-link
- * convention, see `app.routes.ts`) and is read once at init.
+ * map order, every row annotated from the canonical read surface
+ * (resolutions, claims, copies, bundle claims, chunk groups, exposes).
+ * Dumb component over the pure `buildImportMapVm` builder; the `select`
+ * query param seeds row highlighting (specifier payload, `/./` infix
+ * tolerated — cross-link convention, see `app.routes.ts`) and is read
+ * once at init.
  */
 @Component({
   selector: 'nf-import-map-view',
-  imports: [RouterLink, ParticipantChip, StateBadge],
+  imports: [RouterLink, ParticipantChip],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './import-map.html',
   styleUrl: './import-map.css',
@@ -39,11 +39,10 @@ export class ImportMapView {
 
   protected readonly vm = computed<ImportMapVm | null>(() => {
     const model = this.store.model();
-    const derived = this.store.derived();
-    if (model === null || derived === null) {
+    if (model === null) {
       return null;
     }
-    return buildImportMapVm(model, derived, { selected: this.selected() });
+    return buildImportMapVm(model, { selected: this.selected() });
   });
 
   /** The seeded selection scrolls into view once, after the rows exist. */
