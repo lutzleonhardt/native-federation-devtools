@@ -4,18 +4,31 @@
 }
 
 .map-section {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.6rem;
 }
 
+/* Sections separate hard (screenshot round 1): a following section opens
+ * with breathing room and a fine rule — the scope boundary must not read
+ * like just another group boundary. */
+.map-section + .map-section {
+  margin-top: 2rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--nf-color-border);
+}
+
+/* Section heads strengthen (the 8.6 header channel: bold, full text
+ * color) — the effective lever is color, muted headers drown among muted
+ * content. */
 .section-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.6rem;
-  margin: 0 0 0.4rem;
+  column-gap: 0.4rem;
+  margin: 0 0 0.5rem;
   font-size: 0.78rem;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.04em;
-  color: var(--nf-color-text-muted);
+  color: var(--nf-color-text);
 }
 
 .section-label.mono {
@@ -30,86 +43,168 @@
   color: var(--nf-color-text-muted);
 }
 
+.section-count {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+}
+
 .section-owner {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
 }
 
-.import-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.8rem;
-  /* Fixed layout with identical column widths keeps the section tables
-   * width-synchronized — they read as one aligned grid. */
-  table-layout: fixed;
-}
-
-.import-table th {
-  text-align: left;
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+/* Head segments separate with the middle dot — one grammar for section
+ * heads and group heads. */
+.head-seg + .head-seg::before {
+  content: '·';
+  margin-right: 0.4rem;
+  font-weight: 400;
   color: var(--nf-color-text-muted);
-  padding: 0.25rem 0.75rem 0.25rem 0;
-  border-bottom: 1px solid var(--nf-color-border);
 }
 
-.import-table td {
-  padding: 0.28rem 0.75rem 0.28rem 0;
+.head-seg {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+
+/* Evidence groups: a head states the shared annotation once, its rows
+ * indent beneath it. Ungrouped rows render headless and flush. */
+.row-group {
+  margin: 0.45rem 0;
+}
+
+.group-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.4rem;
+  margin: 0 0 0.15rem;
+  font-size: 0.74rem;
+  color: var(--nf-color-text-muted);
+}
+
+.group-kind {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--nf-color-text);
+}
+
+.group-count,
+.head-summary {
+  font-size: 0.72rem;
+}
+
+/* Tip affordance only when the summary carries the bundle names. */
+.head-summary.tip {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+}
+
+.head-sri {
+  font-size: 0.72rem;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+}
+
+.source-word {
+  font-size: 0.72rem;
+}
+
+/* The fold head is a real button — keyboard-operable disclosure. */
+.fold-head {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fold-head:hover .group-kind {
+  color: var(--nf-color-accent);
+}
+
+.fold-glyph {
+  font-size: 0.72rem;
+  color: var(--nf-color-text-muted);
+}
+
+.group-rows {
+  padding-left: 0.9rem;
+}
+
+/* The package home indents one step under its PACKAGES label — signature
+ * heads and ungrouped rows are its children, their rows one step deeper. */
+.home-head {
+  margin: 0.55rem 0 0.15rem;
+}
+
+.group-signature {
+  padding-left: 0.9rem;
+}
+
+.ungrouped-rows {
+  padding-left: 0.9rem;
+  margin: 0.35rem 0;
+}
+
+/* A row is `specifier | target + exception tail` under its hanging head;
+ * the tail wraps as inline-flex units so chip and status word stay
+ * together (T9 screenshot lesson — never ellipsis-truncate a
+ * qualification). */
+.map-row {
+  display: grid;
+  grid-template-columns: minmax(12rem, 34%) 1fr;
+  column-gap: 0.75rem;
+  /* Dense rows (screenshot round 2): the map stays fully visible —
+   * density, not folding, absorbs the vertical cost. */
+  padding: 0.14rem 0;
   border-bottom: 1px solid color-mix(in srgb, var(--nf-color-border) 45%, transparent);
-  vertical-align: baseline;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  align-items: baseline;
 }
 
-.import-table tbody tr:last-child td {
+.group-rows .map-row:last-child,
+.ungrouped-rows .map-row:last-child {
   border-bottom: none;
 }
 
-.map-row.row-selected td {
+.map-row.row-selected {
   background: var(--nf-color-surface);
-}
-
-.map-row.row-selected td:first-child {
   box-shadow: inset 3px 0 0 var(--nf-color-accent);
   padding-left: 0.5rem;
 }
 
-/* Shared column widths across all section tables (width-synchronized);
- * the target column absorbs the rest. */
+/* Unreferenced entries: recorded, honest, muted — nothing explains them. */
+.row-muted .cell-spec,
+.row-muted .target-text {
+  color: var(--nf-color-text-muted);
+}
+
 .cell-spec {
-  width: 34%;
   font-family: var(--nf-font-mono);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.cell-sri {
-  width: 3rem;
-  white-space: nowrap;
-}
-
-/* Annotations wrap instead of truncating: an ellipsis would swallow
- * exactly the qualification (e.g. `source-only`) that must stay visible.
- * Each annotation is an inline-flex unit, so chip and status wrap
- * together. */
-.cell-attr {
-  width: 15rem;
-  white-space: normal;
-  /* A single mono token (long bundle name) can exceed the column; break
-   * inside the token rather than overflow the table. */
+.cell-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.5rem;
+  row-gap: 0.1rem;
+  min-width: 0;
+  /* A single mono token (long target URL) can exceed the column; break
+   * inside the token rather than overflow the layout. */
   overflow-wrap: anywhere;
-}
-
-.cell-attr > * + * {
-  margin-left: 0.5rem;
-}
-
-.cell-target {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .target-text {
@@ -117,15 +212,13 @@
   color: var(--nf-color-text-muted);
 }
 
-.cell-sri {
-  text-align: center;
-}
-
 .row-sri {
+  font-size: 0.7rem;
   color: var(--nf-color-text-muted);
   text-decoration: underline dotted;
   text-underline-offset: 2px;
   cursor: help;
+  white-space: nowrap;
 }
 
 .spec-link {
@@ -136,6 +229,10 @@
 
 .spec-link:hover {
   color: var(--nf-color-accent);
+}
+
+.row-muted .spec-link {
+  color: var(--nf-color-text-muted);
 }
 
 .note-link {
@@ -169,6 +266,7 @@
 
 .row-claim,
 .row-bundle,
+.row-chunk,
 .row-expose {
   display: inline-flex;
   align-items: baseline;
@@ -181,10 +279,25 @@
   color: var(--nf-color-text-muted);
 }
 
+.expose-word {
+  font-family: var(--nf-font-mono);
+}
+
 .row-blocked {
   font-size: 0.7rem;
   color: var(--nf-color-warning-text);
   text-decoration: underline dotted;
   text-underline-offset: 2px;
   cursor: help;
+}
+
+/* Scope-precedence marker — a map-structural fact, muted, grounded one
+ * hover away. */
+.row-override {
+  font-size: 0.7rem;
+  color: var(--nf-color-text-muted);
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  cursor: help;
+  white-space: nowrap;
 }

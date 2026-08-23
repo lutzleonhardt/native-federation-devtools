@@ -1,14 +1,16 @@
 /**
- * Import Map view specs — the component half of T9 (template renders vm
- * rows only; XC-06):
- *  - T9-AC-01 (DOM half): the co-declared row renders both consumer
- *    claims and the one exact source chip.
- *  - T9-AC-03 (DOM half, fixture + SEEDED): anchors, ambiguity,
- *    unattributable, blocked, shared scope URLs, quiet norms — no
- *    guessed owner, no unqualified delivery claim anywhere.
- *  - T9-AC-05 (DOM half): live sections render in map order with the
- *    identity owner chip, SRI markers, cross-link hrefs, caption, empty
- *    states, and select seeding; the 'served by' column language is gone.
+ * Import Map view specs — the component half of T9.5 (template renders vm
+ * groups/rows only; XC-06):
+ *  - T9.5-AC-01 (DOM half): the live GLOBAL section renders `EXPOSES`
+ *    plus the signature-group heads with hoisted SRI and visible
+ *    qualifiers; the table grid and its headers are gone.
+ *  - T9.5-AC-03/-AC-04 (DOM half, fixture + SEEDED): qualified heads,
+ *    blocked rows, the muted unreferenced tail, `overrides global`, and
+ *    the anchor rows — no guessed owner, no unqualified delivery claim.
+ *  - T9.5-AC-05 (DOM half): the chunk-wiring fold is a keyboard-operable
+ *    `<button>` with `aria-expanded`, collapsed rows are not in the DOM,
+ *    selection auto-expands; caption, empty states, select seeding, and
+ *    the wording sweep carry over.
  */
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
@@ -35,9 +37,10 @@ class StubSnapshotProvider implements SnapshotProvider {
 }
 
 /**
- * SEEDED page: a CDN target (unattributable), equally matching exact
- * candidates (ambiguous), a blocked prefix entry, and a scope URL two
- * remotes register (shared scope identity).
+ * SEEDED page: a CDN target (unattributable head), equally matching exact
+ * candidates (ambiguous head), a blocked prefix entry (ungrouped), and a
+ * scope URL two remotes register whose row nothing canonical references
+ * (shared scope identity + unreferenced tail).
  */
 const SEEDED_HONEST_OUTCOMES: SnapshotV1 = {
   schemaVersion: 1,
@@ -226,45 +229,70 @@ function rowByText(el: HTMLElement, text: string): HTMLElement {
 }
 
 describe('ImportMapView', () => {
-  // T9-AC-05 (DOM half): sections in map order, identity owner chip, SRI
-  // markers; sentinels never as visible text; the 'served by' language is
-  // gone.
-  it('renders the live sections in map order with the identity owner chip', async () => {
+  // T9.5-AC-01 (DOM half): group heads replace the table grid; SRI hoists
+  // into the heads; the section count carries the raw-pivot contract.
+  it('renders the live GLOBAL section as evidence groups — the table grid is gone', async () => {
     const fixture = await createView({ fixture: 'frankenstein-live' });
     const el = fixture.nativeElement as HTMLElement;
+
+    // The 4-column table and its per-section headers are gone.
+    expect(el.querySelector('table')).toBeNull();
+    expect(el.querySelector('th')).toBeNull();
 
     const heads = Array.from(el.querySelectorAll<HTMLElement>('.section-head .section-label'));
     expect(heads.map((head) => head.textContent?.trim())).toEqual([
       'GLOBAL IMPORTS',
       'https://lutzleonhardt.de/frankenstein-meeting-room/',
     ]);
-    expect(el.querySelectorAll('.map-row')).toHaveLength(29);
-    expect(el.querySelectorAll('.row-sri')).toHaveLength(29);
+    const counts = Array.from(el.querySelectorAll<HTMLElement>('.section-count'));
+    expect(counts.map((count) => count.textContent?.trim())).toEqual(['22 entries', '7 entries']);
+    expect(counts[0].title).toContain('Export JSON preserves the artifact verbatim');
+    expect(counts[0].title).toContain('recorded map order carries no resolution semantics');
 
+    // GLOBAL factors into EXPOSES, the PACKAGES home label, and the seven
+    // signature groups; the host scope holds only the collapsed fold.
+    const sections = Array.from(el.querySelectorAll<HTMLElement>('.map-section'));
+    expect(sections[0].querySelectorAll('.group-head')).toHaveLength(9);
+    expect(
+      Array.from(el.querySelectorAll<HTMLElement>('.group-kind')).map((kind) =>
+        kind.textContent?.trim(),
+      ),
+    ).toEqual(['EXPOSES', 'PACKAGES', 'CHUNK WIRING']);
+
+    // The home label counts every package-kind row and grounds the kind
+    // derivation; it carries no SRI hoist of its own.
+    const homeHead = el.querySelector<HTMLElement>('.home-head')!;
+    expect(homeHead.textContent).toContain('20 entries');
+    const homeKind = homeHead.querySelector<HTMLElement>('.group-kind')!;
+    expect(homeKind.title).toContain('precedence: expose > chunk > package');
+    expect(homeHead.querySelector('.head-sri')).toBeNull();
+
+    // Uniform SRI hoists into every head — no row marks itself.
+    expect(el.querySelectorAll('.row-sri')).toHaveLength(0);
+    expect(el.querySelectorAll('.head-sri')).toHaveLength(9);
+    expect(el.querySelectorAll('.map-row')).toHaveLength(22);
+
+    // The source-only qualifier sits stable in its head.
+    const qualifiedHead = Array.from(el.querySelectorAll<HTMLElement>('.group-head')).find((head) =>
+      head.textContent?.includes('browser-angular_platform_browser'),
+    )!;
+    expect(qualifiedHead.querySelector('.row-qualifier')?.textContent?.trim()).toBe('source-only');
+
+    // Expose rows surface the recorded module name visibly.
+    const exposeRow = rowByText(el, 'whiteboard/./Bootstrap');
+    expect(exposeRow.querySelector('.expose-word')?.textContent?.trim()).toBe('expose ./Bootstrap');
+
+    // Identity chips: the owner chip renders host without a dot; the
+    // whiteboard head chip keeps its palette slot (T7.7 carry-over).
     const ownerChip = el.querySelector<HTMLElement>('.section-owner .chip-host')!;
     expect(ownerChip.textContent).toBe('host');
     expect(ownerChip.title).toBe(NF_HOST);
     expect(el.textContent).not.toContain(NF_HOST);
-    const ownerLink = el.querySelector<HTMLElement>('.section-owner .chip-link')!;
-    expect(ownerLink.title).toContain('scope-url identity');
-
-    // T7.7-AC-02/-AC-04: identity dots from the one sorted-name lookup —
-    // whiteboard keeps its slot (identical to Packages and Remotes); the
-    // host chip never carries a dot.
+    expect(ownerChip.querySelector('.dot')).toBeNull();
     const whiteboardChip = Array.from(
-      el.querySelectorAll<HTMLElement>('.cell-attr .chip-remote'),
+      el.querySelectorAll<HTMLElement>('.group-head .chip-remote'),
     ).find((chip) => chip.textContent === 'whiteboard')!;
     expect(whiteboardChip.querySelector('.dot')?.classList.contains('dot-2')).toBe(true);
-    expect(ownerChip.querySelector('.dot')).toBeNull();
-
-    // Column discipline: every section keeps the same four columns; the
-    // trailing column is the qualified 'resolution' channel — the
-    // unqualified 'served by' header is gone.
-    const tables = Array.from(el.querySelectorAll<HTMLTableElement>('.import-table'));
-    const headersOf = (table: HTMLTableElement) =>
-      Array.from(table.querySelectorAll('th')).map((th) => th.textContent?.trim());
-    expect(headersOf(tables[0])).toEqual(['specifier', 'target', 'SRI', 'resolution']);
-    expect(headersOf(tables[1])).toEqual(['specifier', 'target', 'SRI', 'resolution']);
 
     // Targets render relative to the page base; the verbatim URL is the
     // tooltip evidence.
@@ -276,37 +304,89 @@ describe('ImportMapView', () => {
     );
   });
 
-  // T9-AC-05/XC-03: package and remote cross-link hrefs.
-  it('links package rows to /packages and annotation chips to /remotes', async () => {
+  // T9.5-AC-05 (DOM half): the fold contract — real button, aria-expanded,
+  // collapsed rows out of the DOM, expandable, collapsible again.
+  it('folds chunk wiring collapsed by default behind a keyboard-operable button', async () => {
     const fixture = await createView({ fixture: 'frankenstein-live' });
     const el = fixture.nativeElement as HTMLElement;
-    const hrefs = Array.from(el.querySelectorAll<HTMLAnchorElement>('.map-row a')).map((anchor) =>
-      decodeURIComponent(anchor.getAttribute('href') ?? ''),
-    );
 
-    expect(hrefs).toContain('/packages?select=__GLOBAL__|@angular/common');
-    expect(hrefs).toContain(`/remotes?select=${NF_HOST}`);
-    expect(hrefs).toContain('/remotes?select=whiteboard');
+    const button = el.querySelector<HTMLButtonElement>('.fold-head')!;
+    expect(button.tagName).toBe('BUTTON');
+    expect(button.type).toBe('button');
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+    expect(button.textContent).toContain('CHUNK WIRING');
+    expect(button.textContent).toContain('7 entries in 3 bundles');
+    expect(button.textContent).toContain('SRI ✓');
+    // The bundle names stay one hover away on the tip'd summary.
+    const summary = button.querySelector<HTMLElement>('.head-summary')!;
+    expect(summary.classList.contains('tip')).toBe(true);
+    expect(summary.title).toBe('browser-angular_core, browser-angular_common, browser-rxjs');
+    // Collapsed rows are not in the DOM; the vm stays complete.
+    expect(el.textContent).not.toContain('@nf-internal/chunk-WW26EZ22');
+    expect(el.querySelectorAll('.map-row')).toHaveLength(22);
 
+    button.click();
+    fixture.detectChanges();
+    expect(button.getAttribute('aria-expanded')).toBe('true');
+    expect(el.querySelectorAll('.map-row')).toHaveLength(29);
+    // The bundle summary yields to the expanded rows.
+    expect(button.textContent).not.toContain('in 3 bundles');
+
+    // Expanded wiring rows keep the full per-row channel: emitter chip
+    // plus the bundle label linking its remote.
     const chunkRow = rowByText(el, '@nf-internal/chunk-WW26EZ22');
-    const bundleLink = chunkRow.querySelector<HTMLAnchorElement>('.note-link')!;
+    expect(chunkRow.querySelector('.row-chunk .chip-host')?.textContent).toBe('host');
+    const bundleLink = chunkRow.querySelector<HTMLAnchorElement>('.row-chunk .note-link')!;
     expect(bundleLink.textContent?.trim()).toBe('browser-angular_common');
-    expect(bundleLink.title).toContain('recorded chunk file of host');
+    expect(bundleLink.title).toBe('');
+    expect(chunkRow.querySelector<HTMLElement>('.row-chunk')!.title).toContain(
+      'recorded chunk file of host',
+    );
     expect(decodeURIComponent(bundleLink.getAttribute('href') ?? '')).toBe(
       `/remotes?select=${NF_HOST}`,
     );
+
+    button.click();
+    fixture.detectChanges();
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+    expect(el.querySelectorAll('.map-row')).toHaveLength(22);
   });
 
-  // T9-AC-01 (DOM half): both consumer claims and the one exact source
-  // chip render on the one co-declared row.
-  it('renders both consumer claims of the co-declared row with its one source', async () => {
+  // T9.5-AC-05: a seeded selection inside the fold auto-expands it; an
+  // explicit toggle wins over the selection.
+  it('auto-expands the fold holding the seeded selection', async () => {
+    const fixture = await createView({
+      fixture: 'frankenstein-live',
+      select: '@nf-internal/chunk-WW26EZ22',
+    });
+    const el = fixture.nativeElement as HTMLElement;
+    const button = el.querySelector<HTMLButtonElement>('.fold-head')!;
+    expect(button.getAttribute('aria-expanded')).toBe('true');
+    const selected = el.querySelectorAll<HTMLElement>('.row-selected');
+    expect(selected).toHaveLength(1);
+    expect(selected[0].textContent).toContain('@nf-internal/chunk-WW26EZ22');
+
+    button.click();
+    fixture.detectChanges();
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+    expect(el.querySelectorAll('.row-selected')).toHaveLength(0);
+  });
+
+  // T9.5-AC-01 (DOM half): the signature head carries the one source chip
+  // and the qualified bundle; the row keeps both consumer claims.
+  it('renders the co-declared claims on the row under its factored head', async () => {
     const fixture = await createView({ fixture: 'co-declared-share' });
     const el = fixture.nativeElement as HTMLElement;
+
+    const head = Array.from(el.querySelectorAll<HTMLElement>('.group-head')).find((candidate) =>
+      candidate.textContent?.includes('browser-shared'),
+    )!;
+    expect(head.querySelector('.chip')?.textContent).toBe('mfe1');
+    expect(head.querySelector('.source-word')?.textContent).toBe('from');
+    expect(head.querySelector('.row-qualifier')?.textContent?.trim()).toBe('source-only');
+    expect(head.textContent).toContain('1 entry');
+
     const row = rowByText(el, '@nf-lab/conflict-lib');
-
-    const sourceChip = row.querySelector<HTMLElement>('.cell-attr > .chip-link .chip')!;
-    expect(sourceChip.textContent).toBe('mfe1');
-
     const claims = Array.from(row.querySelectorAll<HTMLElement>('.row-claim'));
     expect(
       claims.map((claim) => [
@@ -317,21 +397,32 @@ describe('ImportMapView', () => {
       ['mfe1', 'selected'],
       ['mfe2', 'not selected'],
     ]);
+    // The source and bundle stay hoisted — the row renders no qualifier
+    // and no bundle of its own.
+    expect(row.querySelector('.row-qualifier')).toBeNull();
+    expect(row.querySelector('.row-bundle')).toBeNull();
   });
 
-  // T9-AC-03 (DOM half): the anchor stays visible and qualified on the
-  // consumer scope row.
-  it('renders the pooling anchor qualified on the consumer scope row', async () => {
+  // T9.5-AC-04 (DOM half): the anchor stays visible and qualified on the
+  // consumer scope row, which also carries the overrides-global marker.
+  it('renders the pooling anchor qualified with the overrides-global marker', async () => {
     const fixture = await createView({ fixture: 'pooling-anchor' });
     const el = fixture.nativeElement as HTMLElement;
-    const scopeTables = Array.from(el.querySelectorAll<HTMLElement>('.map-section')).filter(
+    const scopeSections = Array.from(el.querySelectorAll<HTMLElement>('.map-section')).filter(
       (section) => section.querySelector('.section-label.mono') !== null,
     );
-    expect(scopeTables.length).toBe(2);
-    const mfe2Row = scopeTables[1].querySelector<HTMLElement>('.map-row')!;
-    expect(mfe2Row.querySelector('.cell-attr > .chip-link .chip')?.textContent).toBe('mfe1');
-    expect(mfe2Row.querySelector('.row-qualifier')?.textContent?.trim()).toBe('explicit anchor');
-    expect(mfe2Row.querySelector('.claim-state')?.textContent?.trim()).toBe('anchored');
+    expect(scopeSections.length).toBe(2);
+    for (const section of scopeSections) {
+      const row = section.querySelector<HTMLElement>('.map-row')!;
+      expect(row.querySelector('.chip')?.textContent).toBe('mfe1');
+      expect(row.querySelector('.row-qualifier')?.textContent?.trim()).toBe('explicit anchor');
+      expect(row.querySelector('.claim-state')?.textContent?.trim()).toBe('anchored');
+      const override = row.querySelector<HTMLElement>('.row-override')!;
+      expect(override.textContent?.trim()).toBe('overrides global');
+      expect(override.title).toContain('rule: scope-precedence');
+      // Ungrouped scope rows always self-mark their integrity state.
+      expect(row.querySelector('.row-sri')?.textContent?.trim()).toBe('no SRI');
+    }
   });
 
   // Quiet norms: an identity-owned scope section whose rows restate the
@@ -344,49 +435,78 @@ describe('ImportMapView', () => {
     );
     for (const section of scopeSections) {
       const row = section.querySelector<HTMLElement>('.map-row')!;
-      expect(row.querySelector('.cell-attr .chip')).toBeNull();
+      expect(row.querySelector('.chip')).toBeNull();
       const bundle = row.querySelector<HTMLElement>('.row-bundle')!;
       expect(bundle.textContent).toContain('browser-shared');
       expect(bundle.querySelector('.row-qualifier')?.textContent?.trim()).toBe('source-only');
       expect(bundle.title).toContain('no registered chunk group backs it');
+      expect(row.querySelector('.row-override')).toBeNull();
     }
   });
 
-  // T9-AC-03 (DOM half, SEEDED): honest outcomes render — ambiguity,
-  // unattributable, blocked, shared scope identity; no guessed owner.
-  it('renders ambiguous, unattributable, blocked, and shared-scope outcomes honestly', async () => {
+  // T9.5-AC-04 (DOM half, SEEDED): qualified heads, blocked rows, shared
+  // scope identity, and the unreferenced tail render honestly.
+  it('renders ambiguous, unattributable, blocked, and unreferenced outcomes honestly', async () => {
     const fixture = await createView({ fixture: null, snapshot: SEEDED_HONEST_OUTCOMES });
     const el = fixture.nativeElement as HTMLElement;
 
-    const cdnRow = rowByText(el, 'lodash');
-    expect(cdnRow.querySelector('.cell-attr > .chip-link')).toBeNull();
-    const cdnQualifier = cdnRow.querySelector<HTMLElement>('.row-qualifier')!;
-    expect(cdnQualifier.textContent?.trim()).toBe('unattributable');
-    expect(cdnQualifier.title).toContain('CDN or foreign origin');
-
-    const ambiguousRow = rowByText(el, 'vendor/lib.js');
-    expect(ambiguousRow.querySelector('.cell-attr > .chip-link')).toBeNull();
-    expect(ambiguousRow.querySelector('.row-qualifier')?.textContent?.trim()).toBe(
-      'ambiguous source',
+    // Qualified signatures form heads carrying the qualified language.
+    const headQualifiers = Array.from(
+      el.querySelectorAll<HTMLElement>('.group-head .row-qualifier'),
     );
+    expect(headQualifiers.map((qualifier) => qualifier.textContent?.trim())).toEqual([
+      'unattributable',
+      'ambiguous source',
+    ]);
+    expect(headQualifiers[0].title).toContain('CDN or foreign origin');
+    const cdnRow = rowByText(el, 'lodash');
+    expect(cdnRow.textContent).toContain('https://cdn.example/lodash.js');
 
+    // The blocked row has no signature — it renders ungrouped with the
+    // full per-row channel and its own SRI mark.
     const blockedRow = rowByText(el, 'util/');
     const blocked = blockedRow.querySelector<HTMLElement>('.row-blocked')!;
     expect(blocked.textContent).toBe('blocked');
     expect(blocked.title).toContain('prefix-target-missing-trailing-slash');
+    expect(blockedRow.querySelector('.row-sri')?.textContent?.trim()).toBe('no SRI');
 
     // The scope two remotes register names both — an identity, not an
-    // election, so no ambiguous badge and no single owner.
+    // election; its unreferenced row renders muted with no annotation.
     const owner = el.querySelector<HTMLElement>('.section-owner')!;
     expect(Array.from(owner.querySelectorAll('.chip')).map((chip) => chip.textContent)).toEqual([
       'team-a',
       'team-b',
     ]);
     expect(owner.title).toContain('scope-url identity');
+    const sharedRow = rowByText(el, 'shared');
+    expect(sharedRow.classList.contains('row-muted')).toBe(true);
+    expect(sharedRow.querySelector('.chip')).toBeNull();
   });
 
-  // T9-AC-05: the honesty caption renders verbatim on populated AND empty
-  // captures; mapMode 'none' renders the honest empty state.
+  // T9.5-AC-03 (DOM half): the hostile capture renders the muted
+  // UNREFERENCED tail with per-row SRI marks (mixed — no hoist).
+  it('renders the unreferenced tail muted with per-row SRI marks', async () => {
+    const fixture = await createView({ fixture: 'synthetic-hostile' });
+    const el = fixture.nativeElement as HTMLElement;
+
+    const group = el.querySelector<HTMLElement>('.group-unreferenced')!;
+    const kind = group.querySelector<HTMLElement>('.group-kind')!;
+    expect(kind.textContent?.trim()).toBe('UNREFERENCED');
+    expect(kind.title).toContain('honest absence, never a guessed owner');
+    expect(group.querySelector('.head-sri')).toBeNull();
+
+    const rows = Array.from(group.querySelectorAll<HTMLElement>('.map-row'));
+    expect(rows).toHaveLength(2);
+    expect(rows.every((row) => row.classList.contains('row-muted'))).toBe(true);
+    expect(rows.map((row) => row.querySelector('.row-sri')?.textContent?.trim())).toEqual([
+      'SRI ✓',
+      'no SRI',
+    ]);
+    expect(group.querySelector('.chip')).toBeNull();
+  });
+
+  // T9.5-AC-05: the honesty caption renders verbatim on populated AND
+  // empty captures; mapMode 'none' renders the honest empty state.
   it('renders the caption verbatim and the honest empty state for mapMode none', async () => {
     const live = await createView({ fixture: 'frankenstein-live' });
     const caption =
@@ -426,6 +546,8 @@ describe('ImportMapView', () => {
     for (const name of ['frankenstein-live', 'pooling-anchor', 'scoped'] as const) {
       const fixture = await createView({ fixture: name });
       const el = fixture.nativeElement as HTMLElement;
+      el.querySelector<HTMLButtonElement>('.fold-head')?.click();
+      fixture.detectChanges();
       const text = el.textContent ?? '';
       expect(text).not.toContain('served by');
       expect(text).not.toMatch(/\bloaded\b/);
@@ -433,6 +555,7 @@ describe('ImportMapView', () => {
       // unqualified claim as well.
       for (const titled of Array.from(el.querySelectorAll<HTMLElement>('[title]'))) {
         expect(titled.title).not.toContain('served by');
+        expect(titled.title).not.toMatch(/\bloaded\b/);
       }
     }
   });

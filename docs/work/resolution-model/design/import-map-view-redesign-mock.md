@@ -518,3 +518,79 @@ dropped:
   instead of deferred; the fold DOM/a11y contract
   (button, `aria-expanded`, keyboard, auto-expand incl. `/./`) is now
   part of the anatomy and the pin list.
+
+## Amendment — screenshot review round 1 (2026-08-23, Lutz + Claude)
+
+Panel review of the implemented view (frankenstein-live, localhost dev
+server). Three items agreed and implemented; iteration-1 text above
+stays untouched.
+
+1. **`PACKAGES` home label.** The package home was the only anonymous
+   home (EXPOSES / CHUNK WIRING / UNREFERENCED are named). It now
+   carries one `PACKAGES` label above its FIRST group, spanning
+   signature groups AND ungrouped package rows — the count is the whole
+   home (`PACKAGES · 20 entries`), so blocked/claims-only rows are
+   covered and the structure never lies. Renders in scope sections too
+   (consistency over economy — same rule as singleton signature groups;
+   revisit if the 1-row scope sections read as noise). Tooltip grounds
+   the kind derivation (`precedence: expose > chunk > package`). No SRI
+   hoist on the home label — its groups hoist individually. VM:
+   `ImportMapGroupVm.packagesHead` on the home's first group
+   (presentation field, no new joins).
+2. **`from` stays; `provided from` rejected.** "provides/provided" is
+   Remotes ZONE vocabulary (copy-driven, offer-vs-resolution boundary) —
+   reusing it for resolution attribution would dilute both meanings, and
+   "provided" asserts delivery, which this view never claims (it would
+   break on qualified heads: "provided from · unattributable"). The bare
+   `from [chip]` is the established cross-view source-word grammar; the
+   missing noun now comes from the `PACKAGES` home label above
+   (`PACKAGES … from [whiteboard]` reads as a sentence).
+3. **Hard section separation.** The scope boundary read like just
+   another group boundary. Following sections now open with breathing
+   room plus a fine `border-top` rule (`.map-section + .map-section`).
+   No new vocabulary; sticky section nav stays deferred.
+
+Indentation grammar with the home label: `PACKAGES` flush, signature
+heads / ungrouped rows one step in, their rows one step deeper —
+EXPOSES/CHUNK WIRING/UNREFERENCED keep the flat one-step anatomy (the
+extra level is real structure, not styling).
+
+Also revisited this round: "have we drifted too far from the import
+map?" — verdict NO, on the strength of the raw-pivot anchors (multiset
+sweep, scope sections ≙ `imports`/`scopes`, specifier→target rows,
+Export JSON verbatim); the display's organizing principle is evidence,
+deliberately. Watch items if it ever stolpers in real debugging: the
+lost visual map order and the collapsed fold hiding recorded entries.
+
+## Amendment — screenshot review round 2 (2026-08-23, Lutz + Claude)
+
+4. **Signature groups are NOT foldable — density absorbs the vertical
+   cost.** Question raised: fold the `from` groups collapsed by default,
+   like `CHUNK WIRING`? Rejected: the chunk fold is the justified
+   exception (hash-named wiring specifiers with no per-row reading
+   value), not a precedent — in the package home the specifiers ARE the
+   content, and "which specifiers are mapped" is this view's core
+   question. Default-collapsed groups would leave the raw pivot
+   invisible in the ground state (exactly the "too far from the import
+   map" line) and break free scanning/Ctrl+F. Decided: keep every row
+   visible, increase density instead (row padding 0.26rem → 0.14rem,
+   line-height 1.35, group margin tightened). **Deferred scale hatch:**
+   collapsible signature groups (default expanded) — build only when a
+   real capture produces a GLOBAL section that forces it, same deferral
+   discipline as sticky section nav.
+
+## Amendment — screenshot review round 3 (2026-08-23, Lutz + Claude)
+
+5. **Fold summary counts instead of listing.** The collapsed
+   `CHUNK WIRING` head no longer lists bundle labels (they dominated the
+   head, restate themselves on every expanded row, and already appear in
+   the PACKAGES signature heads). New grammar:
+   `CHUNK WIRING · 7 entries in 3 bundles · SRI ✓ ▸` — "in N bundles"
+   chosen over "N entries / N bundles" (reads as a sentence; the slash
+   is foreign to the middot grammar). The bundle names stay one hover
+   away on the tip'd summary segment, dominant bundle first (row-count
+   order, first appearance breaking ties — the old visible order).
+   Pseudo-package folds say `in N chunk groups` with no tooltip (the
+   names would restate the expanded specifiers — a tip must add
+   something, the 8.6 `serves` rule). VM: `bundleSummary` carries the
+   compact label, new `bundleSummaryNote` the hover list.

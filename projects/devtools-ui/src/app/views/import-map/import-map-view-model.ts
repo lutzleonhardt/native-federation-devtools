@@ -18,6 +18,21 @@
  * distinguishable rendering lives in Remotes/Packages; aggregation is
  * Task-10 diagnostics territory).
  *
+ * Within a section, rows regroup into evidence homes (T9.5): `EXPOSES`,
+ * annotation-signature groups (global section only), ungrouped rows,
+ * `CHUNK WIRING` (collapsed by default), and `UNREFERENCED`. A row's home
+ * derives from its canonical joins with precedence expose > chunk >
+ * package — the precedence decides the grouping home only; annotations
+ * never drop from a row. A group head factors the annotation its rows
+ * share (source, bundle, qualifier, uniform SRI) exactly once; qualified
+ * language moves into the head verbatim, it never disappears into
+ * membership. Order invariant (supersedes the T9 map-order clause): the
+ * rendered triples are a deterministic permutation of the recorded
+ * entries — sections in map first-appearance order, homes in the fixed
+ * order above, signature groups by first appearance, rows in map order
+ * within every home. Map order carries no resolution semantics; Export
+ * JSON keeps the artifact verbatim.
+ *
  * Inputs are the store's model plus caller-owned UI state; the output is
  * render-ready only: templates consume these rows, never store types
  * (XC-06).
@@ -128,6 +143,7 @@ export interface RowBundleVm {
 export interface RowChunkVm {
   emitterRemote: string;
   display: string;
+  host: boolean;
   /** Verbatim `select` payload for the /remotes cross-link. */
   select: string;
   /** Group label — the bundle name, or the pseudo package for v4.5 groups. */
@@ -185,7 +201,100 @@ export interface ImportMapRowVm {
   blocked: RowBlockedVm | null;
   /** `/packages?select=` payload of the claimed registry package, where unique. */
   packageSelect: string | null;
+  /**
+   * A global entry maps the same specifier to a different target — for
+   * modules resolved under this scope URL, this entry takes precedence.
+   * Map-structural evidence only (`importMapEntries` vs
+   * `importMapEntries`); no resolution or execution claim. Always false
+   * on global rows and for same-target duplicates.
+   */
+  overridesGlobal: boolean;
   selected: boolean;
+}
+
+/** Fixed tooltip of the `overrides global` marker (scope precedence). */
+export const OVERRIDES_GLOBAL_NOTE =
+  'a global entry maps this specifier to a different target — for modules resolved under this scope URL, this entry takes precedence (rule: scope-precedence)';
+
+/** Section-count tooltip — the raw-pivot/order contract of this view. */
+export const IMPORT_MAP_SECTION_CONTRACT =
+  'one row per recorded (scope, specifier, target) entry, grouped by its resolution evidence — recorded map order carries no resolution semantics; Export JSON preserves the artifact verbatim. Sources stay qualified; nothing claims requests or execution.';
+
+/** One factored source fact of a signature-group head (set semantics). */
+export interface GroupSourceVm {
+  /** Display form of the source remote; null when no source is evidenced. */
+  display: string | null;
+  host: boolean;
+  /** `select` payload for the /remotes cross-link; null without a remote. */
+  remoteSelect: string | null;
+  qualifier: RowSourceQualifier;
+  label: string;
+  /** Fixed factoring string per qualifier — never a per-copy tag. */
+  note: string;
+}
+
+/** One factored bundle fact of a signature-group head (set semantics). */
+export interface GroupBundleVm {
+  label: string;
+  status: 'mapped-source' | 'source-only' | 'ambiguous';
+  qualified: boolean;
+  select: string | null;
+  /** Fixed factoring string per status — never a per-claim id. */
+  note: string;
+}
+
+export type ImportMapGroupKind =
+  'exposes' | 'signature' | 'ungrouped' | 'chunk-wiring' | 'unreferenced';
+
+/**
+ * Home label of the package home (screenshot round 1): signature groups
+ * and ungrouped package rows share one `PACKAGES` head — the counterpart
+ * of the `EXPOSES`/`CHUNK WIRING`/`UNREFERENCED` kind words. Carried by
+ * the FIRST group of the home; the count spans the whole home.
+ */
+export interface PackagesHomeHeadVm {
+  /** e.g. "20 entries" — every package-kind row of the section. */
+  countClaim: string;
+  note: string;
+}
+
+/**
+ * One evidence home of a section. A group head renders the annotation its
+ * rows share exactly once; membership claims nothing beyond what each row
+ * already said. `ungrouped` renders no head — its rows keep the full
+ * per-row channel and always self-mark integrity.
+ */
+export interface ImportMapGroupVm {
+  kind: ImportMapGroupKind;
+  /** Head count claim; the exposes head renders the bare number. */
+  countClaim: string;
+  /**
+   * Uniform integrity hoisted into the head: true = `SRI ✓`, false =
+   * `no SRI`, null = mixed or headless — the rows mark themselves.
+   */
+  integrityHoist: boolean | null;
+  /** Factored source facts of a signature head; empty on other kinds. */
+  sources: GroupSourceVm[];
+  /** Factored bundle facts of a signature head; empty on other kinds. */
+  bundles: GroupBundleVm[];
+  /**
+   * Collapsed chunk-wiring summary, e.g. "in 3 bundles" (screenshot
+   * round 3 — counts, not label lists); null on other kinds.
+   */
+  bundleSummary: string | null;
+  /**
+   * Bundle names behind the summary, one hover away; null when the
+   * tooltip would add nothing (pseudo-package groups restate their
+   * specifiers on the expanded rows).
+   */
+  bundleSummaryNote: string | null;
+  /** True when the group holds the selected row (fold auto-expansion). */
+  containsSelection: boolean;
+  /** Grounded head tooltip of the kind groups; null on signature/ungrouped. */
+  note: string | null;
+  /** The `PACKAGES` home label, on the home's first group; null elsewhere. */
+  packagesHead: PackagesHomeHeadVm | null;
+  rows: ImportMapRowVm[];
 }
 
 /**
@@ -219,7 +328,8 @@ export interface ImportMapSectionVm {
   owner: SectionOwnerVm | null;
   /** e.g. "22 entries". */
   countClaim: string;
-  rows: ImportMapRowVm[];
+  /** Evidence homes in fixed order; every recorded row lives in exactly one. */
+  groups: ImportMapGroupVm[];
 }
 
 export interface ImportMapVm {
@@ -367,6 +477,7 @@ function chunkVmsOf(joins: ChunkJoin[] | undefined): RowChunkVm[] {
     return {
       emitterRemote,
       display,
+      host: isHostRemote(emitterRemote),
       select: emitterRemote,
       groupLabel: labels.join(' · '),
       groupNoun: hasBundle ? (labels.length > 1 ? 'bundles' : 'bundle') : 'chunk group',
@@ -507,6 +618,220 @@ function blockedVmOf(resolutions: EffectiveConsumerResolution[]): RowBlockedVm |
   };
 }
 
+/**
+ * Fixed factoring strings of the signature heads — the doctrine sentence
+ * per qualifier, never a per-copy tag (the resolved tag stays on the row
+ * VMs and reaches the user via the specifier's /packages cross-link).
+ */
+const HEAD_SOURCE_NOTES: Record<RowSourceQualifier, string> = {
+  'exact-target-source':
+    'uniquely evidenced source record — its candidate URL matches the resolved target exactly',
+  'explicit-anchor': 'selected through an explicit servedBy anchor of the registry evidence',
+  'observed-target-source': 'attributed by scope-prefix match — not an exact candidate match',
+  'ambiguous-source': 'several candidate sources match this target — none is chosen',
+  unattributable:
+    'no registry scope matches this target — CDN or foreign origin (rule: scope-prefix-match)',
+  'unknown-source': 'only the resolved URL is evidenced — no source record or scope prefix matches',
+};
+
+const HEAD_BUNDLE_NOTES: Record<GroupBundleVm['status'], string> = {
+  'mapped-source':
+    'bundle of the selected source — registered chunk groups back it (rule: bundle-claim)',
+  'source-only':
+    'bundle declared by the selected source — no registered chunk group backs it in this capture (rule: bundle-claim)',
+  ambiguous: 'bundle of an ambiguous candidate source — no source is chosen (rule: bundle-claim)',
+};
+
+const GROUP_NOTES: Partial<Record<ImportMapGroupKind, string>> = {
+  exposes:
+    'import-map entries whose targets are recorded exposed modules (rule: expose join) — registry evidence, no delivery claim',
+  'chunk-wiring':
+    'import-map entries wiring internal chunk specifiers — the delivery wiring of the recorded bundles; the chunk evidence itself lives on the Remotes page',
+  unreferenced:
+    'no canonical evidence references these entries — no consumer resolution, no expose, no chunk group; the map records them, nothing explains them (honest absence, never a guessed owner)',
+};
+
+/** Fixed tooltip of the `PACKAGES` home label (kind derivation). */
+const PACKAGES_HOME_NOTE =
+  'import-map entries at least one effective consumer resolution resolves through — grouped by the resolution evidence their rows share; a row’s home derives from its canonical joins (precedence: expose > chunk > package)';
+
+/**
+ * Signature equality is exactly the rendered head facts: the SET of
+ * `(remoteSelect, host, qualifier)` over the row's sources plus the SET
+ * of `(label, status, select)` over its bundles. Copy IDs, bundle-claim
+ * IDs, resolved tags, and note strings are excluded — several copies of
+ * one source share a group; two rows differing in any keyed fact never
+ * merge. An empty signature (no copy, no bundle) has no head to share —
+ * those rows render ungrouped.
+ */
+function signatureKeyOf(row: ImportMapRowVm): string {
+  const sources = [
+    ...new Set(
+      row.sources.map((source) =>
+        JSON.stringify([source.remoteSelect, source.host, source.qualifier]),
+      ),
+    ),
+  ].sort();
+  const bundles = [
+    ...new Set(
+      row.bundles.map((bundle) => JSON.stringify([bundle.label, bundle.status, bundle.select])),
+    ),
+  ].sort();
+  return JSON.stringify([sources, bundles]);
+}
+
+/** Factored head facts of one signature group, deduped in first-row order. */
+function signatureFactsOf(rows: ImportMapRowVm[]): {
+  sources: GroupSourceVm[];
+  bundles: GroupBundleVm[];
+} {
+  const sources = new Map<string, GroupSourceVm>();
+  const bundles = new Map<string, GroupBundleVm>();
+  for (const row of rows) {
+    for (const source of row.sources) {
+      const key = JSON.stringify([source.remoteSelect, source.host, source.qualifier]);
+      if (!sources.has(key)) {
+        sources.set(key, {
+          display: source.display,
+          host: source.host,
+          remoteSelect: source.remoteSelect,
+          qualifier: source.qualifier,
+          label: source.label,
+          note: HEAD_SOURCE_NOTES[source.qualifier],
+        });
+      }
+    }
+    for (const bundle of row.bundles) {
+      const key = JSON.stringify([bundle.label, bundle.status, bundle.select]);
+      if (!bundles.has(key)) {
+        bundles.set(key, {
+          label: bundle.label,
+          status: bundle.status,
+          qualified: bundle.qualified,
+          select: bundle.select,
+          note: HEAD_BUNDLE_NOTES[bundle.status],
+        });
+      }
+    }
+  }
+  return { sources: [...sources.values()], bundles: [...bundles.values()] };
+}
+
+/** Uniform integrity of a headed group; null = mixed, the rows self-mark. */
+function integrityHoistOf(rows: ImportMapRowVm[]): boolean | null {
+  if (rows.every((row) => row.hasIntegrity)) {
+    return true;
+  }
+  return rows.some((row) => row.hasIntegrity) ? null : false;
+}
+
+/**
+ * Collapsed-head summary of the chunk-wiring fold: entry count plus
+ * bundle count ("in 3 bundles"), the bundle names one hover away —
+ * ordered by row count (first appearance breaking ties). Pseudo-package
+ * groups without a bundle name compress to their count ("in 7 chunk
+ * groups") with no tooltip — the specifiers restate themselves on the
+ * expanded rows.
+ */
+function bundleSummaryOf(rows: ImportMapRowVm[]): { label: string; note: string | null } {
+  const counts = new Map<string, number>();
+  const pseudoLabels = new Set<string>();
+  for (const row of rows) {
+    for (const chunk of row.chunks) {
+      if (chunk.groupNoun === 'chunk group') {
+        pseudoLabels.add(chunk.groupLabel);
+      } else {
+        counts.set(chunk.groupLabel, (counts.get(chunk.groupLabel) ?? 0) + 1);
+      }
+    }
+  }
+  if (counts.size === 0) {
+    return { label: `in ${countClaim(pseudoLabels.size, 'chunk group')}`, note: null };
+  }
+  const labels = [...counts.keys()].sort((a, b) => (counts.get(b) ?? 0) - (counts.get(a) ?? 0));
+  return { label: `in ${countClaim(counts.size, 'bundle')}`, note: labels.join(', ') };
+}
+
+function groupVmOf(kind: ImportMapGroupKind, rows: ImportMapRowVm[]): ImportMapGroupVm {
+  const signature = kind === 'signature' ? signatureFactsOf(rows) : null;
+  const summary = kind === 'chunk-wiring' ? bundleSummaryOf(rows) : null;
+  return {
+    kind,
+    countClaim: kind === 'exposes' ? `${rows.length}` : countClaim(rows.length, 'entry', 'entries'),
+    // Ungrouped rows render without a head — they always self-mark.
+    integrityHoist: kind === 'ungrouped' ? null : integrityHoistOf(rows),
+    sources: signature?.sources ?? [],
+    bundles: signature?.bundles ?? [],
+    bundleSummary: summary?.label ?? null,
+    bundleSummaryNote: summary?.note ?? null,
+    containsSelection: rows.some((row) => row.selected),
+    note: GROUP_NOTES[kind] ?? null,
+    packagesHead: null,
+    rows,
+  };
+}
+
+/**
+ * Evidence homes of one section, in fixed order: `EXPOSES` → signature
+ * groups (global only, by first appearance) → ungrouped rows →
+ * `CHUNK WIRING` → `UNREFERENCED`. The home derives from the row's
+ * canonical joins with precedence expose > chunk > package (the
+ * `scoped-pseudo-external` precedent: v4.5 wiring entries carry
+ * pseudo-external claims, the wiring home wins); rows keep map order
+ * within every home. Empty homes render nothing.
+ */
+function groupsOf(kind: 'global' | 'scope', rows: ImportMapRowVm[]): ImportMapGroupVm[] {
+  const exposeRows: ImportMapRowVm[] = [];
+  const chunkRows: ImportMapRowVm[] = [];
+  const packageRows: ImportMapRowVm[] = [];
+  const unreferencedRows: ImportMapRowVm[] = [];
+  for (const row of rows) {
+    if (row.exposes.length > 0) {
+      exposeRows.push(row);
+    } else if (row.chunks.length > 0) {
+      chunkRows.push(row);
+    } else if (row.resolutionIds.length > 0) {
+      packageRows.push(row);
+    } else {
+      unreferencedRows.push(row);
+    }
+  }
+
+  // Signature groups render in the global section only; every scope
+  // package row keeps the full per-row channel (witnessed max: 1 per
+  // scope), as do global rows with an empty signature.
+  const signatureGroups = new Map<string, ImportMapRowVm[]>();
+  const ungroupedRows: ImportMapRowVm[] = [];
+  for (const row of packageRows) {
+    if (kind === 'scope' || (row.sources.length === 0 && row.bundles.length === 0)) {
+      ungroupedRows.push(row);
+      continue;
+    }
+    const key = signatureKeyOf(row);
+    signatureGroups.set(key, [...(signatureGroups.get(key) ?? []), row]);
+  }
+
+  // The package home (signature groups + ungrouped package rows) carries
+  // one `PACKAGES` label on its first group; the count spans the home.
+  const packageHomeGroups = [
+    ...[...signatureGroups.values()].map((groupRows) => groupVmOf('signature', groupRows)),
+    ...(ungroupedRows.length > 0 ? [groupVmOf('ungrouped', ungroupedRows)] : []),
+  ];
+  if (packageHomeGroups.length > 0) {
+    packageHomeGroups[0].packagesHead = {
+      countClaim: countClaim(packageRows.length, 'entry', 'entries'),
+      note: PACKAGES_HOME_NOTE,
+    };
+  }
+
+  return [
+    ...(exposeRows.length > 0 ? [groupVmOf('exposes', exposeRows)] : []),
+    ...packageHomeGroups,
+    ...(chunkRows.length > 0 ? [groupVmOf('chunk-wiring', chunkRows)] : []),
+    ...(unreferencedRows.length > 0 ? [groupVmOf('unreferenced', unreferencedRows)] : []),
+  ];
+}
+
 export function buildImportMapVm(model: FederationModel, ui: ImportMapUiState): ImportMapVm {
   if (model.mapMode === 'none') {
     return {
@@ -520,6 +845,18 @@ export function buildImportMapVm(model: FederationModel, ui: ImportMapUiState): 
   const joins = buildRowJoins(model);
   const wanted = ui.selected === null ? null : collapseDotInfix(ui.selected);
   const pageBase = model.provenance.pageUrl;
+
+  // Map-structural scope-precedence evidence: global targets per
+  // specifier, from `importMapEntries` alone.
+  const globalTargetsBySpecifier = new Map<string, Set<string>>();
+  for (const entry of model.importMapEntries) {
+    if (entry.scope === null) {
+      globalTargetsBySpecifier.set(
+        entry.specifier,
+        new Set([...(globalTargetsBySpecifier.get(entry.specifier) ?? []), entry.target]),
+      );
+    }
+  }
 
   const rowOf = (entry: ImportMapEntryRow): ImportMapRowVm => {
     const resolutions =
@@ -573,6 +910,11 @@ export function buildImportMapVm(model: FederationModel, ui: ImportMapUiState): 
       exposes: joins.exposesByTarget.get(entry.target) ?? [],
       blocked: blockedVmOf(resolutions),
       packageSelect: packageSelectOf(entry, claims),
+      overridesGlobal:
+        entry.scope !== null &&
+        [...(globalTargetsBySpecifier.get(entry.specifier) ?? [])].some(
+          (target) => target !== entry.target,
+        ),
       selected: wanted !== null && collapseDotInfix(entry.specifier) === wanted,
     };
   };
@@ -613,33 +955,39 @@ export function buildImportMapVm(model: FederationModel, ui: ImportMapUiState): 
   };
 
   // The flattened effective map is already in map order (top-level first,
-  // then scopes); sections keep first-appearance order.
-  const sections: ImportMapSectionVm[] = [];
-  const byScope = new Map<string | null, ImportMapSectionVm>();
+  // then scopes); sections keep first-appearance order. Rows collect in
+  // map order per section, then regroup into their evidence homes.
+  interface SectionDraft {
+    kind: 'global' | 'scope';
+    label: string;
+    scope: string | null;
+    owner: SectionOwnerVm | null;
+    rows: ImportMapRowVm[];
+  }
+  const drafts: SectionDraft[] = [];
+  const byScope = new Map<string | null, SectionDraft>();
   for (const entry of model.importMapEntries) {
-    let section = byScope.get(entry.scope);
-    if (section === undefined) {
-      section = {
+    let draft = byScope.get(entry.scope);
+    if (draft === undefined) {
+      draft = {
         kind: entry.scope === null ? 'global' : 'scope',
         label: entry.scope ?? GLOBAL_LABEL,
         scope: entry.scope,
         owner: entry.scope === null ? null : ownerOf(entry.scope),
-        countClaim: '',
         rows: [],
       };
-      byScope.set(entry.scope, section);
-      sections.push(section);
+      byScope.set(entry.scope, draft);
+      drafts.push(draft);
     }
-    section.rows.push(rowOf(entry));
+    draft.rows.push(rowOf(entry));
   }
-  for (const section of sections) {
-    section.countClaim = countClaim(section.rows.length, 'entry', 'entries');
+  for (const draft of drafts) {
     // Only exceptions speak: a source chip restating the section's
     // identity-owned remote with an exact qualifier stays quiet; every
     // non-exact qualifier and every foreign source keeps speaking.
-    if (section.owner?.kind === 'remote') {
-      const owner = section.owner;
-      for (const row of section.rows) {
+    if (draft.owner?.kind === 'remote') {
+      const owner = draft.owner;
+      for (const row of draft.rows) {
         row.sourceQuiet =
           row.sources.length > 0 &&
           row.sources.every(
@@ -649,6 +997,14 @@ export function buildImportMapVm(model: FederationModel, ui: ImportMapUiState): 
       }
     }
   }
+  const sections: ImportMapSectionVm[] = drafts.map((draft) => ({
+    kind: draft.kind,
+    label: draft.label,
+    scope: draft.scope,
+    owner: draft.owner,
+    countClaim: countClaim(draft.rows.length, 'entry', 'entries'),
+    groups: groupsOf(draft.kind, draft.rows),
+  }));
 
   return {
     sections,
