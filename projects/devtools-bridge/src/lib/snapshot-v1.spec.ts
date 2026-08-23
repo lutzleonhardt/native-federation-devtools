@@ -5,6 +5,18 @@ import { SnapshotV1 } from './snapshot-v1';
 const fixtureEntries = Object.entries(FIXTURES) as [string, SnapshotV1][];
 const primary: SnapshotV1 = FIXTURES[PRIMARY_FIXTURE_ID];
 
+function sharedParticipants(snapshot: SnapshotV1) {
+  return Object.values(snapshot.runtime?.sharedExternals ?? {}).flatMap((packages) =>
+    Object.values(packages).flatMap((external) =>
+      external.versions.flatMap((version) => version.remotes),
+    ),
+  );
+}
+
+function hasOwn(value: object, key: PropertyKey): boolean {
+  return Object.prototype.hasOwnProperty.call(value, key);
+}
+
 describe('SnapshotV1 (T2-AC-01)', () => {
   it.each(fixtureEntries)('%s survives a serialize → parse round-trip', (_id, fixture) => {
     const roundTripped = JSON.parse(JSON.stringify(fixture));
@@ -30,6 +42,94 @@ describe('SnapshotV1 (T2-AC-01)', () => {
     expect(primary.runtime).not.toHaveProperty('effective');
     expect(primary.importMaps).not.toHaveProperty('remotes');
     expect(primary.importMaps).not.toHaveProperty('sharedExternals');
+  });
+});
+
+describe('SnapshotV1 pooling-anchor compatibility (T2.1-AC-01, T2.1-AC-02)', () => {
+  it('round-trips witnessed pool and servedBy presence without changing schemaVersion', () => {
+    const roundTripped: SnapshotV1 = JSON.parse(JSON.stringify(FIXTURES['pooling-anchor']));
+
+    expect(roundTripped.schemaVersion).toBe(1);
+    expect(roundTripped.capture.collectorVersion).toBe('nf-devtools-collector/3');
+
+    const declarations = Object.entries(roundTripped.runtime!.sharedExternals).flatMap(
+      ([scope, packages]) =>
+        Object.entries(packages).flatMap(([packageName, external]) =>
+          external.versions.flatMap((version) =>
+            version.remotes.map((remote) => ({
+              scope,
+              packageName,
+              tag: version.tag,
+              name: remote.name,
+              pool: hasOwn(remote, 'pool') ? remote.pool : '<absent>',
+              servedBy: hasOwn(remote, 'servedBy') ? remote.servedBy : '<absent>',
+            })),
+          ),
+        ),
+    );
+
+    expect(declarations).toEqual([
+      {
+        scope: '__GLOBAL__',
+        packageName: '@nf-lab/conflict-lib',
+        tag: '2.0.0',
+        name: '__NF-HOST__',
+        pool: '<absent>',
+        servedBy: '<absent>',
+      },
+      {
+        scope: '__GLOBAL__',
+        packageName: '@nf-lab/conflict-lib',
+        tag: '1.0.0',
+        name: 'mfe1',
+        pool: 'family',
+        servedBy: 'mfe1',
+      },
+      {
+        scope: '__GLOBAL__',
+        packageName: '@nf-lab/conflict-lib',
+        tag: '1.0.0',
+        name: 'mfe2',
+        pool: '<absent>',
+        servedBy: 'mfe1',
+      },
+      {
+        scope: '__GLOBAL__',
+        packageName: '@nf-lab/conflict-lib/extra',
+        tag: '1.0.0',
+        name: 'mfe1',
+        pool: 'family',
+        servedBy: '<absent>',
+      },
+      {
+        scope: '__GLOBAL__',
+        packageName: '@nf-lab/conflict-lib/extra',
+        tag: '1.0.0',
+        name: 'mfe2',
+        pool: '<absent>',
+        servedBy: '<absent>',
+      },
+    ]);
+  });
+
+  it('round-trips persisted collector /2 snapshots without inventing anchor keys', () => {
+    const persisted = JSON.stringify({
+      ...FIXTURES['frankenstein-live'],
+      capture: {
+        ...FIXTURES['frankenstein-live'].capture,
+        collectorVersion: 'nf-devtools-collector/2',
+      },
+    });
+    const roundTripped: SnapshotV1 = JSON.parse(persisted);
+    const participants = sharedParticipants(roundTripped);
+
+    expect(roundTripped.schemaVersion).toBe(1);
+    expect(roundTripped.capture.collectorVersion).toBe('nf-devtools-collector/2');
+    expect(participants).toHaveLength(20);
+    for (const participant of participants) {
+      expect(hasOwn(participant, 'pool')).toBe(false);
+      expect(hasOwn(participant, 'servedBy')).toBe(false);
+    }
   });
 });
 
@@ -85,9 +185,10 @@ describe('primary fixture derives from the frankenstein-live capture (T2-AC-02)'
 describe('synthetic fixtures (T2-AC-02)', () => {
   const synthetic = fixtureEntries.filter(([id]) => id.startsWith('synthetic-'));
 
-  it('exist for collision, empty-page, hostile, missing-channel, multi-version, no-import-maps, and not-recognized states', () => {
+  it('exist for collision, dense-entries, empty-page, hostile, missing-channel, multi-version, no-import-maps, and not-recognized states', () => {
     expect(synthetic.map(([id]) => id).sort()).toEqual([
       'synthetic-collision',
+      'synthetic-dense-entries',
       'synthetic-empty-page',
       'synthetic-hostile',
       'synthetic-missing-channel',

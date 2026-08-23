@@ -94,6 +94,10 @@ export interface ExternalRemoteV1 {
   cached: boolean;
   /** Bundle name (join key into shared-chunks); optional in both generations. */
   bundle: string | null;
+  /** Raw participant pool label when the runtime declaration carries one. */
+  pool?: string;
+  /** Raw per-declaration anchor when the runtime declaration carries one. */
+  servedBy?: string;
   /** Normalized served files, fed by whichever spelling is present. */
   servedFiles: ServedFileV1[];
   /** Generation this participant's spelling discriminates. */

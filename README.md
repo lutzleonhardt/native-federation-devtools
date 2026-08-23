@@ -4,7 +4,8 @@ A read-only Chrome DevTools extension for inspecting [Native Federation](https:/
 applications: remotes and exposes, shared-dependency resolution, and the
 effective import map — with honest evidence states instead of guesses.
 
-> Community project. Not officially affiliated with Native Federation.
+> Official Native Federation tooling — published under the project's GitHub
+> organization and Chrome Web Store presence.
 
 **Status:** pre-release, under active development. The Packages and Remotes
 tabs are implemented; Import Map and Diagnostics currently render placeholders.
@@ -51,6 +52,18 @@ silently omitted.
 **No permissions.** The manifest requests none — no host permissions, no
 content scripts. The panel talks to the inspected page through the DevTools
 API only.
+
+## Resolution data model
+
+One captured `SnapshotV1` becomes one `FederationModel`: a probe observes
+what the page really declared, ingest orders it into canonical evidence,
+pure derivations compute which package lands where for which consumer — and
+why — and one raw-free projection publishes the result to the views.
+
+The maintained model documentation — the big picture plus five class-diagram
+views (registry evidence, effective resolution, declaration claims, resolved
+copies, canonical projection) — lives in
+[docs/resolution-data-model.md](docs/resolution-data-model.md).
 
 ## Install (development build)
 

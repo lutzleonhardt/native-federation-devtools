@@ -78,7 +78,7 @@ export function mapProbeResult(
   const limits = DEFAULT_LIMITS;
   const errors: CollectionError[] = [];
 
-  if (!isObjectLike(rawProbe) || dataValue(rawProbe, 'schemaVersion') !== 'passive-probe/2') {
+  if (!isObjectLike(rawProbe) || dataValue(rawProbe, 'schemaVersion') !== 'passive-probe/3') {
     appendError(errors, limits, 'mapper', 'probe-result-invalid');
     const reason = 'probe result unavailable';
     return {
@@ -456,6 +456,8 @@ function toExternalRemotes(
       continue;
     }
     const bundle = dataValue(remoteRaw, 'bundle');
+    const pool = dataValue(remoteRaw, 'pool');
+    const servedBy = dataValue(remoteRaw, 'servedBy');
     remotes.push({
       name,
       requiredVersion,
@@ -464,6 +466,8 @@ function toExternalRemotes(
       entries,
       cached: dataValue(remoteRaw, 'cached') === true,
       bundle: typeof bundle === 'string' ? bundle : null,
+      ...(typeof pool === 'string' ? { pool } : {}),
+      ...(typeof servedBy === 'string' ? { servedBy } : {}),
       servedFiles:
         entries !== null
           ? Object.entries(entries).map(([entry, entryFile]) => ({ entry, file: entryFile }))

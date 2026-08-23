@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute } from '@angular/router';
 
 import { MasterDetail } from '../../shared/kit/master-detail';
@@ -7,20 +8,21 @@ import { TreeTable, TreeTableRow } from '../../shared/kit/tree-table';
 import { FederationStore } from '../../shared/store/federation-store';
 import { PackageDetail } from './package-detail';
 import {
-  PackageRowVm,
   PackagesFilter,
+  PackagesRowPayload,
   PackagesVm,
   buildPackagesVm,
 } from './packages-view-model';
 
 /**
- * Packages tab — the V2 default view: which version of a package is
- * actually shared, and what happened to every other declaration. Dumb
- * component over the pure `buildPackagesVm` builder; the left list is a
- * flat leaf list (negotiation structure lives in the detail pane, rendered
- * by `nf-package-detail`), filter and selection are view-owned UI state,
- * never store state. The `select` query param seeds the initial selection
- * (cross-link convention, see `app.routes.ts`).
+ * Packages tab — the V2 default view: which copies a package actually
+ * resolves to, and what every declaration's claim says about it. Dumb
+ * component over the pure `buildPackagesVm` builder reading the canonical
+ * Store façade; the left list is a flat leaf list (the copy blocks live in
+ * the detail pane, rendered by `nf-package-detail`), the two combinable
+ * filters (All/Conflicts × single-select participant) and the selection are
+ * view-owned UI state, never store state. The `select` query param seeds
+ * the initial selection (cross-link convention, see `app.routes.ts`).
  */
 @Component({
   selector: 'nf-packages-view',
@@ -31,20 +33,34 @@ import {
 })
 export class PackagesView {
   private readonly store = inject(FederationStore);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly filter = signal<PackagesFilter>('all');
+  protected readonly selectedParticipant = signal<string | null>(null);
   protected readonly selectedId = signal<string | null>(
-    inject(ActivatedRoute).snapshot.queryParamMap.get('select'),
+    this.route.snapshot.queryParamMap.get('select'),
   );
+
+  constructor() {
+    // The parent cross-link navigates WITHIN /packages, where the router
+    // reuses this component — the selection must follow later query-param
+    // emissions, not only the creation snapshot.
+    this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
+      const select = params.get('select');
+      if (select !== null) {
+        this.selectedId.set(select);
+      }
+    });
+  }
 
   protected readonly vm = computed<PackagesVm | null>(() => {
     const model = this.store.model();
-    const derived = this.store.derived();
-    if (model === null || derived === null) {
+    if (model === null) {
       return null;
     }
-    return buildPackagesVm(model, derived, {
+    return buildPackagesVm(model, {
       filter: this.filter(),
+      selectedParticipant: this.selectedParticipant(),
       selectedId: this.selectedId(),
     });
   });
@@ -53,14 +69,14 @@ export class PackagesView {
     this.filter.set(filter);
   }
 
-  /** Tooltip for the collapsed provider count (>3 providers). */
-  protected providerNames(row: PackageRowVm): string {
-    return row.providers
-      .map((provider) => (provider.host ? 'host' : provider.name))
-      .join(', ');
+  /** Single-select participant chip: click = on, again = off, other = switch. */
+  protected toggleParticipant(name: string): void {
+    this.selectedParticipant.update((current) => (current === name ? null : name));
   }
 
   protected onSelect(row: TreeTableRow): void {
-    this.selectedId.set((row.payload as PackageRowVm).packageId);
+    // Both payload kinds carry the group id — an entrypoint sub-row click
+    // therefore selects its parent package (T7.10 select convention).
+    this.selectedId.set((row.payload as PackagesRowPayload).packageId);
   }
 }

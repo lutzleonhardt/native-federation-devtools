@@ -3,13 +3,11 @@
     ><nf-participant-chip [name]="name()" [host]="host()" /></ng-content
 ></span>
 @if (declaredPinned(); as pinned) {
-  <span
-    class="declared declared-pinned"
-    title="exact tag — pinned by the strict share scope; the configured requiredVersion range is not stored"
-    >{{ pinned.tag }}</span
-  >
+  <span class="declared declared-pinned" [attr.title]="pinnedNote()">{{ pinned.tag }}</span>
 } @else if (declaredRange(); as range) {
-  <span class="declared declared-range">{{ range.range }}</span>
+  <span class="declared declared-range" [attr.title]="declaredNote() ?? null">{{
+    range.range
+  }}</span>
 }
 @if (strict()) {
   <span
@@ -21,12 +19,13 @@
 @if (winnerArrow(); as winner) {
   <span class="arrow" [attr.aria-label]="arrowLabel()"
     >→ <span class="arrow-target">{{ winner.target }}</span>
-    <span class="arrow-provider">{{ winner.provider }}</span></span
+    <span class="arrow-source-word">from</span>
+    <ng-content select="[nfArrowSource]"
+      ><span class="arrow-provider">{{ winner.provider }}</span></ng-content
+    ></span
   >
 } @else if (noneArrow(); as none) {
   <span class="arrow arrow-none" [attr.aria-label]="arrowLabel()">→ {{ none.reason }}</span>
-} @else if (ownArrow()) {
-  <span class="arrow arrow-own" [attr.aria-label]="arrowLabel()">→ own copy</span>
 }
 @if (action(); as action) {
   <span class="action-chip" [attr.title]="actionNote() ?? null">{{ action }}</span>

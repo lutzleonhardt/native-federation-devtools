@@ -2,25 +2,44 @@
   <h1>Packages</h1>
   @if (vm(); as vm) {
     <div class="packages-toolbar">
-      <div class="filter-group" role="group" aria-label="filter packages">
-        <button
-          type="button"
-          class="nf-button filter-button"
-          [class.active]="filter() === 'all'"
-          [attr.aria-pressed]="filter() === 'all'"
-          (click)="setFilter('all')"
-        >
-          All ({{ vm.packageCount }})
-        </button>
-        <button
-          type="button"
-          class="nf-button filter-button"
-          [class.active]="filter() === 'conflicts'"
-          [attr.aria-pressed]="filter() === 'conflicts'"
-          (click)="setFilter('conflicts')"
-        >
-          Conflicts ({{ vm.conflictCount }})
-        </button>
+      <div class="filter-zone">
+        <div class="filter-group" role="group" aria-label="filter packages">
+          <button
+            type="button"
+            class="nf-button filter-button"
+            [class.active]="filter() === 'all'"
+            [attr.aria-pressed]="filter() === 'all'"
+            title="one row per registry key of the share register"
+            (click)="setFilter('all')"
+          >
+            All ({{ vm.packageCount }})
+          </button>
+          <button
+            type="button"
+            class="nf-button filter-button"
+            [class.active]="filter() === 'conflicts'"
+            [attr.aria-pressed]="filter() === 'conflicts'"
+            (click)="setFilter('conflicts')"
+          >
+            Conflicts ({{ vm.conflictCount }})
+          </button>
+        </div>
+        @if (vm.participants.length > 0) {
+          <div class="participant-filter" role="group" aria-label="filter by participant">
+            @for (participant of vm.participants; track participant.name) {
+              <button
+                type="button"
+                class="participant-toggle"
+                [class.active]="selectedParticipant() === participant.name"
+                [attr.aria-pressed]="selectedParticipant() === participant.name"
+                title="show only packages this participant is involved in — combines with the status filter"
+                (click)="toggleParticipant(participant.name)"
+              >
+                <nf-participant-chip [name]="participant.name" [host]="participant.host" />
+              </button>
+            }
+          </div>
+        }
       </div>
       <ul class="scopes-summary" aria-label="share scopes">
         @for (scope of vm.scopes; track scope.scope) {
@@ -49,58 +68,58 @@
           (selectRow)="onSelect($event)"
         >
           <ng-template let-payload>
-            @if (payload.linked) {
-              <span class="linked-glyph" aria-hidden="true">↳</span>
-            }
-            <span
-              class="pkg-name"
-              [attr.title]="
-                payload.linked
-                  ? 'secondary entry of ' +
-                    payload.linked.parentPackage +
-                    ' — rule: ' +
-                    payload.linked.rule
-                  : null
-              "
-              >{{ payload.displayName }}</span
-            >
-            @if (payload.scopeLabel) {
-              <span
-                class="pkg-scope"
-                [title]="'share scope — configured via shareScope: ' + payload.scopeLabel"
-                >{{ payload.scopeLabel }}</span
-              >
-            }
-            <span class="pkg-versions">
-              @for (version of payload.versions; track version.tag) {
-                <span
-                  class="pkg-version"
-                  [class.pkg-version-muted]="version.muted"
-                  [class.tip]="version.note !== null"
-                  [attr.title]="version.note"
-                  >{{ version.tag }}</span
-                >
-              }
-            </span>
-            @if (payload.conflict) {
-              <span class="pkg-conflict" [title]="payload.conflict.note">{{
-                payload.conflict.label
+            @if (payload.kind === 'entrypoint') {
+              <span class="entry-specifier">{{ payload.displaySpecifier }}</span>
+              <span class="entry-tags">{{ payload.tags.join(' · ') }}</span>
+              <span class="entry-annotation tip" [title]="payload.provenance.note">{{
+                payload.provenance.label
               }}</span>
-            }
-            <span class="pkg-tail">
-              @if (payload.providers.length <= 3) {
-                @for (provider of payload.providers; track provider.name) {
-                  <nf-participant-chip [name]="provider.name" [host]="provider.host" />
-                }
-              } @else {
-                <span class="pkg-declarers tip" [title]="providerNames(payload)"
-                  >{{ payload.providers.length }} providers</span
+            } @else {
+              @if (payload.linked) {
+                <span class="linked-glyph" aria-hidden="true">↳</span>
+              }
+              <span
+                class="pkg-name"
+                [attr.title]="
+                  payload.linked
+                    ? 'secondary entry of ' +
+                      payload.linked.parentPackage +
+                      ' — rule: ' +
+                      payload.linked.rule
+                    : null
+                "
+                >{{ payload.displayName }}</span
+              >
+              @if (payload.scopeLabel) {
+                <span
+                  class="pkg-scope"
+                  [title]="'share scope — configured via shareScope: ' + payload.scopeLabel"
+                  >{{ payload.scopeLabel }}</span
                 >
               }
-              @if (payload.alsoDeclaredBy; as also) {
-                <span class="pkg-count tip" [title]="also.tooltip">+{{ also.count }}</span>
+              @if (payload.conflict) {
+                <span class="pkg-conflict tip" [title]="payload.conflict.note">{{
+                  payload.conflict.label
+                }}</span>
               }
-            </span>
+              <span class="pkg-versions">
+                @for (version of payload.versions; track version.tag) {
+                  <span
+                    class="pkg-version"
+                    [class.pkg-version-muted]="version.muted"
+                    [class.tip]="version.note !== null"
+                    [attr.title]="version.note"
+                    >{{ version.tag }}</span
+                  >
+                }
+                @if (payload.unknownTagged; as unknown) {
+                  <span class="pkg-version pkg-version-muted tip" [title]="unknown.note">?</span>
+                }
+                @if (payload.noCopy; as noCopy) {
+                  <span class="pkg-no-copy tip" [title]="noCopy.note">{{ noCopy.label }}</span>
+                }
+              </span>
+            }
           </ng-template>
         </nf-tree-table>
 

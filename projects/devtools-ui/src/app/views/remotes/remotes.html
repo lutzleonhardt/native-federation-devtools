@@ -1,5 +1,8 @@
 <section class="view remotes-view">
-  <h1>Remotes</h1>
+  <!-- The capture-boundary claim lives in the heading tooltip while the
+       list has rows (screenshot review); the empty state keeps it visible
+       — load-bearing there. -->
+  <h1 class="tip" [title]="boundaryNote">Remotes</h1>
   @if (vm(); as vm) {
     @if (vm.emptyNote) {
       <p class="view-observation">{{ vm.emptyNote }}</p>
@@ -15,10 +18,12 @@
           >
             <ng-template let-payload>
               <nf-participant-chip [name]="payload.name" [host]="payload.host" />
+              @if (payload.unresolved; as unresolved) {
+                <span class="row-warn" [title]="unresolved.note">⚠</span>
+              }
               <span class="remote-summary">{{ payload.summary }}</span>
             </ng-template>
           </nf-tree-table>
-          <p class="view-observation boundary-note">{{ vm.boundaryNote }}</p>
         </div>
 
         <div nfDetail class="remote-detail-pane">

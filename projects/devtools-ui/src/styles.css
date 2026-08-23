@@ -26,6 +26,20 @@
   --nf-color-warning-text: #8a5300;
   --nf-color-warning-bg: #fcf3d7;
   --nf-color-warning-border: #e3c26d;
+
+  /* Participant identity hues (CVD-validated set + order, light-surface
+   * steps). Count and numbering are the contract of
+   * shared/kit/participant-colors.ts (PARTICIPANT_PALETTE_SIZE): assignment
+   * is sorted-name -> 1-based index, only while remote count <= palette
+   * size — above it every chip renders neutral (no recycling). */
+  --nf-participant-color-1: #2a78d6;
+  --nf-participant-color-2: #eb6834;
+  --nf-participant-color-3: #1baf7a;
+  --nf-participant-color-4: #eda100;
+  --nf-participant-color-5: #e87ba4;
+  --nf-participant-color-6: #008300;
+  --nf-participant-color-7: #4a3aa7;
+  --nf-participant-color-8: #e34948;
 }
 
 /* Dark palette — keep in sync with the [data-theme='dark'] block below. */
@@ -44,6 +58,16 @@
     --nf-color-warning-text: #f0c674;
     --nf-color-warning-bg: #35301f;
     --nf-color-warning-border: #6b5c2a;
+
+    /* Same eight hues, stepped for the dark surface — not a new palette. */
+    --nf-participant-color-1: #3987e5;
+    --nf-participant-color-2: #d95926;
+    --nf-participant-color-3: #199e70;
+    --nf-participant-color-4: #c98500;
+    --nf-participant-color-5: #d55181;
+    --nf-participant-color-6: #008300;
+    --nf-participant-color-7: #9085e9;
+    --nf-participant-color-8: #e66767;
   }
 }
 
@@ -61,6 +85,16 @@
   --nf-color-warning-text: #f0c674;
   --nf-color-warning-bg: #35301f;
   --nf-color-warning-border: #6b5c2a;
+
+  /* Same eight hues, stepped for the dark surface — not a new palette. */
+  --nf-participant-color-1: #3987e5;
+  --nf-participant-color-2: #d95926;
+  --nf-participant-color-3: #199e70;
+  --nf-participant-color-4: #c98500;
+  --nf-participant-color-5: #d55181;
+  --nf-participant-color-6: #008300;
+  --nf-participant-color-7: #9085e9;
+  --nf-participant-color-8: #e66767;
 }
 
 html,

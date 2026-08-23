@@ -13,6 +13,15 @@
   margin-bottom: 8px;
 }
 
+/* All/Conflicts + participant chips form one left-hand filter zone; the
+ * scopes summary is passive info and keeps to the right edge. */
+.filter-zone {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .filter-group {
   display: inline-flex;
   gap: 4px;
@@ -23,10 +32,35 @@
   color: var(--nf-color-accent);
 }
 
+/* Single-select participant filter: chips wrapped in toggle buttons.
+ * The divider separates the two filter kinds within the zone. */
+.participant-filter {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  flex-wrap: wrap;
+  border-left-width: 1px;
+  border-left-style: solid;
+  border-left-color: var(--nf-color-border);
+  padding-left: 12px;
+}
+
+.participant-toggle {
+  padding: 1px 2px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+}
+
+.participant-toggle.active {
+  border-color: var(--nf-color-accent);
+}
+
 .scopes-summary {
   display: flex;
   gap: 12px;
-  margin: 0;
+  margin: 0 0 0 auto;
   padding: 0;
   list-style: none;
   color: var(--nf-color-text-muted);
@@ -122,24 +156,29 @@
   cursor: help;
 }
 
-/* Provider chip + declarer count sit at the row's right edge. */
-.pkg-tail {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 4px;
-  margin-left: auto;
-  padding-left: 12px;
-}
-
-.pkg-declarers {
-  color: var(--nf-color-text-muted);
-  white-space: nowrap;
-}
-
-/* Skip-only declarer count — quiet, details in the tooltip. */
-.pkg-count {
-  color: var(--nf-color-text-muted);
-  font-family: var(--nf-font-mono);
+/* Honest empty state of the versions cell — nothing resolves. */
+.pkg-no-copy {
   font-size: 10px;
+  font-style: italic;
+  color: var(--nf-color-text-muted);
   white-space: nowrap;
+}
+
+/* --- entrypoint sub-rows (dense secondaries, T7.10) ------------------- */
+
+/* Registry EVIDENCE (an own registration's entries map) — stronger than
+ * the name-derived linked glyph, but never an own registry key: the whole
+ * sub-row stays muted and carries an annotation word instead of a
+ * versions cell. */
+.entry-specifier,
+.entry-tags {
+  font-family: var(--nf-font-mono);
+  font-size: 11px;
+  color: var(--nf-color-text-muted);
+  white-space: nowrap;
+}
+
+.entry-annotation {
+  font-size: 10px;
+  color: var(--nf-color-text-muted);
 }

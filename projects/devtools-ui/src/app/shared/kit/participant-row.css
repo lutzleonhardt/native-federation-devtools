@@ -18,36 +18,37 @@
   white-space: nowrap;
 }
 
-/* Tooltip affordance (shell convention): dotted underline + help cursor. */
-.declared-pinned,
+/* Tooltip affordance (shell convention): dotted underline + help cursor —
+ * any declared version carrying a grounded note signals it. */
+.declared[title],
 .strict-marker {
   text-decoration: underline dotted;
   text-underline-offset: 2px;
   cursor: help;
 }
 
+/* A configuration fact, not a problem — muted, never warning-colored. */
 .strict-marker {
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--nf-color-warning-text);
+  color: var(--nf-color-text-muted);
 }
 
 .arrow {
   white-space: nowrap;
 }
 
-.arrow-provider {
-  /* Angular strips whitespace-only nodes between spans — space via margin. */
-  margin-left: 4px;
+/* Angular strips whitespace-only nodes between spans — space via margin.
+ * The source word leads the provider (text fallback or projected chip). */
+.arrow-source-word {
+  margin: 0 4px;
+  font-size: 10px;
   color: var(--nf-color-text-muted);
 }
 
-.arrow-own {
+.arrow-provider {
   color: var(--nf-color-text-muted);
-  /* Callers whose norm is the own-copy claim (transposed Remotes view) can
-   * quiet it via the custom property; exception-only callers keep full tone. */
-  opacity: var(--nf-arrow-own-opacity, 1);
 }
 
 /* Winner-less honest state: reason text, never an invented target. */

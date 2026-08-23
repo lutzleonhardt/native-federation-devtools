@@ -3,7 +3,7 @@
  * state of this remote? The detail is the transposed projection — all
  * packages from one participant's point of view; a package's full
  * negotiation is deliberately NOT repeated here (one click away via the
- * package link). Inputs are the store's model + derived projections plus
+ * package link). Inputs are the store model's canonical read surface plus
  * caller-owned UI state; the output is render-ready only: templates
  * consume these rows, never store types (XC-06).
  *
@@ -12,18 +12,26 @@
  * here only.
  */
 import type { TreeTableRow } from '../../shared/kit/tree-table';
-import type { DerivedFederation } from '../../shared/store/derived-model';
 import type { FederationModel } from '../../shared/store/federation-model';
-import { RemoteDetailVm, buildRemoteDetail } from './remotes-detail-vm';
+import { buildCanonicalIndexes, countClaim } from '../../shared/view-conventions';
+import { RemoteDetailVm, buildRemoteDetail, unresolvedDeclarationCount } from './remotes-detail-vm';
 
-export { NEGOTIATION_LEGEND } from '../../shared/view-conventions';
 export type {
+  AnnotationVm,
   CapabilityVm,
+  ConsumesRowVm,
+  ConsumesSourceVm,
+  DeclaredDisplayVm,
   ExposeVm,
+  ProvidesBlockVm,
+  RelationConsumerVm,
+  RemoteChunkRowVm,
   RemoteChunkSectionVm,
-  RemoteDepVm,
   RemoteDetailVm,
+  RemoteUnresolvedRowVm,
+  ScopedClaimVm,
   ScopedPackageVm,
+  ZoneFileVm,
 } from './remotes-detail-vm';
 
 /** Caller-owned UI state — selection lives in the view. */
@@ -38,8 +46,14 @@ export interface RemoteRowVm {
   /** Verbatim remote name — selection and select payloads match it. */
   name: string;
   host: boolean;
-  /** Quiet scan tail, e.g. "1 expose · 12 shared". */
+  /** Quiet scan tail, e.g. "1 expose · 12 declarations". */
   summary: string;
+  /**
+   * `⚠` marker with its count tooltip — only when the remote has
+   * declarations whose claims resolve nowhere in this capture; null is the
+   * norm. Conflict involvement stays the package pivot's job.
+   */
+  unresolved: { count: number; note: string } | null;
 }
 
 export interface RemotesVm {
@@ -53,33 +67,66 @@ export interface RemotesVm {
 }
 
 /**
- * A remote whose entry fetch/parse failed leaves no registry trace at all —
- * "absent" and "never initialized" are indistinguishable in passive data,
- * so the claim is a capture boundary, never an error (spec 2.3).
+ * A remote without any registry trace is indistinguishable from an absent
+ * one in passive capture data, so the claim is a capture boundary, never an
+ * error (spec 2.3) — and never a statement about loading or delivery.
  */
 export const REMOTES_BOUNDARY_NOTE =
-  'a remote whose entry never loaded leaves no registry trace — this list cannot enumerate what the capture cannot see';
+  'a remote without a registry trace in this capture cannot appear here — this list cannot enumerate what the capture cannot see';
 
-export function buildRemotesVm(
-  model: FederationModel,
-  derived: DerivedFederation,
-  ui: RemotesUiState,
-): RemotesVm {
+export function buildRemotesVm(model: FederationModel, ui: RemotesUiState): RemotesVm {
+  const indexes = buildCanonicalIndexes(model);
+  const declarationCounts = new Map<string, number>();
+  for (const declaration of model.registryEvidence.participantDeclarations) {
+    declarationCounts.set(
+      declaration.participant,
+      (declarationCounts.get(declaration.participant) ?? 0) + 1,
+    );
+  }
+  // Chunk-carrier pseudo packages stay out of the private count — the
+  // detail presents them in the chunk section, not as registrations.
+  const carrierPackages = new Set(
+    model.resolutionProjection.chunkGroups
+      .filter((group) => group.origin === 'scoped-pseudo-external')
+      .map((group) => group.pseudoPackage),
+  );
+  const privateCounts = new Map<string, number>();
+  for (const registration of model.registryEvidence.privateRegistrations) {
+    if (carrierPackages.has(registration.packageName)) {
+      continue;
+    }
+    privateCounts.set(
+      registration.ownerRemote,
+      (privateCounts.get(registration.ownerRemote) ?? 0) + 1,
+    );
+  }
+
   const rows: TreeTableRow<RemoteRowVm>[] = model.remotes.map((remote) => {
-    const sharedCount = derived.sharedRowFacts.filter(
-      (facts) => facts.row.participant === remote.name,
-    ).length;
-    const exposeCount = remote.exposes.length;
+    const declarationCount = declarationCounts.get(remote.name) ?? 0;
+    const privateCount = privateCounts.get(remote.name) ?? 0;
+    const summary =
+      `${countClaim(remote.exposes.length, 'expose')} · ${countClaim(declarationCount, 'declaration')}` +
+      (privateCount > 0 ? ` · ${countClaim(privateCount, 'private registration')}` : '');
+    const unresolvedCount = unresolvedDeclarationCount(remote.name, model, indexes);
     return {
       id: remote.name,
       depth: 0,
       expandable: false,
       expanded: false,
       payload: {
-        kind: 'remote',
+        kind: 'remote' as const,
         name: remote.name,
         host: remote.isHost,
-        summary: `${exposeCount} ${exposeCount === 1 ? 'expose' : 'exposes'} · ${sharedCount} shared`,
+        summary,
+        unresolved:
+          unresolvedCount === 0
+            ? null
+            : {
+                count: unresolvedCount,
+                note: `${countClaim(unresolvedCount, 'declaration')} of this remote ${
+                  unresolvedCount === 1 ? 'resolves' : 'resolve'
+                } nowhere in this capture`,
+              },
       },
     };
   });
@@ -87,7 +134,7 @@ export function buildRemotesVm(
   return {
     remoteCount: model.remotes.length,
     rows,
-    detail: buildRemoteDetail(model, derived, ui.selectedName),
+    detail: buildRemoteDetail(model, indexes, ui.selectedName),
     boundaryNote: REMOTES_BOUNDARY_NOTE,
     emptyNote: rows.length === 0 ? 'no remotes in this capture' : null,
   };

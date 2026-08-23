@@ -53,10 +53,15 @@ describe('ParticipantRow (view kit)', () => {
     expect(strictMarker.textContent).toBe('strict');
     // Config-origin reference (T10.5): the tooltip names the config field.
     expect(strictMarker.title).toContain('strictVersion: true');
+    // T7.6-AC-05: a configuration fact — muted like the declared range,
+    // never warning-colored.
+    expect(getComputedStyle(strictMarker).color).toBe(getComputedStyle(declared).color);
 
     const arrow = el.querySelector('.arrow')!;
     expect(arrow.textContent).toContain('→');
     expect(arrow.querySelector('.arrow-target')?.textContent).toBe('19.2.3');
+    // T8.6: the source renders as `from` + provider (7.6 wording).
+    expect(arrow.querySelector('.arrow-source-word')?.textContent).toBe('from');
     expect(arrow.querySelector('.arrow-provider')?.textContent).toBe('host');
     expect(el.querySelector('.action-chip')?.textContent).toBe('skip');
     // Without a note there is no tooltip and no affordance-triggering title.
@@ -76,18 +81,17 @@ describe('ParticipantRow (view kit)', () => {
     );
   });
 
-  // T9-AC-03: 'own' arrow renders own copy.
-  it('renders the own-copy arrow', () => {
+  // T8.6: the own-copy arrow is gone from the kit — zone membership says it
+  // in the one remaining consumer; only winner and none remain.
+  it('offers no own-copy arrow branch', () => {
     const el = createRow({
       name: 'mfe1',
       declared: { kind: 'range', range: '~2.0.0' },
-      arrow: { kind: 'own' },
+      arrow: { kind: 'none', reason: 'no unique winner' },
     });
 
-    expect(el.querySelector('.arrow')?.textContent).toContain('→ own copy');
-    expect(el.querySelector('.arrow-target')).toBeNull();
-    expect(el.querySelector('.strict-marker')).toBeNull();
-    expect(el.querySelector('.action-chip')).toBeNull();
+    expect(el.textContent).not.toContain('own copy');
+    expect(el.querySelector('.arrow-own')).toBeNull();
   });
 
   // T10 (rework): the norm is quiet — without an arrow input no resolution
@@ -139,7 +143,6 @@ describe('ParticipantRow (view kit)', () => {
       name: 'shell',
       declared: { kind: 'pinned', tag: '1.2.3' },
       strict: true,
-      arrow: { kind: 'own' },
     });
 
     const declared = el.querySelector('.declared')!;
@@ -159,17 +162,28 @@ describe('ParticipantRow (view kit)', () => {
     });
 
     expect(el.querySelector('.arrow')?.getAttribute('aria-label')).toBe(
-      'resolves to 19.2.3 (provider: host)',
+      'resolves to 19.2.3 (source: host)',
     );
     expect(el.textContent).not.toContain('uses');
     expect(el.textContent).not.toContain('loaded');
+  });
 
-    const own = createRow({
-      name: 'mfe1',
-      declared: { kind: 'range', range: '~2.0.0' },
-      arrow: { kind: 'own' },
-    });
-    expect(own.querySelector('.arrow')?.getAttribute('aria-label')).toBe('resolves to own copy');
+  // T8.6: the caller's grounded registration note rides the declared
+  // version; the pinned variant keeps its exact-tag fallback without one.
+  it('renders a caller-provided declared note as the declared tooltip', () => {
+    const fixture = TestBed.createComponent(ParticipantRow);
+    fixture.componentRef.setInput('name', 'mfe1');
+    fixture.componentRef.setInput('declared', { kind: 'range', range: '^1.0.0' });
+    fixture.componentRef.setInput('declaredNote', 'offers this copy to the version election');
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.declared')?.getAttribute('title')).toBe(
+      'offers this copy to the version election',
+    );
+
+    // Without a note, a range carries no tooltip at all.
+    const quiet = createRow({ name: 'mfe1', declared: { kind: 'range', range: '^1.0.0' } });
+    expect(quiet.querySelector('.declared')?.hasAttribute('title')).toBe(false);
   });
 
   // T10 (cross-link rework): a caller may replace the default name chip
@@ -201,7 +215,7 @@ describe('ParticipantRow (view kit)', () => {
         <nf-participant-row
           name="shell"
           [declared]="{ kind: 'range', range: '^19.0.0' }"
-          [arrow]="{ kind: 'own' }"
+          [arrow]="{ kind: 'none', reason: 'no unique winner' }"
         >
           <a nfRowLinks class="the-link" href="#">details</a>
         </nf-participant-row>
@@ -213,5 +227,35 @@ describe('ParticipantRow (view kit)', () => {
     fixture.detectChanges();
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('.row-links .the-link')?.textContent).toBe('details');
+  });
+
+  // T8.6: a caller may replace the winner arrow's provider text with a
+  // linked element (the from-chip of the Remotes consumes rows) — the kit
+  // itself stays router-free, and the aria vocabulary keeps the source.
+  it('projects a caller-provided source element over the provider text', () => {
+    // Test scaffolding only — real consumers keep templates in separate files.
+    @Component({
+      imports: [ParticipantRow],
+      template: `
+        <nf-participant-row
+          name="shell"
+          [declared]="{ kind: 'range', range: '^19.0.0' }"
+          [arrow]="{ kind: 'winner', target: 'lib.js', provider: 'mfe2' }"
+        >
+          <a nfArrowSource class="the-source-link" href="#">mfe2</a>
+        </nf-participant-row>
+      `,
+    })
+    class SourceHost {}
+
+    const fixture = TestBed.createComponent(SourceHost);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('.arrow .arrow-source-word')?.textContent).toBe('from');
+    expect(el.querySelector('.arrow .the-source-link')?.textContent).toBe('mfe2');
+    expect(el.querySelector('.arrow .arrow-provider')).toBeNull();
+    expect(el.querySelector('.arrow')?.getAttribute('aria-label')).toBe(
+      'resolves to lib.js (source: mfe2)',
+    );
   });
 });

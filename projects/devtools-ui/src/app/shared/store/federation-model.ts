@@ -4,17 +4,17 @@
  *
  * The snapshot's two evidence layers (runtime registry, import maps) stay
  * unmerged in the DTO; they meet here only through explicit,
- * corpus-verified joins: the effective map is computed from the document
- * tags (`mergeDocumentMaps`), and a row's `resolution` is the loader-style
- * lookup of its package specifier in that map. A join that finds nothing
- * is recorded as null — honest absence, never an invented default.
+ * corpus-verified joins. The effective map is computed from document tags,
+ * then the canonical consumer resolver records mapped, unmapped, blocked, or
+ * unknown outcomes before compatibility rows project those results.
  */
+import type { ChannelsV1, GenerationV1, ServedFileV1, SnapshotGenerationV1 } from 'devtools-bridge';
+
 import type {
-  ChannelsV1,
-  GenerationV1,
-  ServedFileV1,
-  SnapshotGenerationV1,
-} from 'devtools-bridge';
+  CanonicalRegistryEvidence,
+  CanonicalResolutionProjection,
+  EffectiveConsumerResolution,
+} from './resolution';
 
 /** Which loader owns the page's import maps, from observed tag types. */
 export type MapMode = 'native' | 'shim' | 'none';
@@ -73,7 +73,7 @@ export interface SharedParticipantRow {
   /** Normalized served files (Task-4 mapper output — never the raw spelling). */
   servedFiles: ServedFileV1[];
   generation: GenerationV1;
-  /** Loader-style map lookup of the package specifier; null when no map entry joins. */
+  /** Compatibility projection of a mapped canonical result; otherwise null. */
   resolution: EffectiveResolution | null;
 }
 
@@ -147,6 +147,16 @@ export interface FederationModel {
   channels: ChannelsV1;
   mapMode: MapMode;
   effectiveMap: EffectiveMap;
+  /** Canonical ordered registry evidence; all new resolution work starts here. */
+  registryEvidence: CanonicalRegistryEvidence;
+  /** Canonical import-map outcome per unique consumer scope context and package specifier. */
+  effectiveConsumerResolutions: EffectiveConsumerResolution[];
+  /**
+   * The raw-free canonical resolution projection — copies, consumer-copy
+   * relations, chunk groups, bundle claims, claims, measures, and
+   * completeness. Migrated views and any future graph read this surface.
+   */
+  resolutionProjection: CanonicalResolutionProjection;
   /** Sorted (scope, package, semver tag desc, action); participants keep registry order. */
   sharedRows: SharedParticipantRow[];
   scopedPackages: ScopedPackageRow[];

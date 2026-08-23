@@ -1,19 +1,45 @@
 /**
  * Cross-view vm conventions — the vocabulary every V2 view renders
- * identically: sentinel display mapping, action glyphs and their grounded
- * notes, select-payload builders of the cross-link convention (see
- * `app.routes.ts`), and the shared row-mapping rules (declared version,
- * explicit resolution arrow). Established with the Packages view (T10,
- * T10.5), lifted here with its second consumer (Remotes, T11).
+ * identically: sentinel display mapping, grounded registry-action notes,
+ * select-payload builders of the cross-link convention (see
+ * `app.routes.ts`), and the canonical-façade join helpers shared by the
+ * migrated views (ID-keyed indexes, copy-source attribution, target file
+ * display). Established with the Packages view (T10, T10.5), lifted here
+ * with its second consumer (Remotes, T11); the canonical helpers moved up
+ * from `views/packages/packages-vm-shared.ts` with THEIR second consumer
+ * (Remotes migration, T8).
  *
- * Pure vocabulary of the vm layer: no component, no interpretation beyond
- * display. This deliberately does NOT live in the kit — the kit interprets
- * no registry names.
+ * Pure vocabulary and joins of the vm layer: no component, no
+ * interpretation beyond display, no derivation of resolver, action, or
+ * copy semantics. This deliberately does NOT live in the kit — the kit
+ * interprets no registry names.
  */
 import { NF_HOST } from 'devtools-bridge';
 
-import type { DeclaredVersion, ParticipantArrow } from './kit/participant-row';
-import type { SharedRowFacts } from './store/derived-model';
+import type { FederationModel } from './store/federation-model';
+import type {
+  BundleClaim,
+  BundleClaimId,
+  ChunkGroupId,
+  ChunkGroupProjection,
+  ConsumerCopyRelation,
+  DeclarationResolutionClaim,
+  DeclarationResolutionClaimId,
+  EffectiveConsumerResolution,
+  EffectiveConsumerResolutionId,
+  EntrypointCandidate,
+  EntrypointCandidateId,
+  ParticipantDeclaration,
+  ParticipantDeclarationId,
+  PrivateRegistration,
+  PrivateRegistrationId,
+  ResolvedDependencyCopy,
+  ResolvedDependencyCopyId,
+  SharedExternalId,
+  SharedExternalRecord,
+  VersionRegistration,
+  VersionRegistrationId,
+} from './store/resolution';
 
 /** The registry's strict share scope name (spec-pinned, matches derivations). */
 export const STRICT_SCOPE = 'strict';
@@ -30,25 +56,18 @@ export function participantDisplay(name: string): string {
 }
 
 /**
- * Action glyphs distinguish by SHAPE, not fill pattern (T10.5): filled =
- * a mapped copy exists, circle = takes part in the election, diamond =
- * isolated outside it, open = no own mapped copy.
+ * Grounded action vocabulary (rule: registry-election). Verbatim action
+ * stays the label. Notes state REGISTRY evidence only — where a binding
+ * actually resolves is the claim's business (zone/state chips), never the
+ * action's: an anchored skip consumer can resolve to its own copy. Since
+ * T8.6 these notes render as registration tooltips only — the glyph
+ * column, action chips, and glyph legend are gone with the zone redesign.
  */
-export const ACTION_SYMBOLS: Record<string, string> = { share: '●', skip: '○', scope: '◆' };
-
-/** Grounded action vocabulary (rule: registry-election). Verbatim action stays the label. */
 export const ACTION_NOTES: Record<string, string> = {
   share: 'offers this copy to the version election',
-  skip: "this copy is not taken; the participant resolves to the elected copy",
-  scope: 'keeps its own copy, mapped only for its own declarers',
+  skip: 'registered with action skip — the registry election does not take this copy',
+  scope: 'registered with action scope — an isolated registration outside the version election',
 };
-
-/** Glyph legend of an action section — single source with the symbols/notes above. */
-export const NEGOTIATION_LEGEND: { symbol: string; action: string; note: string }[] = [
-  'share',
-  'scope',
-  'skip',
-].map((action) => ({ symbol: ACTION_SYMBOLS[action], action, note: ACTION_NOTES[action] }));
 
 /**
  * Pluralizing count claim of an observed quantity — `3 files`,
@@ -71,31 +90,218 @@ export function chunkFileClaim(files: string[]): string {
     : countClaim(files.length, 'chunk file');
 }
 
-/** Kit declared-version of one row — strict-pinned rows render the exact tag, never a range. */
-export function declaredOf(facts: SharedRowFacts): DeclaredVersion {
-  return facts.strictPinned !== null
-    ? { kind: 'pinned', tag: facts.row.tag }
-    : { kind: 'range', range: facts.row.requiredVersion };
+/** ID-keyed lookups over the canonical read surface; built once per vm. */
+export interface CanonicalIndexes {
+  sharedExternalById: Map<SharedExternalId, SharedExternalRecord>;
+  declarationById: Map<ParticipantDeclarationId, ParticipantDeclaration>;
+  registrationById: Map<VersionRegistrationId, VersionRegistration>;
+  privateRegistrationById: Map<PrivateRegistrationId, PrivateRegistration>;
+  candidateById: Map<EntrypointCandidateId, EntrypointCandidate>;
+  resolutionById: Map<EffectiveConsumerResolutionId, EffectiveConsumerResolution>;
+  claimsByDeclaration: Map<ParticipantDeclarationId, DeclarationResolutionClaim[]>;
+  /** Every attached claim (shared and private subjects), by canonical ID. */
+  claimById: Map<DeclarationResolutionClaimId, DeclarationResolutionClaim>;
+  copyById: Map<ResolvedDependencyCopyId, ResolvedDependencyCopy>;
+  relationsByCopy: Map<ResolvedDependencyCopyId, ConsumerCopyRelation[]>;
+  bundleClaimById: Map<BundleClaimId, BundleClaim>;
+  chunkGroupById: Map<ChunkGroupId, ChunkGroupProjection>;
+}
+
+export function buildCanonicalIndexes(model: FederationModel): CanonicalIndexes {
+  const projection = model.resolutionProjection;
+  const claimsByDeclaration = new Map<ParticipantDeclarationId, DeclarationResolutionClaim[]>();
+  for (const claim of projection.declarationResolutionClaims) {
+    if (claim.subject.kind !== 'shared') {
+      continue;
+    }
+    const declarationId = claim.subject.participantDeclarationId;
+    claimsByDeclaration.set(declarationId, [
+      ...(claimsByDeclaration.get(declarationId) ?? []),
+      claim,
+    ]);
+  }
+  const relationsByCopy = new Map<ResolvedDependencyCopyId, ConsumerCopyRelation[]>();
+  for (const relation of projection.consumerRelations) {
+    relationsByCopy.set(relation.copyId, [
+      ...(relationsByCopy.get(relation.copyId) ?? []),
+      relation,
+    ]);
+  }
+  return {
+    sharedExternalById: new Map(
+      model.registryEvidence.sharedExternals.map((record) => [record.id, record]),
+    ),
+    declarationById: new Map(
+      model.registryEvidence.participantDeclarations.map((record) => [record.id, record]),
+    ),
+    registrationById: new Map(
+      model.registryEvidence.versionRegistrations.map((record) => [record.id, record]),
+    ),
+    privateRegistrationById: new Map(
+      model.registryEvidence.privateRegistrations.map((record) => [record.id, record]),
+    ),
+    candidateById: new Map(
+      model.registryEvidence.entrypointCandidates.map((record) => [record.id, record]),
+    ),
+    resolutionById: new Map(
+      model.effectiveConsumerResolutions.map((resolution) => [resolution.id, resolution]),
+    ),
+    claimsByDeclaration,
+    claimById: new Map(projection.declarationResolutionClaims.map((claim) => [claim.id, claim])),
+    copyById: new Map(projection.copies.map((copy) => [copy.id, copy])),
+    relationsByCopy,
+    bundleClaimById: new Map(projection.bundleClaims.map((claim) => [claim.id, claim])),
+    chunkGroupById: new Map(projection.chunkGroups.map((group) => [group.id, group])),
+  };
 }
 
 /**
- * Explicit kit arrow of one row (rule: registry-election): a skip row
- * points at the winner's file (or the honest winner-less state), share and
- * scope rows claim their own copy. Callers with the full negotiation in
- * sight (Packages detail) gate this behind the quiet norm; the transposed
- * Remotes view draws every arrow.
+ * Source remote of a copy — the participant/owner of its uniquely evidenced
+ * source record; null for URL-identified copies (no source claim is made).
  */
-export function explicitArrowOf(facts: SharedRowFacts): ParticipantArrow {
-  const arrow = facts.arrow;
-  if (arrow.kind === 'winner') {
-    if (arrow.providerParticipant === null) {
-      return { kind: 'none', reason: 'no unique winner' };
+export function copySourceRemote(
+  copy: ResolvedDependencyCopy,
+  indexes: CanonicalIndexes,
+): string | null {
+  switch (copy.source.kind) {
+    case 'shared-declaration':
+      return indexes.declarationById.get(copy.source.declarationId)?.participant ?? null;
+    case 'private-registration':
+      return indexes.privateRegistrationById.get(copy.source.registrationId)?.ownerRemote ?? null;
+    case 'target-url':
+      return null;
+  }
+}
+
+/** Display form of a copy's source remote; null when no source is evidenced. */
+export function copySourceDisplay(
+  copy: ResolvedDependencyCopy,
+  indexes: CanonicalIndexes,
+): string | null {
+  const remote = copySourceRemote(copy, indexes);
+  return remote === null ? null : participantDisplay(remote);
+}
+
+export function isHostRemote(name: string | null): boolean {
+  return name === NF_HOST;
+}
+
+/** Display file name of a target URL — its last path segment (query/hash stripped). */
+export function targetFileName(targetUrl: string): string {
+  const withoutQuery = targetUrl.split(/[?#]/, 1)[0];
+  const segments = withoutQuery.split('/').filter((segment) => segment.length > 0);
+  return segments.length > 0 ? segments[segments.length - 1] : targetUrl;
+}
+
+/** Qualified source wording of one resolved copy (T7 vocabulary). */
+export interface CopySourceVm {
+  /** Display form of the source remote; null when no source is evidenced. */
+  display: string | null;
+  host: boolean;
+  /** `select` payload for the /remotes cross-link; null without a remote. */
+  remoteSelect: string | null;
+  qualifier:
+    | 'exact-target-source'
+    | 'explicit-anchor'
+    | 'observed-target-source'
+    | 'ambiguous-source'
+    | 'unknown-source';
+  label: string;
+  note: string;
+}
+
+/**
+ * Qualified source wording of one copy: explicit anchor when the copy
+ * serves through `servedBy`, exact target source for a uniquely evidenced
+ * record, observed target source for scope-prefix attribution, ambiguous
+ * and unknown stay qualified. The registry-slot comparison rides along in
+ * the note when slot evidence exists. Established with Packages (T7),
+ * lifted here with its second consumer (T8 Remotes) — ambiguity must
+ * render as ambiguity in every view, never as unknown.
+ */
+export function copySourceVmOf(
+  copy: ResolvedDependencyCopy,
+  indexes: CanonicalIndexes,
+): CopySourceVm {
+  const remote = copySourceRemote(copy, indexes);
+  const display = remote === null ? null : participantDisplay(remote);
+  const base = { display, host: isHostRemote(remote), remoteSelect: remote };
+
+  let vm: CopySourceVm;
+  if (copy.source.kind !== 'target-url') {
+    if (copy.effectiveRoles.includes('anchor-source')) {
+      vm = {
+        ...base,
+        qualifier: 'explicit-anchor',
+        label: 'explicit anchor',
+        note: 'selected through an explicit servedBy anchor of the registry evidence',
+      };
+    } else {
+      vm = {
+        ...base,
+        qualifier: 'exact-target-source',
+        label: 'exact target source',
+        note: 'uniquely evidenced source record — its candidate URL matches the resolved target exactly',
+      };
     }
-    return {
-      kind: 'winner',
-      target: arrow.file ?? arrow.targetUrl ?? '(no served file recorded)',
-      provider: participantDisplay(arrow.providerParticipant),
+  } else if (copy.sourceDisposition === 'ambiguous-source') {
+    vm = {
+      ...base,
+      qualifier: 'ambiguous-source',
+      label: 'ambiguous source',
+      note: 'several candidate sources match this target — none is chosen',
+    };
+  } else if (
+    copy.observedTargetProviders.some((provider) => provider.outcome === 'ambiguous-scope')
+  ) {
+    // Scope-level ambiguity chooses no remote (`remote: null`) — it must
+    // stay a qualified ambiguity, never fall through to "unknown source".
+    vm = {
+      ...base,
+      qualifier: 'ambiguous-source',
+      label: 'ambiguous source',
+      note: 'equally specific remote scope prefixes match this target — none is chosen',
+    };
+  } else {
+    const observed = copy.observedTargetProviders.find(
+      (provider) =>
+        provider.remote !== null &&
+        (provider.outcome === 'scope-derived' || provider.outcome === 'host-fallback'),
+    );
+    if (observed !== undefined) {
+      vm = {
+        display: participantDisplay(observed.remote!),
+        host: isHostRemote(observed.remote),
+        remoteSelect: observed.remote,
+        qualifier: 'observed-target-source',
+        label: 'observed target source',
+        note:
+          observed.outcome === 'host-fallback'
+            ? 'attributed by scope-prefix match with the host as least-specific fallback — not an exact candidate match'
+            : 'attributed by scope-prefix match — not an exact candidate match',
+      };
+    } else {
+      vm = {
+        ...base,
+        qualifier: 'unknown-source',
+        label: 'unknown source',
+        note: 'only the resolved URL is evidenced — no source record or scope prefix matches',
+      };
+    }
+  }
+
+  const slots = copy.registryServingSlotClaims.filter((slot) => slot.status === 'basis-slot');
+  if (slots.length > 0 && copy.source.kind === 'shared-declaration') {
+    const declarationId = copy.source.declarationId;
+    const matches = slots.some((slot) => slot.declarationId === declarationId);
+    vm = {
+      ...vm,
+      note: `${vm.note}; ${
+        matches
+          ? 'matches the registry serving slot'
+          : 'the registry serving slot names another declaration'
+      }`,
     };
   }
-  return { kind: 'own' };
+  return vm;
 }

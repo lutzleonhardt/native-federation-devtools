@@ -1,5 +1,9 @@
 @if (host()) {
   <span class="chip chip-host" [title]="name()">host</span>
 } @else {
-  <span class="chip chip-remote">{{ name() }}</span>
+  <!-- The chip's DOM text must equal the verbatim name (specs pin exact
+       textContent), so the identity-dot markup stays hand-packed with zero
+       whitespace text nodes — hence the formatter opt-out below. -->
+  <!-- prettier-ignore -->
+  <span class="chip chip-remote">@if (colorIndex(); as index) {<span class="dot dot-{{ index }}" aria-hidden="true"></span>}{{ name() }}</span>
 }

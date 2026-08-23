@@ -6,12 +6,14 @@ import { dynamicInitShimFixture } from './dynamic-init-shim.fixture';
 import { dynamicOverrideFixture } from './dynamic-override.fixture';
 import { frankensteinLiveFixture } from './frankenstein-live.fixture';
 import { nonDenseFixture } from './non-dense.fixture';
+import { poolingAnchorFixture } from './pooling-anchor.fixture';
 import { scopeIsolationFixture } from './scope-isolation.fixture';
 import { scopedFixture } from './scoped.fixture';
 import { selfFillFixture } from './self-fill.fixture';
 import { strictScopeFixture } from './strict-scope.fixture';
 import { strictSplitFixture } from './strict-split.fixture';
 import { syntheticCollisionFixture } from './synthetic-collision.fixture';
+import { syntheticDenseEntriesFixture } from './synthetic-dense-entries.fixture';
 import { syntheticEmptyPageFixture } from './synthetic-empty-page.fixture';
 import { syntheticHostileFixture } from './synthetic-hostile.fixture';
 import { syntheticMissingChannelFixture } from './synthetic-missing-channel.fixture';
@@ -36,12 +38,14 @@ export const FIXTURES = {
   'dynamic-init-shim': dynamicInitShimFixture,
   'dynamic-override': dynamicOverrideFixture,
   'non-dense': nonDenseFixture,
+  'pooling-anchor': poolingAnchorFixture,
   'scope-isolation': scopeIsolationFixture,
   scoped: scopedFixture,
   'self-fill': selfFillFixture,
   'strict-scope': strictScopeFixture,
   'strict-split': strictSplitFixture,
   'synthetic-collision': syntheticCollisionFixture,
+  'synthetic-dense-entries': syntheticDenseEntriesFixture,
   'synthetic-hostile': syntheticHostileFixture,
   'synthetic-missing-channel': syntheticMissingChannelFixture,
   'synthetic-multi-version': syntheticMultiVersionFixture,

@@ -5,16 +5,145 @@
     @if (vm.emptyNote) {
       <p class="view-observation">{{ vm.emptyNote }}</p>
     } @else {
+      <!-- One row shape for every home. Signature groups hoist sources and
+           bundles into their head (`hoisted`); rows under a head with a
+           uniform integrity hoist skip their own mark (`selfMark`). -->
+      <ng-template
+        #rowTpl
+        let-row="row"
+        let-hoisted="hoisted"
+        let-selfMark="selfMark"
+        let-muted="muted"
+      >
+        <div class="map-row" [class.row-selected]="row.selected" [class.row-muted]="muted">
+          <span class="cell-spec" [title]="row.specifier">
+            @if (row.packageSelect; as select) {
+              <a
+                class="spec-link"
+                [routerLink]="['/packages']"
+                [queryParams]="{ select: select }"
+                >{{ row.specifier }}</a
+              >
+            } @else {
+              {{ row.specifier }}
+            }
+          </span>
+          <span class="cell-body">
+            <span class="target-text" [title]="row.target">{{ row.targetDisplay }}</span>
+            @if (selfMark) {
+              @if (row.hasIntegrity) {
+                <span class="row-sri" title="the target carries an SRI hash">SRI ✓</span>
+              } @else {
+                <span class="row-sri sri-none" title="no SRI hash is recorded for this target"
+                  >no SRI</span
+                >
+              }
+            }
+            @if (!hoisted && !row.sourceQuiet) {
+              @for (source of row.sources; track source.copyId) {
+                @if (source.display !== null) {
+                  <a
+                    class="chip-link"
+                    [routerLink]="['/remotes']"
+                    [queryParams]="{ select: source.remoteSelect }"
+                    [title]="source.note"
+                    ><nf-participant-chip [name]="source.remoteSelect!" [host]="source.host"
+                  /></a>
+                }
+                @if (source.qualifier !== 'exact-target-source') {
+                  <span class="row-qualifier" [title]="source.note">{{ source.label }}</span>
+                }
+              }
+            }
+            @for (claim of row.claims; track claim.claimId) {
+              @if (!claim.quiet) {
+                <span class="row-claim" [title]="claim.note">
+                  <a
+                    class="chip-link"
+                    [routerLink]="['/remotes']"
+                    [queryParams]="{ select: claim.select }"
+                    ><nf-participant-chip [name]="claim.consumer" [host]="claim.host"
+                  /></a>
+                  <span class="claim-state">{{ claim.stateLabel }}</span>
+                </span>
+              }
+            }
+            @for (consumer of row.claimlessConsumers; track consumer.consumer) {
+              <span class="row-claim" [title]="consumer.note">
+                <a
+                  class="chip-link"
+                  [routerLink]="['/remotes']"
+                  [queryParams]="{ select: consumer.select }"
+                  ><nf-participant-chip [name]="consumer.consumer" [host]="consumer.host"
+                /></a>
+                <span class="claim-state">no own claim</span>
+              </span>
+            }
+            @if (!hoisted) {
+              @for (bundle of row.bundles; track bundle.bundleClaimId) {
+                <span class="row-bundle" [title]="bundle.note">
+                  @if (bundle.select !== null) {
+                    <a
+                      class="note-link mono"
+                      [routerLink]="['/remotes']"
+                      [queryParams]="{ select: bundle.select }"
+                      >{{ bundle.label }}</a
+                    >
+                  } @else {
+                    <span class="mono">{{ bundle.label }}</span>
+                  }
+                  @if (bundle.qualified) {
+                    <span class="row-qualifier">{{ bundle.status }}</span>
+                  }
+                </span>
+              }
+            }
+            @for (chunk of row.chunks; track chunk.emitterRemote) {
+              <span class="row-chunk" [title]="chunk.note">
+                <a
+                  class="chip-link"
+                  [routerLink]="['/remotes']"
+                  [queryParams]="{ select: chunk.select }"
+                  ><nf-participant-chip [name]="chunk.emitterRemote" [host]="chunk.host"
+                /></a>
+                <a
+                  class="note-link mono"
+                  [routerLink]="['/remotes']"
+                  [queryParams]="{ select: chunk.select }"
+                  >{{ chunk.groupLabel }}</a
+                >
+              </span>
+            }
+            @for (expose of row.exposes; track expose.remote) {
+              <span class="row-expose" [title]="expose.note">
+                <a
+                  class="chip-link"
+                  [routerLink]="['/remotes']"
+                  [queryParams]="{ select: expose.select }"
+                  ><nf-participant-chip [name]="expose.remote" [host]="expose.host"
+                /></a>
+                <span class="expose-word">expose {{ expose.moduleName }}</span>
+              </span>
+            }
+            @if (row.blocked; as blocked) {
+              <span class="row-blocked" [title]="blocked.note">blocked</span>
+            }
+            @if (row.overridesGlobal) {
+              <span class="row-override" [title]="overridesGlobalNote">overrides global</span>
+            }
+          </span>
+        </div>
+      </ng-template>
+
       @for (section of vm.sections; track section.label) {
         <section class="map-section">
           <h2 class="section-head">
-            <span class="section-label" [class.mono]="section.kind === 'scope'">{{
+            <span class="head-seg section-label" [class.mono]="section.kind === 'scope'">{{
               section.label
             }}</span>
-            <span class="section-count">{{ section.countClaim }}</span>
             @if (section.owner; as owner) {
               @if (owner.kind === 'remote') {
-                <span class="section-owner">
+                <span class="head-seg section-owner">
                   scope of
                   <a
                     class="chip-link"
@@ -25,82 +154,192 @@
                   /></a>
                 </span>
               } @else {
-                <span class="section-owner view-observation" [title]="owner.note">{{
-                  owner.note
-                }}</span>
+                <span class="head-seg section-owner" [title]="owner.note">
+                  scope of
+                  @for (remote of owner.remotes; track remote.remote) {
+                    <a
+                      class="chip-link"
+                      [routerLink]="['/remotes']"
+                      [queryParams]="{ select: remote.select }"
+                      ><nf-participant-chip [name]="remote.remote" [host]="remote.host"
+                    /></a>
+                  }
+                </span>
               }
             }
+            <span class="head-seg section-count" [title]="sectionContract">{{
+              section.countClaim
+            }}</span>
           </h2>
-          <table class="import-table">
-            <thead>
-              <tr>
-                <th class="cell-spec">specifier</th>
-                <th class="cell-target">target</th>
-                <th class="cell-sri" title="the target carries an SRI hash">SRI</th>
-                <th class="cell-attr">{{ section.trailingLabel }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (row of section.rows; track row.specifier) {
-                <tr class="map-row" [class.row-selected]="row.selected">
-                  <td class="cell-spec" [title]="row.specifier">
-                    @if (row.packageSelect; as select) {
-                      <a
-                        class="spec-link"
-                        [routerLink]="['/packages']"
-                        [queryParams]="{ select: select }"
-                        >{{ row.specifier }}</a
+          @for (group of section.groups; track $index) {
+            @switch (group.kind) {
+              @case ('ungrouped') {
+                @if (group.packagesHead; as home) {
+                  <div class="group-head home-head">
+                    <span class="head-seg group-kind" [title]="home.note">PACKAGES</span>
+                    <span class="head-seg group-count">{{ home.countClaim }}</span>
+                  </div>
+                }
+                <div class="group-rows ungrouped-rows">
+                  @for (row of group.rows; track $index) {
+                    <ng-container
+                      [ngTemplateOutlet]="rowTpl"
+                      [ngTemplateOutletContext]="{
+                        row: row,
+                        hoisted: false,
+                        selfMark: true,
+                        muted: false,
+                      }"
+                    />
+                  }
+                </div>
+              }
+              @case ('chunk-wiring') {
+                <div class="row-group group-chunk-wiring">
+                  <button
+                    type="button"
+                    class="group-head fold-head"
+                    [attr.aria-expanded]="foldExpanded(section, group)"
+                    (click)="toggleFold(section, group)"
+                  >
+                    <span class="head-seg group-kind" [title]="group.note">CHUNK WIRING</span>
+                    <span class="head-seg group-count"
+                      >{{ group.countClaim }}
+                      @if (!foldExpanded(section, group)) {
+                        <span
+                          class="head-summary"
+                          [class.tip]="group.bundleSummaryNote !== null"
+                          [title]="group.bundleSummaryNote ?? ''"
+                          >{{ group.bundleSummary }}</span
+                        >
+                      }
+                    </span>
+                    @if (group.integrityHoist === true) {
+                      <span
+                        class="head-seg head-sri"
+                        title="every entry of this group carries an SRI hash"
+                        >SRI ✓</span
                       >
-                    } @else {
-                      {{ row.specifier }}
+                    } @else if (group.integrityHoist === false) {
+                      <span
+                        class="head-seg head-sri sri-none"
+                        title="no entry of this group carries an SRI hash"
+                        >no SRI</span
+                      >
                     }
-                  </td>
-                  <td class="cell-target">
-                    <span class="target-text" [title]="row.target">{{ row.targetDisplay }}</span>
-                  </td>
-                  <td class="cell-sri">
-                    @if (row.hasIntegrity) {
-                      <span class="row-sri" [title]="'the target carries an SRI hash'">✓</span>
-                    }
-                  </td>
-                  <td class="cell-attr">
-                    @if (!row.providerQuiet) {
-                      @switch (row.provider.outcome) {
-                        @case ('derived') {
-                          <a
-                            class="chip-link"
-                            [routerLink]="['/remotes']"
-                            [queryParams]="{ select: row.provider.select }"
-                            [title]="row.provider.note"
-                            ><nf-participant-chip
-                              [name]="row.provider.remote"
-                              [host]="row.provider.host"
-                          /></a>
+                    <span class="fold-glyph" aria-hidden="true">{{
+                      foldExpanded(section, group) ? '▾' : '▸'
+                    }}</span>
+                  </button>
+                  @if (foldExpanded(section, group)) {
+                    <div class="group-rows">
+                      @for (row of group.rows; track $index) {
+                        <ng-container
+                          [ngTemplateOutlet]="rowTpl"
+                          [ngTemplateOutletContext]="{
+                            row: row,
+                            hoisted: false,
+                            selfMark: group.integrityHoist === null,
+                            muted: false,
+                          }"
+                        />
+                      }
+                    </div>
+                  }
+                </div>
+              }
+              @default {
+                @if (group.packagesHead; as home) {
+                  <div class="group-head home-head">
+                    <span class="head-seg group-kind" [title]="home.note">PACKAGES</span>
+                    <span class="head-seg group-count">{{ home.countClaim }}</span>
+                  </div>
+                }
+                <div
+                  class="row-group"
+                  [class.group-signature]="group.kind === 'signature'"
+                  [class.group-unreferenced]="group.kind === 'unreferenced'"
+                >
+                  <div class="group-head">
+                    @switch (group.kind) {
+                      @case ('exposes') {
+                        <span class="head-seg group-kind" [title]="group.note">EXPOSES</span>
+                      }
+                      @case ('unreferenced') {
+                        <span class="head-seg group-kind" [title]="group.note">UNREFERENCED</span>
+                      }
+                      @default {
+                        @for (source of group.sources; track $index) {
+                          @if (source.display !== null) {
+                            <span class="head-seg head-source" [title]="source.note">
+                              <span class="source-word">from</span>
+                              <a
+                                class="chip-link"
+                                [routerLink]="['/remotes']"
+                                [queryParams]="{ select: source.remoteSelect }"
+                                ><nf-participant-chip
+                                  [name]="source.remoteSelect!"
+                                  [host]="source.host"
+                              /></a>
+                            </span>
+                          }
+                          @if (source.qualifier !== 'exact-target-source') {
+                            <span class="head-seg row-qualifier" [title]="source.note">{{
+                              source.label
+                            }}</span>
+                          }
                         }
-                        @case ('ambiguous') {
-                          <nf-state-badge kind="ambiguous" [note]="row.provider.note" />
-                        }
-                        @case ('unattributable') {
-                          <span class="row-unattributable" [title]="row.provider.note"
-                            >unattributable</span
-                          >
+                        @for (bundle of group.bundles; track $index) {
+                          <span class="head-seg row-bundle" [title]="bundle.note">
+                            @if (bundle.select !== null) {
+                              <a
+                                class="note-link mono"
+                                [routerLink]="['/remotes']"
+                                [queryParams]="{ select: bundle.select }"
+                                >{{ bundle.label }}</a
+                              >
+                            } @else {
+                              <span class="mono">{{ bundle.label }}</span>
+                            }
+                            @if (bundle.qualified) {
+                              <span class="row-qualifier">{{ bundle.status }}</span>
+                            }
+                          </span>
                         }
                       }
                     }
-                    @if (row.chunk; as chunk) {
-                      <a
-                        class="note-link mono"
-                        [routerLink]="['/remotes']"
-                        [queryParams]="{ select: chunk.select }"
-                        [title]="chunk.note"
-                        >{{ chunk.groupLabel }}</a
+                    <span class="head-seg group-count">{{ group.countClaim }}</span>
+                    @if (group.integrityHoist === true) {
+                      <span
+                        class="head-seg head-sri"
+                        title="every entry of this group carries an SRI hash"
+                        >SRI ✓</span
+                      >
+                    } @else if (group.integrityHoist === false) {
+                      <span
+                        class="head-seg head-sri sri-none"
+                        title="no entry of this group carries an SRI hash"
+                        >no SRI</span
                       >
                     }
-                  </td>
-                </tr>
+                  </div>
+                  <div class="group-rows">
+                    @for (row of group.rows; track $index) {
+                      <ng-container
+                        [ngTemplateOutlet]="rowTpl"
+                        [ngTemplateOutletContext]="{
+                          row: row,
+                          hoisted: group.kind === 'signature',
+                          selfMark: group.integrityHoist === null,
+                          muted: group.kind === 'unreferenced',
+                        }"
+                      />
+                    }
+                  </div>
+                </div>
               }
-            </tbody>
-          </table>
+            }
+          }
         </section>
       }
     }

@@ -12,7 +12,7 @@ import { describe, expect, it } from 'vitest';
 import type { SnapshotV1 } from '../../../devtools-bridge/src/lib/snapshot-v1';
 import { frankensteinLiveFixture } from '../../../devtools-bridge/src/lib/fixtures/frankenstein-live.fixture';
 import { scanForPrivacyViolations } from '../../../../guards/privacy-scan';
-import { COLLECTOR_VERSION } from './constants';
+import { COLLECTOR_VERSION, DEFAULT_LIMITS } from './constants';
 import { PASSIVE_PROBE_SOURCE } from './passive-probe';
 import { SHIM_MAP_PROBE_SOURCE } from './shim-map-probe';
 import { mapProbeResult } from './snapshot-mapper';
@@ -30,6 +30,179 @@ function capturePage(sandbox: Record<string, unknown>): SnapshotV1 {
   const shim = evaluateProbe(SHIM_MAP_PROBE_SOURCE, sandbox);
   return mapProbeResult(raw, shim, { capturedAt: CAPTURED_AT });
 }
+
+const ANCHOR_FIELDS = ['pool', 'servedBy'] as const;
+
+type AnchorField = (typeof ANCHOR_FIELDS)[number];
+
+function makeAnchorParticipant(extra: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    name: 'anchor-remote',
+    requiredVersion: '^1.0.0',
+    strictVersion: true,
+    file: 'anchor.js',
+    cached: true,
+    ...extra,
+  };
+}
+
+function makeAnchorSharedExternals(participant: Record<string, unknown>): Record<string, unknown> {
+  return {
+    __GLOBAL__: {
+      'anchor-package': {
+        dirty: false,
+        versions: [
+          {
+            tag: '1.0.0',
+            action: 'share',
+            host: false,
+            remotes: [participant],
+          },
+        ],
+      },
+    },
+  };
+}
+
+function captureInlineAnchor(participant: Record<string, unknown>): SnapshotV1 {
+  const sandbox = makeBarePage({
+    __NATIVE_FEDERATION__: {
+      remotes: {},
+      'scoped-externals': {},
+      'shared-externals': makeAnchorSharedExternals(participant),
+      'shared-chunks': {},
+    },
+  });
+  const raw = evaluateProbe(PASSIVE_PROBE_SOURCE, sandbox);
+  return mapProbeResult(raw, null, { capturedAt: CAPTURED_AT });
+}
+
+function makeRawAnchorProbe(participant: Record<string, unknown>): Record<string, unknown> {
+  const repository = (value: Record<string, unknown>) => ({
+    present: true,
+    descriptor: 'data',
+    valueType: 'object',
+    value,
+  });
+
+  return {
+    schemaVersion: 'passive-probe/3',
+    page: { origin: 'https://edge.example', path: '/', readyState: 'complete' },
+    globals: {
+      nativeFederation: {
+        present: true,
+        descriptor: 'data',
+        valueType: 'object',
+        repositories: {
+          remotes: repository({}),
+          'scoped-externals': repository({}),
+          'shared-externals': repository(makeAnchorSharedExternals(participant)),
+          'shared-chunks': repository({}),
+        },
+      },
+      importShim: { present: false },
+    },
+    importMaps: [],
+    errors: [],
+  };
+}
+
+function captureHostAnchor(participant: Record<string, unknown>): SnapshotV1 {
+  return mapProbeResult(makeRawAnchorProbe(participant), null, { capturedAt: CAPTURED_AT });
+}
+
+function capturedAnchor(snapshot: SnapshotV1) {
+  return snapshot.runtime!.sharedExternals['__GLOBAL__']['anchor-package'].versions[0].remotes[0];
+}
+
+function hasOwn(value: object, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(value, key);
+}
+
+function registerAnchorProjectionTests(
+  label: string,
+  errorStage: 'probe' | 'mapper',
+  capture: (participant: Record<string, unknown>) => SnapshotV1,
+): void {
+  describe(`witnessed anchors through ${label} (T2.1-AC-01, T2.1-AC-03)`, () => {
+    it.each(ANCHOR_FIELDS)('omits a non-string %s without coercion', (field: AnchorField) => {
+      let coercionCalls = 0;
+      const coercedSecret = `coerced-${field}-secret`;
+      const nonString = {
+        toString() {
+          coercionCalls += 1;
+          return coercedSecret;
+        },
+      };
+
+      const snapshot = capture(makeAnchorParticipant({ [field]: nonString }));
+      const remote = capturedAnchor(snapshot);
+
+      expect(coercionCalls).toBe(0);
+      expect(hasOwn(remote, field)).toBe(false);
+      expect(snapshot.errors).toEqual([]);
+      expect(JSON.stringify(snapshot)).not.toContain(coercedSecret);
+    });
+
+    it.each(ANCHOR_FIELDS)(
+      'skips a throwing accessor-backed %s without invoking it',
+      (field: AnchorField) => {
+        let getterCalls = 0;
+        const participant = makeAnchorParticipant();
+        Object.defineProperty(participant, field, {
+          enumerable: true,
+          configurable: true,
+          get() {
+            getterCalls += 1;
+            throw new Error(`${field}-accessor-secret`);
+          },
+        });
+
+        const snapshot = capture(participant);
+        const remote = capturedAnchor(snapshot);
+
+        expect(getterCalls).toBe(0);
+        expect(hasOwn(remote, field)).toBe(false);
+        expect(
+          snapshot.errors.some(
+            (error) =>
+              error.stage === errorStage &&
+              error.code === 'accessor-skipped' &&
+              JSON.stringify(error.detail).includes(field),
+          ),
+        ).toBe(true);
+        expect(JSON.stringify(snapshot)).not.toContain(`${field}-accessor-secret`);
+      },
+    );
+
+    it.each(ANCHOR_FIELDS)(
+      'bounds an oversized %s without leaking its suffix',
+      (field: AnchorField) => {
+        const retainedPrefix = `${field}:`.padEnd(DEFAULT_LIMITS.maxStringLength, 'x');
+        const rejectedSuffix = `__${field.toUpperCase()}_UNBOUNDED_SUFFIX__`;
+        const snapshot = capture(
+          makeAnchorParticipant({ [field]: retainedPrefix + rejectedSuffix }),
+        );
+        const remote = capturedAnchor(snapshot);
+
+        expect(remote[field]).toBe(retainedPrefix);
+        expect(remote[field]).toHaveLength(DEFAULT_LIMITS.maxStringLength);
+        expect(
+          snapshot.errors.some(
+            (error) =>
+              error.stage === errorStage &&
+              error.code === 'string-limit' &&
+              JSON.stringify(error.detail).includes(field),
+          ),
+        ).toBe(true);
+        expect(JSON.stringify(snapshot)).not.toContain(rejectedSuffix);
+      },
+    );
+  });
+}
+
+registerAnchorProjectionTests('the inline probe schema', 'probe', captureInlineAnchor);
+registerAnchorProjectionTests('the host mapper schema', 'mapper', captureHostAnchor);
 
 describe('frankenstein pipeline (T7-AC-06)', () => {
   it('reproduces the derived fixture evidence layers from a live-shaped page', () => {
@@ -620,6 +793,24 @@ describe('entry-cap truncation is loud (T4-AC-06)', () => {
 });
 
 describe('degenerate probe input', () => {
+  it('rejects an otherwise-valid passive-probe/2 result after the /3 contract bump (T2.1-AC-01)', () => {
+    const legacyRaw = {
+      ...makeRawAnchorProbe(makeAnchorParticipant({ pool: 'legacy-pool' })),
+      schemaVersion: 'passive-probe/2',
+    };
+
+    const snapshot = mapProbeResult(legacyRaw, null, { capturedAt: CAPTURED_AT });
+
+    expect(snapshot.channels).toEqual({
+      nativeFederationGlobals: { state: 'unavailable', reason: 'probe result unavailable' },
+      domImportMaps: { state: 'unavailable', reason: 'probe result unavailable' },
+      importShim: { state: 'unavailable', reason: 'probe result unavailable' },
+    });
+    expect(snapshot.runtime).toBeNull();
+    expect(snapshot.importMaps).toBeNull();
+    expect(snapshot.errors).toEqual([{ stage: 'mapper', code: 'probe-result-invalid' }]);
+  });
+
   it('maps garbage probe results to explicit unavailable states', () => {
     for (const garbage of [null, undefined, 42, 'nope', { schemaVersion: 'other/1' }]) {
       const snapshot = mapProbeResult(garbage, null, { capturedAt: CAPTURED_AT });

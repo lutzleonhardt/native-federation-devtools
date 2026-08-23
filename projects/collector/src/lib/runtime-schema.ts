@@ -56,7 +56,9 @@ const remoteProvider: SchemaNode = {
     entries: fileEntries,
     file: url,
     name: string,
+    pool: string,
     requiredVersion: string,
+    servedBy: string,
     strictVersion: boolean,
   },
 };
