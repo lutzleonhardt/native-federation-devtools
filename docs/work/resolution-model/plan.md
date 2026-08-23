@@ -24,6 +24,36 @@ Tasks 2, 2.1, and 2.2 form the raw `pool`/`servedBy` schema gate. Task 2 produce
 > (quick per-task, full before a PR) between wrap-up and commit;
 > a second `/wrap-up N` can absorb the review findings.
 
+## Plan amendment (2026-08-23): demo resequencing
+
+Decided with Lutz for the online conference demo on 2026-08-25 18:00:
+
+- **Task 10 (Diagnostics) is deferred** past the graph-view scope. The
+  placeholder stays; its route test keeps pinning the placeholder. The
+  Diagnostics tab may be hidden for the demo (small presentation-only
+  change in the graph-view scope; the placeholder pin adapts then).
+- **The graph view is planned and built first, in its own branch scope
+  `graph-view`** (spec: `docs/specs/native-federation-graph-view.md`).
+  The YAGNI boundary above ("no graph UI") remains true *within this
+  plan* — no graph work enters resolution-model tasks. The graph
+  consumes only the Task-6 `CanonicalResolutionProjection`, so
+  building it before Task 11 is safe; Task 11's guards cover it
+  retroactively.
+- **Tasks 11 and 12 execute after the graph-view scope lands.**
+  Task 11's cross-view contract then covers Packages, Remotes, Import
+  Map, and Graph (Diagnostics still placeholder). Task 12's
+  walkthrough reviews the three migrated views plus the graph POC
+  states and records the Diagnostics column as deferred.
+- Sequence: this amendment commits on `feature/resolution-model` →
+  merge into `main` (`feature/v2` is already fully merged into `main`
+  and is retired; the GitHub default branch moves back to `main`) →
+  branch `feature/graph-view` from `main` (spec + `/plan`) → demo →
+  Task 11 → Task 12 → Task 10. No stacked branches: every scope
+  branches from and merges back to `main`.
+- The external challenger pinned in the header (DEPENDENCY-GRAPH.md)
+  is also the design input of the graph-view spec; the adopt/reject
+  verdict lives there.
+
 ## Task 1: Normalize canonical registry evidence
 
 ### Instructions
