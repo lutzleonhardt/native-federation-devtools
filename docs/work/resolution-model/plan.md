@@ -383,7 +383,7 @@ T2-AC-02 through T2-AC-05 were retired by the approved task split. Their IDs are
 - Unresolved bucket: declarations whose claim is not mapped / blocked /
   unknown render under an `unresolved` heading with state and
   `offered <tag>`; a package with zero copies shows "no resolved copies
-  in this capture" plus the bucket. A *not selected* declaration that
+  in this capture" plus the bucket. A _not selected_ declaration that
   resolves to a copy is a consumer row under that block, never
   unresolved (co-declared-share: 2 consumer resolutions, 1 copy).
 - Deviation-first: default qualifiers (exact target source,
@@ -424,7 +424,7 @@ T2-AC-02 through T2-AC-05 were retired by the approved task split. Their IDs are
 - **T7.5-AC-03** — strict-split renders two copy blocks (2.0.0
   shared/host with the mfe1 skip row; 1.0.0 isolated/mfe3 "mapped only
   for mfe3" with STRICT + `kept own copy`) under a `⚠ 2 resolved
-  versions` header. **Contributes:** XC-03.
+versions` header. **Contributes:** XC-03.
 - **T7.5-AC-04** — synthetic-multi-version renders zero copy blocks,
   "no resolved copies in this capture", and an `unresolved` bucket
   with not-mapped states and offered tags. **Contributes:** XC-06.
@@ -700,7 +700,7 @@ T2-AC-02 through T2-AC-05 were retired by the approved task split. Their IDs are
   (`skipped own <tag>`, `kept own copy`, `not selected`) grounded
   tooltips naming the participant's own registered file as evidence,
   e.g. `own copy rxjs.AbCdEf.js is registered but not selected in this
-  capture`.
+capture`.
 - Wording stays capture-relative: an unselected own copy is the price
   of standalone deployability and may be selected under a different
   composition — never "dead weight", never byte estimates, no delivery
@@ -754,7 +754,7 @@ T2-AC-02 through T2-AC-05 were retired by the approved task split. Their IDs are
   indented, muted entrypoint sub-rows: specifier, the tag of their own
   registration, and a provenance annotation with a grounded tooltip
   (e.g. `registered via the entries map of @nf-lab/split-lib@3.1.4 —
-  no own registry key in this capture`). The association is registry
+no own registry key in this capture`). The association is registry
   EVIDENCE (the entries map), stronger than the name-derived linked
   glyph — the rendering may be correspondingly confident, but must
   never look like an own registry key.
@@ -768,10 +768,10 @@ T2-AC-02 through T2-AC-05 were retired by the approved task split. Their IDs are
   "tag reads as a full-package version" misreading); the happy dense
   block (parent + secondary) carries no fact.
 - Level-vocabulary tooltips: list header (`one row per registry key of
-  the share register`), detail-head package name (`registry key in
-  share scope …`, verbatim scope), DECLARED BY group label
+the share register`), detail-head package name (`registry key in
+share scope …`, verbatim scope), DECLARED BY group label
   (`participants that declared this dependency and their requirements —
-  the registration itself is the version row under the registry key`).
+the registration itself is the version row under the registry key`).
   The DECLARED BY label itself stays (decision recorded in the
   task-7.8 log); wording follows the triad declare (participant
   requirement) / register (registry bookkeeping) / resolve (outcome).
@@ -886,8 +886,8 @@ T2-AC-02 through T2-AC-05 were retired by the approved task split. Their IDs are
   per capability the final English tooltip string in the established
   config-naming convention (precedent: `(config: strictVersion: true)`,
   `(config: shareScope: 'strict')`), e.g. `dense externals — shared
-  participants carry their serving bundle (config: <flag>: true,
-  default false, since v<X>)`, each with a concrete source reference
+participants carry their serving bundle (config: <flag>: true,
+default false, since v<X>)`, each with a concrete source reference
   (repo file path + version/tag).
 - Honesty rule: a mapping that cannot be pinned in source is recorded
   as "not derivable from source" — that tooltip then ships WITHOUT a
@@ -1009,7 +1009,7 @@ capability tooltips without the config suffix).
   the colored mfe2 chip linking to /remotes; co-declared-share mfe2:
   consumes row `not selected` from mfe1. **Contributes:** XC-03, XC-06.
 - **T8.6-AC-03** — strict-split mfe3: provides block `isolated ·
-  mapped only for mfe3` with no `kept own copy` chip; pooling-anchor:
+mapped only for mfe3` with no `kept own copy` chip; pooling-anchor:
   provides block with `anchored` chip while the skip action appears
   only in the registration tooltip. **Contributes:** XC-03.
 - **T8.6-AC-04** — synthetic-multi-version: both zones honest-empty,
@@ -1092,6 +1092,110 @@ capability tooltips without the config suffix).
 
 - The current Import Map view rebuilds package and chunk associations independently.
 - Import Map remains the recorded mapping pivot; canonical annotations explain it without mutating or replacing the raw evidence.
+
+## Task 9.5: Redesign the Import Map presentation around evidence groups
+
+**Dependency:** Task 9.
+
+### Instructions
+
+- Presentation-only redesign of the Import Map view; the Task-9
+  canonical façade consumption, VM purity, claim vocabulary, quiet
+  norms, and grounded reason-tooltips stay intact. Layout/wording
+  reference is the mock
+  `docs/work/resolution-model/design/import-map-view-redesign-mock.md`
+  (Iteration 1 + Codex round; freeze completes with Lutz's read of its
+  Decision 8); UI strings are English.
+- The raw pivot stays: every recorded `(scope, specifier, target)` row
+  renders exactly once, sections per scope. Within a section, rows
+  regroup into evidence homes — `EXPOSES` / signature groups /
+  ungrouped rows / `CHUNK WIRING` (collapsed by default) /
+  `UNREFERENCED` — with kind precedence expose > chunk > package
+  deciding the grouping home only; annotations never drop from a row,
+  and kinds derive from canonical joins, never specifier heuristics.
+- **Supersession (deliberate plan amendment):** the Task-9 instruction
+  "preserving map order" and the order clause of T9-AC-05 are
+  superseded by the mock's order invariant — rendered triples are a
+  deterministic permutation of the recorded entries (sections in map
+  order; homes in fixed order; signature groups by first appearance;
+  rows in map order within every home). The display optimizes for
+  legibility; map order carries no resolution semantics, and Export
+  JSON keeps the artifact verbatim.
+- Signature groups render in GLOBAL only; the group key is exactly the
+  rendered head facts (source `(remoteSelect, host, qualifier)` set +
+  bundle `(label, status, select)` set; IDs, resolved tags, and note
+  strings excluded); head tooltips are fixed factoring strings;
+  qualified signatures keep their qualified language in the head.
+  Scope-section package rows and empty-signature rows render ungrouped
+  with the full per-row channel and quiet norms.
+- SRI: the dedicated column dies; heads hoist uniform integrity, mixed
+  groups and ungrouped rows mark per row — every row's integrity state
+  is readable from exactly one place. Per-section table headers drop;
+  the section-count tooltip carries the raw-pivot/order contract.
+- `CHUNK WIRING`: real `<button>` disclosure with `aria-expanded`,
+  keyboard-operable; the collapsed head shows count + bundle summary;
+  collapsed rows are not in the DOM while the VM stays complete;
+  selection (`/./`-tolerant) auto-expands.
+- `overrides global`: muted marker from map-structural evidence only
+  (a global entry maps the same specifier to a different target),
+  fixed scope-precedence tooltip, no resolution or execution claim.
+- Row VMs gain exactly `overridesGlobal`; the section VM gains the
+  groups layer; no new canonical surface, no new joins. Expose rows
+  surface `expose <module>` visibly. Components keep
+  templateUrl/styleUrl with separate .html/.css files.
+
+### Acceptance
+
+- **T9.5-AC-01** — frankenstein-live GLOBAL renders `EXPOSES` (2,
+  visible module names) plus the seven signature groups of the mock,
+  SRI hoisted into heads, `source-only` qualifiers visible in heads;
+  quiet single own-selected rows render bare (specifier + target
+  only); the host scope renders the collapsed `CHUNK WIRING` head
+  with count and bundle summary. **Contributes:** XC-06.
+- **T9.5-AC-02** — the row sweep holds as multiset equality over ALL
+  fixtures including folded rows, plus the permutation pin: rendered
+  order equals the order-invariant function of the recorded entries,
+  and two renders of one capture are identical. **Contributes:** XC-03.
+- **T9.5-AC-03** — kinds derive from canonical joins only: non-dense
+  wiring rows fold with their quiet pseudo-external claims intact; the
+  expose ∧ resolution seed keeps the expose home, retains its
+  resolution annotations, and shows the module word; synthetic-hostile
+  renders `UNREFERENCED` muted rows with per-row SRI and no guessed
+  annotation. **Contributes:** XC-02.
+- **T9.5-AC-04** — pooling-anchor: anchors stay visible in both
+  consumer scopes (self-anchor included), the multi-claim `/extra` row
+  keeps both claim chips, and both scope rows carry `overrides
+global`; scoped/strict-scope rows carry none (no global entry);
+  blocked/unattributable/ambiguous seeds keep their qualified language
+  in heads or the per-row channel. **Contributes:** XC-02, XC-06.
+- **T9.5-AC-05** — fold contract DOM-pinned: collapsed head with
+  count, expanded full rows, `aria-expanded` + keyboard operation,
+  selection auto-expansion incl. `/./` tolerance; carried-over
+  select/caption/empty/wording pins hold (no `served by`, no
+  `loaded`); templates stay VM-only. **Contributes:** XC-01, XC-06.
+
+### Key Locations
+
+- `projects/devtools-ui/src/app/views/import-map/` — `import-map-view-model.ts`, `import-map.ts`, `import-map.html`, `import-map.css`, both specs
+- `docs/work/resolution-model/design/import-map-view-redesign-mock.md` (reference, read-only — order invariant, signature equality, fold contract, fixture cases as acceptance reference)
+
+### Key Discoveries
+
+- All data exists post-Task-9: kinds and signatures derive from the
+  existing row-VM joins (`exposes`/`resolutionIds`/`chunks`,
+  `sources`/`bundles`) — this task re-groups presentation and derives
+  exactly one map-structural fact (`overridesGlobal`) from
+  `importMapEntries` alone.
+- Probe over all fixtures (recorded in the mock): kinds are disjoint
+  except chunk ∧ resolution in v4.5 captures (non-dense
+  pseudo-externals — the chunk home wins per the
+  `scoped-pseudo-external` precedent); UNTYPED occurs only in
+  synthetic/hostile fixtures; grouping factors frankenstein-live's 20
+  package rows into 7 groups and non-dense's 14 into one.
+- Deliberately deferred (do not build): per-row kind word,
+  emitter-chip quiet norm inside the fold, signature groups in scope
+  sections, sticky section nav — screenshot-review / scale items per
+  the mock.
 
 ## Task 10: Build canonical Diagnostics
 
@@ -1215,9 +1319,9 @@ capability tooltips without the config suffix).
 
 ## Cross-Cutting Acceptance
 
-- **XC-01** — Raw normalization, effective lookup, claim/source explanation, copy identity, and chunk attribution each have one canonical owner; views only project Store data and no production consumer uses `sharedRows` after cutover. **Touches:** T1, T2.2, T3, T4, T5, T6, T7, T7.5, T8, T8.6, T9, T10, T11.
-- **XC-02** — Every derived candidate, claim, resolution, source attribution, comparison, copy, relation, and chunk claim has deterministic collision-safe identity plus complete evidence/rule provenance; unknown and ambiguous evidence remains representable. **Touches:** T1, T2, T2.1, T2.2, T3, T4, T5, T6, T8, T8.6, T9, T10, T11.
-- **XC-03** — Packages, Remotes, Import Map, and Diagnostics share canonical IDs and cardinalities: declarations never become registrations/copies, claims never duplicate bindings, and the four package counts keep their distinct meanings. **Touches:** T1, T2.2, T3, T4, T5, T6, T7, T7.5, T8, T8.6, T9, T10, T11.
+- **XC-01** — Raw normalization, effective lookup, claim/source explanation, copy identity, and chunk attribution each have one canonical owner; views only project Store data and no production consumer uses `sharedRows` after cutover. **Touches:** T1, T2.2, T3, T4, T5, T6, T7, T7.5, T8, T8.6, T9, T9.5, T10, T11.
+- **XC-02** — Every derived candidate, claim, resolution, source attribution, comparison, copy, relation, and chunk claim has deterministic collision-safe identity plus complete evidence/rule provenance; unknown and ambiguous evidence remains representable. **Touches:** T1, T2, T2.1, T2.2, T3, T4, T5, T6, T8, T8.6, T9, T9.5, T10, T11.
+- **XC-03** — Packages, Remotes, Import Map, and Diagnostics share canonical IDs and cardinalities: declarations never become registrations/copies, claims never duplicate bindings, and the four package counts keep their distinct meanings. **Touches:** T1, T2.2, T3, T4, T5, T6, T7, T7.5, T8, T8.6, T9, T9.5, T10, T11.
 - **XC-04** — Old/new snapshot compatibility, hostile-page safety, privacy/passivity, all 12 lab captures plus two live phases, and byte-stable fixture derivation survive the migration. **Touches:** T2, T2.1, T2.2, T3, T11.
 - **XC-05** — The resolution phase exports one raw-free canonical projection with consumer-copy relations, selected artifact claims, and filterable completeness; it implements no graph UI and permits no downstream raw-data resolver. **Touches:** T6, T11.
-- **XC-06** — All product text distinguishes declaration/mapping/selection from request, download, execution, cache hit, or wire cost, and the final manual fixture walkthrough confirms the distinction is understandable and visible. **Touches:** T2.2, T3, T4, T6, T7, T7.5, T7.6, T8, T8.6, T9, T10, T11, T12.
+- **XC-06** — All product text distinguishes declaration/mapping/selection from request, download, execution, cache hit, or wire cost, and the final manual fixture walkthrough confirms the distinction is understandable and visible. **Touches:** T2.2, T3, T4, T6, T7, T7.5, T7.6, T8, T8.6, T9, T9.5, T10, T11, T12.
