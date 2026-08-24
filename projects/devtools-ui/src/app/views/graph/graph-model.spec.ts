@@ -28,6 +28,7 @@ import type {
   ResolvedDependencyCopy,
   ResolvedDependencyCopyId,
 } from '../../shared/store/resolution';
+import { buildGraphModel } from './graph-model';
 import {
   CLUSTER_HEADER,
   CLUSTER_PAD,
@@ -44,8 +45,7 @@ import {
   NODE_W,
   RemoteGraphNode,
   SUB_LABEL_MAX,
-  buildGraphModel,
-} from './graph-model';
+} from './graph-types';
 
 function projectionOf(fixtureId: FixtureId): CanonicalResolutionProjection {
   return ingestSnapshot(structuredClone(FIXTURES[fixtureId])).resolutionProjection;

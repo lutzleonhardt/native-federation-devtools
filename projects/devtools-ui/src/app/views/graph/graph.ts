@@ -4,7 +4,8 @@ import { RouterLink } from '@angular/router';
 import { PARTICIPANT_COLOR_LOOKUP } from '../../shared/kit/participant-colors';
 import { FederationStore } from '../../shared/store/federation-store';
 import { countClaim } from '../../shared/view-conventions';
-import { GraphModel, buildGraphModel } from './graph-model';
+import { buildGraphModel } from './graph-model';
+import { GraphModel } from './graph-types';
 
 /**
  * Graph tab (preview) — the resolution graph over the canonical projection:
