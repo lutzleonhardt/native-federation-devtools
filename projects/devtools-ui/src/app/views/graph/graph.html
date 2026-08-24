@@ -1,0 +1,73 @@
+<section class="view graph-view">
+  <h1>Graph (preview)</h1>
+  @if (vm(); as vm) {
+    @if (vm.empty) {
+      <p class="view-observation">Nothing to graph.</p>
+    } @else {
+      <div class="graph-scroll">
+        <svg
+          class="graph-canvas"
+          role="img"
+          aria-label="Resolution graph: remotes and the dependency copies they resolve to"
+          [attr.width]="vm.width"
+          [attr.height]="vm.height"
+          [attr.viewBox]="'0 0 ' + vm.width + ' ' + vm.height"
+        >
+          @for (column of vm.columns; track column.key) {
+            <text class="graph-column-header" [attr.x]="column.headerX" [attr.y]="column.headerY">
+              {{ column.label }}
+            </text>
+          }
+          @for (edge of vm.edges; track edge.id) {
+            <g class="graph-edge-group">
+              @if (edge.tooltip) {
+                <title>{{ edge.tooltip }}</title>
+              }
+              <!-- Invisible wide stroke: the 1.5px edge itself is no hover target. -->
+              <path class="graph-edge-hit" [attr.d]="edge.path" />
+              <path
+                class="graph-edge"
+                [class.dotted]="edge.style === 'dotted'"
+                [attr.d]="edge.path"
+              />
+            </g>
+          }
+          @for (node of vm.nodes; track node.key) {
+            <g
+              class="graph-node"
+              [class.remote]="node.kind === 'remote'"
+              [class.dependency]="node.kind === 'dependency'"
+              [class.host]="node.isHost"
+              [class.isolated]="node.isolated"
+            >
+              @if (node.labelTooltip) {
+                <title>{{ node.labelTooltip }}</title>
+              }
+              <rect
+                [attr.x]="node.x"
+                [attr.y]="node.y"
+                [attr.width]="node.width"
+                [attr.height]="node.height"
+                rx="4"
+              />
+              <text class="graph-node-label" [attr.x]="node.labelX" [attr.y]="node.labelY">
+                {{ node.label }}
+              </text>
+              @if (node.subLabel) {
+                <text
+                  class="graph-node-sublabel"
+                  [attr.x]="node.subLabelX"
+                  [attr.y]="node.subLabelY"
+                >
+                  {{ node.subLabel }}
+                </text>
+              }
+            </g>
+          }
+        </svg>
+      </div>
+    }
+  } @else {
+    <p class="view-observation">no captured snapshot to render</p>
+  }
+</section>

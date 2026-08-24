@@ -67,7 +67,7 @@ describe('App', () => {
     const labels = Array.from(compiled.querySelectorAll('.shell-nav a')).map((a) =>
       a.textContent?.trim(),
     );
-    expect(labels).toEqual(['Packages', 'Remotes', 'Import Map', 'Diagnostics']);
+    expect(labels).toEqual(['Packages', 'Remotes', 'Import Map', 'Graph (preview)', 'Diagnostics']);
   });
 
   // T8-AC-01: `/packages` is the default route (since Task 10 the real
@@ -86,6 +86,7 @@ describe('App', () => {
     for (const [url, title] of [
       ['/remotes', 'Remotes'],
       ['/import-map', 'Import Map'],
+      ['/graph', 'Graph (preview)'],
     ]) {
       await router.navigateByUrl(url);
       await settle(fixture);
@@ -158,7 +159,9 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     await settle(fixture);
     expect(
-      (fixture.nativeElement as HTMLElement).querySelector('.strip-generation')?.textContent?.trim(),
+      (fixture.nativeElement as HTMLElement)
+        .querySelector('.strip-generation')
+        ?.textContent?.trim(),
     ).toBe('v4.5');
   });
 
@@ -196,9 +199,7 @@ describe('App', () => {
     expect(el.querySelector('.shell-status')?.textContent).toContain('synthetic-fixture.example');
     // The empty page collapses to the no-federation summary (a normal
     // state), with no warnings and no per-tab entries.
-    expect(el.querySelector('.strip-none')?.textContent).toContain(
-      'no Native Federation detected',
-    );
+    expect(el.querySelector('.strip-none')?.textContent).toContain('no Native Federation detected');
     expect(el.querySelectorAll('.strip-entry')).toHaveLength(0);
     expect(el.querySelectorAll('.strip-warning')).toHaveLength(0);
   });

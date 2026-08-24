@@ -1,0 +1,64 @@
+.graph-scroll {
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.graph-canvas {
+  display: block;
+}
+
+.graph-column-header {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  fill: var(--nf-color-text-muted);
+}
+
+.graph-edge {
+  fill: none;
+  stroke: var(--nf-color-text-muted);
+  stroke-width: 1.5;
+}
+
+.graph-edge-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 12;
+  pointer-events: stroke;
+}
+
+.graph-edge.dotted {
+  stroke-dasharray: 2 4;
+}
+
+.graph-node rect {
+  fill: var(--nf-color-surface);
+  stroke: var(--nf-color-border);
+}
+
+.graph-node.host rect {
+  stroke: var(--nf-color-accent);
+  stroke-width: 1.5;
+}
+
+.graph-node.isolated rect {
+  stroke-dasharray: 4 3;
+}
+
+.graph-node-label {
+  font-size: 12px;
+  fill: currentColor;
+}
+
+.graph-node.dependency .graph-node-label {
+  font-family: var(--nf-font-mono);
+}
+
+.graph-node-sublabel {
+  font-size: 11px;
+  text-anchor: end;
+  fill: var(--nf-color-text-muted);
+  font-family: var(--nf-font-mono);
+}
