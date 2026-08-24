@@ -16,6 +16,70 @@
   fill: var(--nf-color-text-muted);
 }
 
+.graph-cluster rect {
+  fill: none;
+  stroke: var(--nf-color-border);
+}
+
+.graph-cluster-label {
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--nf-color-text-muted);
+}
+
+/*
+ * Cluster identity hues — the same 1-based participant palette slots the
+ * chip dots use; a cluster without an assigned owner stays neutral.
+ */
+.graph-cluster.hue-1 rect {
+  stroke: var(--nf-participant-color-1);
+}
+.graph-cluster.hue-1 .graph-cluster-label {
+  fill: var(--nf-participant-color-1);
+}
+.graph-cluster.hue-2 rect {
+  stroke: var(--nf-participant-color-2);
+}
+.graph-cluster.hue-2 .graph-cluster-label {
+  fill: var(--nf-participant-color-2);
+}
+.graph-cluster.hue-3 rect {
+  stroke: var(--nf-participant-color-3);
+}
+.graph-cluster.hue-3 .graph-cluster-label {
+  fill: var(--nf-participant-color-3);
+}
+.graph-cluster.hue-4 rect {
+  stroke: var(--nf-participant-color-4);
+}
+.graph-cluster.hue-4 .graph-cluster-label {
+  fill: var(--nf-participant-color-4);
+}
+.graph-cluster.hue-5 rect {
+  stroke: var(--nf-participant-color-5);
+}
+.graph-cluster.hue-5 .graph-cluster-label {
+  fill: var(--nf-participant-color-5);
+}
+.graph-cluster.hue-6 rect {
+  stroke: var(--nf-participant-color-6);
+}
+.graph-cluster.hue-6 .graph-cluster-label {
+  fill: var(--nf-participant-color-6);
+}
+.graph-cluster.hue-7 rect {
+  stroke: var(--nf-participant-color-7);
+}
+.graph-cluster.hue-7 .graph-cluster-label {
+  fill: var(--nf-participant-color-7);
+}
+.graph-cluster.hue-8 rect {
+  stroke: var(--nf-participant-color-8);
+}
+.graph-cluster.hue-8 .graph-cluster-label {
+  fill: var(--nf-participant-color-8);
+}
+
 .graph-edge {
   fill: none;
   stroke: var(--nf-color-text-muted);
@@ -61,4 +125,32 @@
   text-anchor: end;
   fill: var(--nf-color-text-muted);
   font-family: var(--nf-font-mono);
+}
+
+.graph-node.chunk .graph-node-label {
+  font-family: var(--nf-font-mono);
+}
+
+.graph-node.chunk.stub rect {
+  stroke-dasharray: 4 3;
+}
+
+.graph-node-qualifier {
+  font-size: 10px;
+  fill: var(--nf-color-text-muted);
+}
+
+.graph-footer {
+  flex: none;
+  padding: 6px 0 2px;
+}
+
+.graph-footer-line {
+  margin: 0;
+  font-size: 12px;
+  color: var(--nf-color-text-muted);
+}
+
+.graph-footer-line a {
+  color: inherit;
 }

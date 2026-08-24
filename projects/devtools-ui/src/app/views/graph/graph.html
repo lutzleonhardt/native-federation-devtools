@@ -8,7 +8,7 @@
         <svg
           class="graph-canvas"
           role="img"
-          aria-label="Resolution graph: remotes and the dependency copies they resolve to"
+          aria-label="Resolution graph: remotes, the dependency copies they resolve to, and the chunk files claimed by the copies' bundles"
           [attr.width]="vm.width"
           [attr.height]="vm.height"
           [attr.viewBox]="'0 0 ' + vm.width + ' ' + vm.height"
@@ -17,6 +17,23 @@
             <text class="graph-column-header" [attr.x]="column.headerX" [attr.y]="column.headerY">
               {{ column.label }}
             </text>
+          }
+          @for (cluster of vm.clusters; track cluster.key) {
+            <g
+              class="graph-cluster"
+              [class]="cluster.colorIndex !== null ? 'hue-' + cluster.colorIndex : ''"
+            >
+              <rect
+                [attr.x]="cluster.x"
+                [attr.y]="cluster.y"
+                [attr.width]="cluster.width"
+                [attr.height]="cluster.height"
+                rx="6"
+              />
+              <text class="graph-cluster-label" [attr.x]="cluster.labelX" [attr.y]="cluster.labelY">
+                {{ cluster.label }} ({{ cluster.count }})
+              </text>
+            </g>
           }
           @for (edge of vm.edges; track edge.id) {
             <g class="graph-edge-group">
@@ -33,39 +50,101 @@
             </g>
           }
           @for (node of vm.nodes; track node.key) {
-            <g
-              class="graph-node"
-              [class.remote]="node.kind === 'remote'"
-              [class.dependency]="node.kind === 'dependency'"
-              [class.host]="node.isHost"
-              [class.isolated]="node.isolated"
-            >
-              @if (node.labelTooltip) {
-                <title>{{ node.labelTooltip }}</title>
+            @switch (node.kind) {
+              @case ('remote') {
+                <g class="graph-node remote" [class.host]="node.isHost">
+                  @if (node.labelTooltip) {
+                    <title>{{ node.labelTooltip }}</title>
+                  }
+                  <rect
+                    [attr.x]="node.x"
+                    [attr.y]="node.y"
+                    [attr.width]="node.width"
+                    [attr.height]="node.height"
+                    rx="4"
+                  />
+                  <text class="graph-node-label" [attr.x]="node.labelX" [attr.y]="node.labelY">
+                    {{ node.label }}
+                  </text>
+                </g>
               }
-              <rect
-                [attr.x]="node.x"
-                [attr.y]="node.y"
-                [attr.width]="node.width"
-                [attr.height]="node.height"
-                rx="4"
-              />
-              <text class="graph-node-label" [attr.x]="node.labelX" [attr.y]="node.labelY">
-                {{ node.label }}
-              </text>
-              @if (node.subLabel) {
-                <text
-                  class="graph-node-sublabel"
-                  [attr.x]="node.subLabelX"
-                  [attr.y]="node.subLabelY"
-                >
-                  {{ node.subLabel }}
-                </text>
+              @case ('dependency') {
+                <g class="graph-node dependency" [class.isolated]="node.isolated">
+                  @if (node.labelTooltip) {
+                    <title>{{ node.labelTooltip }}</title>
+                  }
+                  <rect
+                    [attr.x]="node.x"
+                    [attr.y]="node.y"
+                    [attr.width]="node.width"
+                    [attr.height]="node.height"
+                    rx="4"
+                  />
+                  <text class="graph-node-label" [attr.x]="node.labelX" [attr.y]="node.labelY">
+                    {{ node.label }}
+                  </text>
+                  @if (node.subLabel) {
+                    <text
+                      class="graph-node-sublabel"
+                      [attr.x]="node.subLabelX"
+                      [attr.y]="node.subLabelY"
+                    >
+                      @if (node.subLabelTooltip) {
+                        <title>{{ node.subLabelTooltip }}</title>
+                      }
+                      {{ node.subLabel }}
+                    </text>
+                  }
+                </g>
               }
-            </g>
+              @case ('chunk') {
+                <g class="graph-node chunk" [class.stub]="node.qualifier !== null">
+                  @if (node.labelTooltip) {
+                    <title>{{ node.labelTooltip }}</title>
+                  }
+                  <rect
+                    [attr.x]="node.x"
+                    [attr.y]="node.y"
+                    [attr.width]="node.width"
+                    [attr.height]="node.height"
+                    rx="4"
+                  />
+                  <text class="graph-node-label" [attr.x]="node.labelX" [attr.y]="node.labelY">
+                    {{ node.label }}
+                  </text>
+                  @if (node.qualifier !== null) {
+                    <text
+                      class="graph-node-qualifier"
+                      [attr.x]="node.qualifierX"
+                      [attr.y]="node.qualifierY"
+                    >
+                      {{ node.qualifier }}
+                    </text>
+                  }
+                </g>
+              }
+            }
           }
         </svg>
       </div>
+    }
+    <!-- Outside the empty branch: a capture can diverge without yielding a
+         single node — an incomplete capture must never look merely blank. -->
+    @if (vm.divergent || vm.droppedRelationIds.length > 0) {
+      <footer class="graph-footer">
+        @if (vm.divergent) {
+          <p class="graph-footer-line">
+            {{ vm.completeness.unknownResolutions }} unknown ·
+            {{ vm.completeness.unmappedResolutions }} unmapped ·
+            {{ vm.completeness.blockedResolutions }} blocked ·
+            {{ vm.completeness.ambiguousSourceClaims }} ambiguous — details in the
+            <a [routerLink]="['/remotes']">Remotes view</a>
+          </p>
+        }
+        @if (vm.droppedRelationIds.length > 0) {
+          <p class="graph-footer-line">{{ droppedRelationLine(vm.droppedRelationIds.length) }}</p>
+        }
+      </footer>
     }
   } @else {
     <p class="view-observation">no captured snapshot to render</p>
