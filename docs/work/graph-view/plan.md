@@ -133,6 +133,15 @@ Stage-2 follow-ups (deliberately NOT in this plan; append as new tasks after the
 
 ### Instructions
 
+- First move (model refactor, before any new node kind): split
+  `GraphNode` into a discriminated union on the existing `kind` —
+  a shared `GraphNodeBase` (id, key, label, tooltip, geometry) plus
+  `RemoteGraphNode { isHost }` and `DependencyGraphNode { subLabel,
+  isolated, subLabelX/Y }` — so the new `chunk` kind joins as a
+  third union member instead of widening a flat interface with
+  forced defaults. The template switches on `kind` (`@switch`);
+  the one-component constraint from the preamble stays — dedicated
+  subcomponents only via a separate preamble amendment.
 - Cluster the dependency column by the copy's evidenced source:
   - Lift the copy-source attribution Remotes already uses
     (`copySourceRemote`/`copySourceVmOf` in
@@ -163,6 +172,12 @@ Stage-2 follow-ups (deliberately NOT in this plan; append as new tasks after the
 - Divergence-only footer: render `projection.completeness.total`
   (unknown / unmapped / blocked / ambiguous) as one muted line
   linking to the Remotes view, only when any count is non-zero.
+  The footer additionally surfaces the graph model's
+  `droppedRelationIds` (Task-1 contract: relations whose consumer
+  remote has no rendered node) as
+  `N relation(s) not drawn — consumer not among the capture's
+  remotes`, only when non-empty; wording stays resolution-honest
+  and no node is invented for them.
 - Cluster hues: assigned from the full unfiltered cluster set so
   they stay stable under later filtering; above the palette size
   every cluster renders neutral — no hue recycling (the T7.7
@@ -189,7 +204,10 @@ Stage-2 follow-ups (deliberately NOT in this plan; append as new tasks after the
   capture; above the palette size all clusters render neutral (no
   recycling code path). **Contributes:** XC-03.
 - **T2-AC-07** — the completeness footer renders only on divergence
-  with the four counts; an all-zero capture renders no footer.
+  with the four counts; an all-zero capture renders no footer. A
+  seeded projection with a consumer-less relation renders the
+  dropped-relation line with its count; every corpus fixture
+  renders none.
 
 ### Key Locations
 
