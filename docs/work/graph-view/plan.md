@@ -127,9 +127,94 @@ Stage-2 follow-ups (deliberately NOT in this plan; append as new tasks after the
   semantics (raw-cache resolver, `remotes[0]` provider, delivery
   language) are rejected — the spec records the full verdict.
 
+## Task 1.9: Copy source carries its evidenced remote
+
+**Dependency:** none within this scope (store-side amendment,
+2026-08-24; ordered before Task 2, which consumes the
+projection-pure helpers). This task writes no graph code — the
+preamble's graph shape rules are not exercised here.
+
+### Instructions
+
+- Motivation (session finding): the copy-source attribution all
+  views share (`copySourceRemote`/`copySourceDisplay`/
+  `copySourceVmOf` in `shared/view-conventions.ts`) is
+  projection-pure EXCEPT for one join — resolving the source
+  record ID to its remote name through `CanonicalIndexes`
+  (registryEvidence). Embedding that one evidenced fact into the
+  copy makes the whole attribution ladder readable from
+  `CanonicalResolutionProjection` alone — the purity the graph
+  preamble promises. The IDs stay: they remain the canonical
+  identity/link anchors; only the name rides along.
+- Widen the `ResolvedCopySource` union
+  (`shared/store/resolution/copies-model.ts`):
+  `shared-declaration` gains `participant: string`,
+  `private-registration` gains `ownerRemote: string`;
+  `target-url` stays field-free — the absence of the name field IS
+  the no-evidenced-source statement, no nullable field.
+- `materializeResolvedCopies` copies the name verbatim from the
+  record its ID references (the evidence is already indexed at
+  this single construction site). No derivation, no fallback — a
+  source record without its owner name cannot exist upstream.
+- Simplify `copySourceRemote(copy)`, `copySourceDisplay(copy)`,
+  and `copySourceVmOf(copy)` to pure copy reads — drop the
+  `indexes` parameter — and update the mechanical call sites:
+  `views/packages/packages-row-vm.ts`,
+  `views/packages/packages-vm-shared.ts` (call + re-export),
+  `views/packages/packages-detail-vm.ts`,
+  `views/remotes/remotes-detail-vm.ts` (3 calls),
+  `views/import-map/import-map-view-model.ts`. View behavior
+  stays byte-identical.
+- Update copy-shape pins for the widened union wherever a
+  deep-equal touches `copy.source`
+  (`materialize-resolved-copies.spec.ts`,
+  `build-canonical-projection.spec.ts`, `ingest.spec.ts`, …).
+
+### Acceptance
+
+- **T1.9-AC-01** — materializer pins prove the embedded name
+  equals the record the ID resolves to, for both enriched
+  variants (shared-declaration `participant` and
+  private-registration `ownerRemote` witnesses).
+- **T1.9-AC-02** — `copySourceRemote`/`copySourceDisplay`/
+  `copySourceVmOf` accept only the copy; no caller passes
+  `CanonicalIndexes` for source attribution anymore.
+- **T1.9-AC-03** — the Packages, Remotes, and Import Map spec
+  suites pass unmodified (call-site mechanics only; behavior
+  byte-identical). **Contributes:** XC-01.
+- **T1.9-AC-04** — full repository suite green; the projection
+  top-level shape pin is unchanged (the union widens inside
+  `copies`, no new collection appears).
+
+### Key Locations
+
+- `shared/store/resolution/copies-model.ts`,
+  `materialize-resolved-copies.ts` + spec
+- `shared/view-conventions.ts` (helper simplification)
+- mechanical call sites: `views/packages/packages-row-vm.ts`,
+  `views/packages/packages-vm-shared.ts`,
+  `views/packages/packages-detail-vm.ts`,
+  `views/remotes/remotes-detail-vm.ts`,
+  `views/import-map/import-map-view-model.ts`
+
+### Key Discoveries
+
+- The lift the original Task-2 wording still assumed pending
+  already happened with the second consumer (T8): the helpers
+  live in `shared/view-conventions.ts`, consumed by Packages,
+  Remotes, and Import Map.
+- `indexes` is used by the attribution helpers exclusively for
+  the name lookup; every other input of the qualifier ladder
+  (`sourceDisposition`, `effectiveRoles`,
+  `observedTargetProviders`, `registryServingSlotClaims`) is
+  already copy-embedded.
+- `materializeResolvedCopies` already receives and indexes
+  `CanonicalRegistryEvidence` — the name is available at the
+  single construction site.
+
 ## Task 2: Source clustering, chunk column, and honest footer
 
-**Dependency:** Task 1.
+**Dependency:** Tasks 1 and 1.9.
 
 ### Instructions
 
@@ -143,11 +228,11 @@ Stage-2 follow-ups (deliberately NOT in this plan; append as new tasks after the
   the one-component constraint from the preamble stays — dedicated
   subcomponents only via a separate preamble amendment.
 - Cluster the dependency column by the copy's evidenced source:
-  - Lift the copy-source attribution Remotes already uses
+  - Consume the shared copy-source attribution
     (`copySourceRemote`/`copySourceVmOf` in
-    `views/remotes/remotes-detail-vm.ts`) into a shared helper
-    consumed by both views — re-use, not re-derivation; Remotes
-    behavior stays byte-identical and its specs pass unmodified.
+    `shared/view-conventions.ts`, projection-pure since Task 1.9)
+    — re-use, not re-derivation; `views/remotes/` is not touched
+    and its specs pass unmodified.
   - Cluster order: `(host)` first (via `RemoteProjection.isHost`),
     other source remotes alphabetical, then the honest buckets
     `ambiguous source`, `target only`, `unknown` pinned last —
@@ -198,8 +283,9 @@ Stage-2 follow-ups (deliberately NOT in this plan; append as new tasks after the
 - **T2-AC-04** — ambiguous-source / target-only / unknown seeds
   cluster into their named honest buckets pinned last (seeded
   projection input; no `(unresolved)` collapse).
-- **T2-AC-05** — Remotes specs pass unmodified after the
-  copy-source-attribution lift. **Contributes:** XC-01.
+- **T2-AC-05** — Remotes specs pass unmodified; the graph
+  consumes the shared attribution helper without touching
+  `views/remotes/`. **Contributes:** XC-01.
 - **T2-AC-06** — cluster hues are identical across renders of one
   capture; above the palette size all clusters render neutral (no
   recycling code path). **Contributes:** XC-03.
@@ -212,9 +298,8 @@ Stage-2 follow-ups (deliberately NOT in this plan; append as new tasks after the
 ### Key Locations
 
 - `views/graph/graph-model.ts` + spec, `graph.{ts,html,css}` + spec
-- new shared copy-source helper (lift target:
-  `shared/view-conventions.ts` or a focused `shared/` module)
-- `views/remotes/remotes-detail-vm.ts` (consume the lifted helper)
+- read-only: `shared/view-conventions.ts` (consume the
+  projection-pure `copySourceVmOf`)
 - read-only: `shared/store/resolution/bundle-claims-model.ts`
 
 ### Key Discoveries
@@ -224,8 +309,9 @@ Stage-2 follow-ups (deliberately NOT in this plan; append as new tasks after the
   exclusively from copies' claims, so pseudo/`mapping-or-exposed`
   groups are excluded structurally, not by filter.
 - `ChunkGroupProjection` is already per `(emitterRemote, bundle)`.
-- The T7.5 lift rule — shared helpers are lifted when the second
-  consumer appears — applies now to copy-source attribution.
+- The T7.5 lift already happened with the second consumer (T8);
+  Task 1.9 made the attribution projection-pure — the graph is a
+  plain consumer, no lift remains.
 
 ## Task 3: Hover trace and click-to-filter
 
