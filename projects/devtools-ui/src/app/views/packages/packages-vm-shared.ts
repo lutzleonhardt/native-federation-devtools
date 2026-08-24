@@ -156,7 +156,7 @@ export function involvedParticipantsOf(
     }
   }
   for (const copy of group.copies) {
-    const source = copySourceRemote(copy, indexes);
+    const source = copySourceRemote(copy);
     if (source !== null) {
       names.add(source);
     }

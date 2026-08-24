@@ -213,7 +213,7 @@ function sharedDeclarationSource(
     return shared?.packageName === packageName;
   });
   expect(declaration).toBeDefined();
-  return { kind: 'shared-declaration', declarationId: declaration!.id };
+  return { kind: 'shared-declaration', declarationId: declaration!.id, participant };
 }
 
 describe('materializeResolvedCopies — corpus copy cardinality (T5-AC-01, T5-AC-02)', () => {
@@ -318,6 +318,7 @@ describe('materializeResolvedCopies — corpus copy cardinality (T5-AC-01, T5-AC
     expect(mfe1Copy.source).toEqual({
       kind: 'private-registration',
       registrationId: mfe1Registration!.id,
+      ownerRemote: mfe1Registration!.ownerRemote,
     });
     expect(mfe1Copy.resolvedTag).toBe('1.0.0');
     const mfe2Copy = copyForTarget(

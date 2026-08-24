@@ -310,7 +310,11 @@ function sourceFacts(
       'shared external',
     );
     return {
-      source: { kind: 'shared-declaration', declarationId: declaration.id },
+      source: {
+        kind: 'shared-declaration',
+        declarationId: declaration.id,
+        participant: declaration.participant,
+      },
       sourcePackage: shared.packageName,
       resolvedTag: registration.tag,
       sourceDisposition: sharedDisposition(registration.action),
@@ -325,7 +329,11 @@ function sourceFacts(
     'private registration',
   );
   return {
-    source: { kind: 'private-registration', registrationId: privateRegistration.id },
+    source: {
+      kind: 'private-registration',
+      registrationId: privateRegistration.id,
+      ownerRemote: privateRegistration.ownerRemote,
+    },
     sourcePackage: privateRegistration.packageName,
     resolvedTag: privateRegistration.tag,
     sourceDisposition: 'private-registration',

@@ -509,7 +509,7 @@ function blocksOf(
         integrityByTarget.set(resolution.targetUrl, resolution.hasIntegrity);
       }
     }
-    const source = copySourceVmOf(copy, indexes);
+    const source = copySourceVmOf(copy);
     const consumers = consumersOf(copy, group, rows, indexes);
     const specifiers = Object.keys(copy.entrypoints);
     const deviations: AnnotationVm[] = copy.effectiveRoles

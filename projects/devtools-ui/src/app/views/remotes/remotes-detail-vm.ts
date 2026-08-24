@@ -631,7 +631,7 @@ function zonesOf(
   const blockEntries: { scope: string; vm: ProvidesBlockVm }[] = [];
   for (const row of rows) {
     for (const copy of copiesByDeclaration.get(row.declaration.id) ?? []) {
-      const source = copySourceVmOf(copy, indexes);
+      const source = copySourceVmOf(copy);
       // Zone rule: provides requires exact/anchor source evidence. Shared-
       // declaration sources always qualify; the guard keeps the rule
       // explicit should the ladder ever grow.
@@ -715,7 +715,7 @@ function zonesOf(
         // Self-consumption folds into the provides block — a fact renders once.
         continue;
       }
-      const source = copySourceVmOf(copy, indexes);
+      const source = copySourceVmOf(copy);
       const resolution = indexes.resolutionById.get(claim.effectiveResolutionId);
       const targetUrl =
         resolution?.status === 'mapped'
@@ -806,7 +806,7 @@ function relationOnlyOf(
     if (copy === undefined) {
       continue;
     }
-    const source = copySourceVmOf(copy, indexes);
+    const source = copySourceVmOf(copy);
     rows.push({
       relationId: relation.id,
       packageName: copy.sourcePackage,

@@ -22,10 +22,16 @@ export type ResolvedDependencyCopyId = RegistryEvidenceId<'resolved-dependency-c
  * record wins; otherwise the normalized target URL identifies the copy. The
  * copy ID additionally namespaces URL-identified copies by snapshot identity
  * for cross-snapshot storage. Consumer context is never part of the source.
+ *
+ * Evidenced variants carry the remote name of their source record
+ * (`participant` / `ownerRemote`) copied verbatim from the record the ID
+ * references, so source attribution reads from the projection alone; the ID
+ * stays the canonical identity/link anchor. `target-url` carries no name
+ * field — its absence IS the no-evidenced-source statement.
  */
 export type ResolvedCopySource =
-  | { kind: 'shared-declaration'; declarationId: ParticipantDeclarationId }
-  | { kind: 'private-registration'; registrationId: PrivateRegistrationId }
+  | { kind: 'shared-declaration'; declarationId: ParticipantDeclarationId; participant: string }
+  | { kind: 'private-registration'; registrationId: PrivateRegistrationId; ownerRemote: string }
   | { kind: 'target-url'; targetUrl: string };
 
 /**

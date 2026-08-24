@@ -158,27 +158,23 @@ export function buildCanonicalIndexes(model: FederationModel): CanonicalIndexes 
 /**
  * Source remote of a copy — the participant/owner of its uniquely evidenced
  * source record; null for URL-identified copies (no source claim is made).
+ * A pure copy read since the source variants embed their evidenced remote
+ * name — no registry-evidence lookup is involved.
  */
-export function copySourceRemote(
-  copy: ResolvedDependencyCopy,
-  indexes: CanonicalIndexes,
-): string | null {
+export function copySourceRemote(copy: ResolvedDependencyCopy): string | null {
   switch (copy.source.kind) {
     case 'shared-declaration':
-      return indexes.declarationById.get(copy.source.declarationId)?.participant ?? null;
+      return copy.source.participant;
     case 'private-registration':
-      return indexes.privateRegistrationById.get(copy.source.registrationId)?.ownerRemote ?? null;
+      return copy.source.ownerRemote;
     case 'target-url':
       return null;
   }
 }
 
 /** Display form of a copy's source remote; null when no source is evidenced. */
-export function copySourceDisplay(
-  copy: ResolvedDependencyCopy,
-  indexes: CanonicalIndexes,
-): string | null {
-  const remote = copySourceRemote(copy, indexes);
+export function copySourceDisplay(copy: ResolvedDependencyCopy): string | null {
+  const remote = copySourceRemote(copy);
   return remote === null ? null : participantDisplay(remote);
 }
 
@@ -217,13 +213,11 @@ export interface CopySourceVm {
  * and unknown stay qualified. The registry-slot comparison rides along in
  * the note when slot evidence exists. Established with Packages (T7),
  * lifted here with its second consumer (T8 Remotes) — ambiguity must
- * render as ambiguity in every view, never as unknown.
+ * render as ambiguity in every view, never as unknown. A pure copy read —
+ * every input of the qualifier ladder is copy-embedded.
  */
-export function copySourceVmOf(
-  copy: ResolvedDependencyCopy,
-  indexes: CanonicalIndexes,
-): CopySourceVm {
-  const remote = copySourceRemote(copy, indexes);
+export function copySourceVmOf(copy: ResolvedDependencyCopy): CopySourceVm {
+  const remote = copySourceRemote(copy);
   const display = remote === null ? null : participantDisplay(remote);
   const base = { display, host: isHostRemote(remote), remoteSelect: remote };
 
