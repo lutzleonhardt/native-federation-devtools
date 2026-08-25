@@ -115,4 +115,7 @@ Native Federation application — the panel appears as a new tab.
 Developed and maintained by [Lutz Leonhardt](https://lutzleonhardt.de) as
 part of the official Native Federation project.
 
+Built in an agentic workflow with Claude Code and Codex as pair programmers —
+architecture, review, and verification stay with the maintainer.
+
 Licensed under [MIT](LICENSE).
