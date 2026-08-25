@@ -127,7 +127,7 @@ function measures(snapshot: SnapshotV1): PackageResolutionMeasures[] {
   );
   const evidence = normalizeRegistryEvidence(snapshot);
   const resolutions = resolveEffectiveConsumerBindings(evidence, {
-    pageUrl,
+    resolutionBaseUrl: pageUrl,
     mapAvailable: snapshot.channels.domImportMaps.state === 'available',
     effectiveMap,
     consumerScopeUrlByRemote: remoteScopeUrlByName,

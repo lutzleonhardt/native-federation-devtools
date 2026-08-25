@@ -149,7 +149,7 @@ function attributeSnapshot(snapshot: SnapshotV1): Harness {
   );
   const evidence = normalizeRegistryEvidence(snapshot);
   const resolutions = resolveEffectiveConsumerBindings(evidence, {
-    pageUrl,
+    resolutionBaseUrl: pageUrl,
     mapAvailable: snapshot.channels.domImportMaps.state === 'available',
     effectiveMap,
     consumerScopeUrlByRemote: remoteScopeUrlByName,

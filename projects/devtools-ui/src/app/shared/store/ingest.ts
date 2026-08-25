@@ -17,6 +17,10 @@
  *   naively (`<remoteName>/./<moduleName>`).
  * - Secondary-entry externals (`pkg/subpath`) stay their own externals —
  *   parent linking is a Task-7 derivation.
+ * - Load-time-relative values (relative map targets, remote scope URLs)
+ *   resolve against the recovered parse-time base
+ *   (`deriveResolutionBase`), not `capture.pageUrl` — SPA navigation moves
+ *   the capture URL away from the base the loader resolved against.
  */
 import { NF_HOST, type SnapshotV1 } from 'devtools-bridge';
 import type {
@@ -28,7 +32,12 @@ import type {
   RemoteEntity,
   ScopedPackageRow,
 } from './federation-model';
-import { detectMapMode, mergeDocumentMaps, resolveUrl } from './merge-document-maps';
+import {
+  deriveResolutionBase,
+  detectMapMode,
+  mergeDocumentMaps,
+  resolveUrl,
+} from './merge-document-maps';
 import {
   aggregatePackageMeasures,
   attachBundleClaimIds,
@@ -50,7 +59,13 @@ export function ingestSnapshot(snapshot: SnapshotV1): FederationModel {
   const pageUrl = snapshot.capture.pageUrl;
   const tags = snapshot.importMaps?.documentMaps ?? [];
   const mapMode = detectMapMode(tags);
-  const effectiveMap = mergeDocumentMaps(tags, pageUrl);
+  // Load-time-relative values (map targets, remote scope URLs) resolve
+  // against the parse-time document base, not the capture URL — on an SPA
+  // page `pushState` has moved `pageUrl` away from the base the loader and
+  // the NF runtime already resolved against.
+  const resolutionBase = deriveResolutionBase(tags, snapshot.importMaps?.effective ?? null, pageUrl);
+  const baseUrl = resolutionBase.url;
+  const effectiveMap = mergeDocumentMaps(tags, baseUrl);
   const mapTargets = collectTargets(effectiveMap);
 
   const runtime = snapshot.runtime;
@@ -62,7 +77,7 @@ export function ingestSnapshot(snapshot: SnapshotV1): FederationModel {
     name,
     isHost: name === NF_HOST,
     scopeUrl: remote.scopeUrl,
-    resolvedScopeUrl: resolveUrl(remote.scopeUrl, pageUrl),
+    resolvedScopeUrl: resolveUrl(remote.scopeUrl, baseUrl),
     exposes: remote.exposes.map((expose): ExposeJoin => ({
       moduleName: expose.moduleName,
       file: expose.file,
@@ -71,10 +86,11 @@ export function ingestSnapshot(snapshot: SnapshotV1): FederationModel {
     integrity: remote.integrity,
   }));
   const scopeUrlByRemote = new Map(remotes.map((remote) => [remote.name, remote.resolvedScopeUrl]));
-  const registryEvidence = normalizeRegistryEvidence(snapshot);
+  const registryEvidence = normalizeRegistryEvidence(snapshot, { resolutionBase });
   const effectiveConsumerResolutions = resolveEffectiveConsumerBindings(registryEvidence, {
-    pageUrl,
-    // Document tags are the merge ground truth; the shim map is only a cross-check.
+    resolutionBaseUrl: baseUrl,
+    // Document tags are the merge ground truth; the shim map is only a
+    // cross-check — plus the base-recovery oracle after SPA navigation.
     mapAvailable: snapshot.channels.domImportMaps.state === 'available',
     effectiveMap,
     consumerScopeUrlByRemote: scopeUrlByRemote,
@@ -137,7 +153,7 @@ export function ingestSnapshot(snapshot: SnapshotV1): FederationModel {
           pseudoPackage: packageName,
           origin: 'scoped-pseudo-external',
           files,
-          mapped: allFilesMapped(files, scope, scopeUrlByRemote, pageUrl, mapTargets),
+          mapped: allFilesMapped(files, scope, scopeUrlByRemote, baseUrl, mapTargets),
         });
       } else {
         scopedPackages.push({
@@ -164,7 +180,7 @@ export function ingestSnapshot(snapshot: SnapshotV1): FederationModel {
         pseudoPackage: null,
         origin: 'shared-chunks',
         files,
-        mapped: allFilesMapped(files, remoteName, scopeUrlByRemote, pageUrl, mapTargets),
+        mapped: allFilesMapped(files, remoteName, scopeUrlByRemote, baseUrl, mapTargets),
       });
     }
   }
@@ -241,10 +257,10 @@ function allFilesMapped(
   files: string[],
   owningRemote: string,
   scopeUrlByRemote: Map<string, string>,
-  pageUrl: string,
+  resolutionBaseUrl: string,
   mapTargets: Set<string>,
 ): boolean {
-  const base = scopeUrlByRemote.get(owningRemote) ?? pageUrl;
+  const base = scopeUrlByRemote.get(owningRemote) ?? resolutionBaseUrl;
   return files.every((file) => mapTargets.has(resolveUrl(file, base)));
 }
 

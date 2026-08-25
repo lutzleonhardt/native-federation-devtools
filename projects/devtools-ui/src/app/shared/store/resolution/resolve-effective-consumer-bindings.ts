@@ -11,7 +11,12 @@ import type {
 } from './model';
 
 export interface ResolveEffectiveConsumerBindingsContext {
-  pageUrl: string;
+  /**
+   * Base for URL normalization of map lookups — the recovered parse-time
+   * document base (see `deriveResolutionBase`), which equals the capture
+   * `pageUrl` on a never-navigated page.
+   */
+  resolutionBaseUrl: string;
   mapAvailable: boolean;
   effectiveMap: EffectiveMap;
   /** Consumer remote name -> normalized scope-root lookup context; absence is missing evidence. */
@@ -133,7 +138,7 @@ function resolveEffectiveMapMatch(
   effectiveMap: EffectiveMap,
   importerUrl: string,
   specifier: string,
-  pageUrl: string,
+  baseUrl: string,
 ): SpecifierMapResult {
   const normalizedSpecifier = normalizeConsumerSpecifier(specifier, importerUrl);
 
@@ -141,7 +146,7 @@ function resolveEffectiveMapMatch(
     const result = matchSpecifierMap(
       effectiveMap.scopes[scope],
       normalizedSpecifier,
-      pageUrl,
+      baseUrl,
       scope,
     );
     if (result.state !== 'miss') {
@@ -149,7 +154,7 @@ function resolveEffectiveMapMatch(
     }
   }
 
-  return matchSpecifierMap(effectiveMap.imports, normalizedSpecifier, pageUrl, null);
+  return matchSpecifierMap(effectiveMap.imports, normalizedSpecifier, baseUrl, null);
 }
 
 function assembleResolution(
@@ -184,7 +189,7 @@ function assembleResolution(
     context.effectiveMap,
     group.consumerScopeUrl,
     group.specifier,
-    context.pageUrl,
+    context.resolutionBaseUrl,
   );
   if (lookup.state === 'miss') {
     return { ...base, status: 'unmapped', targetUrl: null, mapEntry: null };
@@ -211,12 +216,12 @@ function assembleResolution(
 function matchSpecifierMap(
   specifierMap: Readonly<Record<string, string>>,
   normalizedSpecifier: NormalizedSpecifier,
-  pageUrl: string,
+  baseUrl: string,
   scope: string | null,
 ): SpecifierMapResult {
   const exactTarget = readKey(specifierMap, normalizedSpecifier.value);
   if (exactTarget !== undefined) {
-    return mapEntryResult(normalizedSpecifier.value, exactTarget, null, pageUrl, scope, 'exact');
+    return mapEntryResult(normalizedSpecifier.value, exactTarget, null, baseUrl, scope, 'exact');
   }
 
   if (normalizedSpecifier.asUrl !== null && !isSpecialUrl(normalizedSpecifier.asUrl)) {
@@ -232,7 +237,7 @@ function matchSpecifierMap(
       key,
       specifierMap[key],
       normalizedSpecifier.value.slice(key.length),
-      pageUrl,
+      baseUrl,
       scope,
       'prefix',
     );
@@ -244,7 +249,7 @@ function mapEntryResult(
   entrySpecifier: string,
   entryTarget: string,
   suffix: string | null,
-  pageUrl: string,
+  baseUrl: string,
   scope: string | null,
   match: 'exact' | 'prefix',
 ): Exclude<SpecifierMapResult, { state: 'miss' }> {
@@ -255,7 +260,7 @@ function mapEntryResult(
     target: entryTarget,
     match,
   };
-  const target = normalizeMappedTarget(entryTarget, suffix, pageUrl);
+  const target = normalizeMappedTarget(entryTarget, suffix, baseUrl);
   if (target.state === 'blocked') {
     return { state: 'blocked', mapEntry, blockedReason: target.blockedReason };
   }
@@ -269,11 +274,11 @@ function mapEntryResult(
 function normalizeMappedTarget(
   entryTarget: string,
   suffix: string | null,
-  pageUrl: string,
+  baseUrl: string,
 ): TargetNormalizationResult {
   let normalizedTarget: URL;
   try {
-    normalizedTarget = new URL(entryTarget, pageUrl);
+    normalizedTarget = new URL(entryTarget, baseUrl);
   } catch {
     return { state: 'blocked', blockedReason: 'invalid-target-url' };
   }

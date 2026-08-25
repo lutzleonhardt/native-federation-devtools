@@ -272,9 +272,22 @@ For every normalized served file:
 1. determine its specifier from the `entries` key; for the v4 `file` spelling,
    use the registry package name;
 2. resolve the shared participant's or private owner's remote `scopeUrl`
-   against `capture.pageUrl`;
+   against the capture's resolution base (below);
 3. resolve the recorded file against that resolved remote scope;
 4. compare candidates and map targets as normalized absolute URLs.
+
+The resolution base is the document base the loader and the runtime resolved
+load-time-relative values against — `capture.pageUrl` only on a never-navigated
+page. On an SPA page `history.pushState` moves `pageUrl` away from that base;
+in shim mode the base MUST be recovered from the shim's recorded effective map
+(a document-tag import with a path-relative target plus the shim's parse-time
+absolute target pins the base directory; the candidate is verified by
+re-resolution). Without such evidence — native mode, no shim map, no verifying
+entry — `capture.pageUrl` remains the fallback. The recovered base applies
+uniformly: candidate URLs here, the document-map merge, consumer scope
+normalization. Playground evidence: `/playground/checkout/cart` resolved the
+host's `./` scope into `@tractor-store/checkout`'s scope directory, collapsing
+every share into an ambiguous target-URL copy.
 
 Filename equality is never sufficient. A missing remote record or unusable
 scope produces `candidateUrl: null` with an explicit state. It MUST NOT silently

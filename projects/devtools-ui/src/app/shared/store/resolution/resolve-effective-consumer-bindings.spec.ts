@@ -204,7 +204,7 @@ describe('resolveEffectiveConsumerBindings — import-map lookup (T3-AC-01)', ()
         { consumerRemote: 'top-fallback', specifier: 'top-fallback' },
       ]),
       {
-        pageUrl: PAGE_URL,
+        resolutionBaseUrl: PAGE_URL,
         mapAvailable: true,
         effectiveMap,
         consumerScopeUrlByRemote: consumerScopes,
@@ -313,7 +313,7 @@ describe('resolveEffectiveConsumerBindings — honest states (T3-AC-02)', () => 
     const missingMap = resolveEffectiveConsumerBindings(
       evidenceFor([{ consumerRemote: 'known', specifier: 'pkg' }]),
       {
-        pageUrl: PAGE_URL,
+        resolutionBaseUrl: PAGE_URL,
         mapAvailable: false,
         effectiveMap: fallbackTrap,
         consumerScopeUrlByRemote: knownConsumerScope,
@@ -329,7 +329,7 @@ describe('resolveEffectiveConsumerBindings — honest states (T3-AC-02)', () => 
     const missingConsumerScope = resolveEffectiveConsumerBindings(
       evidenceFor([{ consumerRemote: 'missing', specifier: 'pkg' }]),
       {
-        pageUrl: PAGE_URL,
+        resolutionBaseUrl: PAGE_URL,
         mapAvailable: true,
         effectiveMap: fallbackTrap,
         consumerScopeUrlByRemote: new Map(),
@@ -347,7 +347,7 @@ describe('resolveEffectiveConsumerBindings — honest states (T3-AC-02)', () => 
     const availableMiss = resolveEffectiveConsumerBindings(
       evidenceFor([{ consumerRemote: 'known', specifier: 'absent' }]),
       {
-        pageUrl: PAGE_URL,
+        resolutionBaseUrl: PAGE_URL,
         mapAvailable: true,
         effectiveMap: seededMap(),
         consumerScopeUrlByRemote: knownConsumerScope,
@@ -358,7 +358,7 @@ describe('resolveEffectiveConsumerBindings — honest states (T3-AC-02)', () => 
     const bothMissing = resolveEffectiveConsumerBindings(
       evidenceFor([{ consumerRemote: 'missing', specifier: 'pkg' }]),
       {
-        pageUrl: PAGE_URL,
+        resolutionBaseUrl: PAGE_URL,
         mapAvailable: false,
         effectiveMap: fallbackTrap,
         consumerScopeUrlByRemote: new Map(),
@@ -378,7 +378,7 @@ describe('resolveEffectiveConsumerBindings — honest states (T3-AC-02)', () => 
         { consumerRemote: 'known', specifier: 'https://cdn.example.test/direct-module.js' },
       ]),
       {
-        pageUrl: PAGE_URL,
+        resolutionBaseUrl: PAGE_URL,
         mapAvailable: true,
         effectiveMap: seededMap(),
         consumerScopeUrlByRemote: new Map([['known', 'https://seeded.example/remote/consumer.js']]),
@@ -404,7 +404,7 @@ describe('resolveEffectiveConsumerBindings — consumer identity (T3-AC-03)', ()
         { consumerRemote: 'a-alias', specifier: 'pkg' },
       ]),
       {
-        pageUrl: PAGE_URL,
+        resolutionBaseUrl: PAGE_URL,
         mapAvailable: true,
         effectiveMap: seededMap({ imports: [['pkg', './pkg.js']] }),
         consumerScopeUrlByRemote: new Map([
@@ -430,7 +430,7 @@ describe('resolveEffectiveConsumerBindings — consumer identity (T3-AC-03)', ()
       ]),
     );
     const distinct = resolveEffectiveConsumerBindings(normalizeRegistryEvidence(snapshot), {
-      pageUrl: snapshot.capture.pageUrl,
+      resolutionBaseUrl: snapshot.capture.pageUrl,
       mapAvailable: true,
       effectiveMap: map,
       consumerScopeUrlByRemote,
@@ -453,7 +453,7 @@ describe('resolveEffectiveConsumerBindings — provenance and determinism (T3-AC
       { consumerRemote: 'a-consumer', specifier: 'a-package' },
     ]);
     const context = {
-      pageUrl: PAGE_URL,
+      resolutionBaseUrl: PAGE_URL,
       mapAvailable: true,
       effectiveMap: seededMap({
         scopes: [
@@ -511,7 +511,7 @@ describe('resolveEffectiveConsumerBindings — hostile keys (T3-AC-05)', () => {
         { consumerRemote: 'missing', specifier: 'part|tail' },
       ]),
       {
-        pageUrl: PAGE_URL,
+        resolutionBaseUrl: PAGE_URL,
         mapAvailable: true,
         effectiveMap: seededMap({
           imports: [
@@ -613,7 +613,7 @@ describe('resolveEffectiveConsumerBindings — claims-set domain (T4-AC-02/T4-AC
     });
 
     const results = resolveEffectiveConsumerBindings(evidence, {
-      pageUrl: PAGE_URL,
+      resolutionBaseUrl: PAGE_URL,
       mapAvailable: true,
       effectiveMap: seededMap({
         imports: [

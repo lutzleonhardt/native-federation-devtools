@@ -363,6 +363,128 @@ describe('ingestSnapshot — effective consumer resolutions (T3-AC-02, T3-AC-03)
   });
 });
 
+describe('ingestSnapshot — SPA-navigated capture (resolution base recovery)', () => {
+  // Miniature of the playground bug: the map parsed at the load URL, then
+  // history.pushState moved pageUrl into a directory that textually equals
+  // another remote's scope. Resolving relative targets and the host's
+  // `./` scope against pageUrl makes host and checkout candidates collide
+  // on the same URL — every share degrades to an ambiguous target-URL
+  // copy. The recovered parse-time base keeps the attribution unique.
+  function spaNavigatedSnapshot(): SnapshotV1 {
+    const snapshot = seededSnapshot({
+      remotes: {
+        '__NF-HOST__': { scopeUrl: './', exposes: [], integrity: {} },
+        '@seeded/checkout': { scopeUrl: '/playground/checkout/', exposes: [], integrity: {} },
+      },
+      sharedExternals: {
+        __GLOBAL__: {
+          pkg: {
+            dirty: false,
+            versions: [
+              {
+                tag: '1.0.0',
+                action: 'share',
+                host: true,
+                remotes: [
+                  seededParticipant('__NF-HOST__', {
+                    file: 'pkg.hash.js',
+                    servedFiles: [{ entry: null, file: 'pkg.hash.js' }],
+                  }),
+                  seededParticipant('@seeded/checkout', {
+                    file: 'pkg.hash.js',
+                    servedFiles: [{ entry: null, file: 'pkg.hash.js' }],
+                  }),
+                ],
+              },
+            ],
+          },
+        },
+      },
+      documentMaps: [
+        {
+          kind: 'importmap-shim',
+          parsed: true,
+          importCount: 1,
+          scopeCount: 0,
+          imports: [{ specifier: 'pkg', target: './pkg.hash.js' }],
+          scopes: [],
+          integrity: {},
+        },
+      ],
+    });
+    snapshot.capture.pageUrl = 'https://seeded.example/playground/checkout/cart';
+    snapshot.channels.importShim = { state: 'available' };
+    snapshot.importMaps!.effective = {
+      imports: [{ specifier: 'pkg', target: 'https://seeded.example/playground/pkg.hash.js' }],
+      scopes: [],
+      integrityFor: [],
+    };
+    return snapshot;
+  }
+
+  it('SEEDED: resolves load-time-relative values against the recovered base, not pageUrl', () => {
+    const model = ingestSnapshot(spaNavigatedSnapshot());
+
+    const host = model.remotes.find((remote) => remote.isHost)!;
+    expect(host.resolvedScopeUrl).toBe('https://seeded.example/playground/');
+    expect(model.effectiveMap.imports['pkg']).toBe(
+      'https://seeded.example/playground/pkg.hash.js',
+    );
+
+    const projection = model.resolutionProjection;
+    expect(projection.copies).toHaveLength(1);
+    expect(projection.copies[0]).toMatchObject({
+      sourcePackage: 'pkg',
+      sourceDisposition: 'share-registration',
+      source: { kind: 'shared-declaration', participant: '__NF-HOST__' },
+    });
+    expect(projection.completeness.total.ambiguousSourceClaims).toBe(0);
+  });
+
+  it('resolves the live playground checkout export with every source unique', () => {
+    // The real capture behind the seeded miniature: pageUrl
+    // /playground/checkout/cart, map parsed at /playground/. Before base
+    // recovery this export degraded into 12 ambiguous target-URL copies
+    // (24 ambiguous source claims).
+    const model = ingestSnapshot(FIXTURES['exported-playground-checkout']);
+
+    const host = model.remotes.find((remote) => remote.isHost)!;
+    expect(host.resolvedScopeUrl).toBe('https://native-federation.github.io/playground/');
+    expect(model.effectiveMap.imports['@angular/common']).toBe(
+      'https://native-federation.github.io/playground/_angular_common.G-CZnQLQoU.js',
+    );
+
+    const projection = model.resolutionProjection;
+    expect(projection.copies).toHaveLength(12);
+    expect(
+      projection.copies
+        .map((copy) => [copy.sourcePackage, copy.sourceDisposition])
+        .sort(([a], [b]) => String(a).localeCompare(String(b))),
+    ).toEqual(
+      [
+        '@angular/common',
+        '@angular/core',
+        '@angular/elements',
+        '@angular/forms',
+        '@angular/platform-browser',
+        '@angular/router',
+        '@ng-internal/event-bus',
+        '@ng-internal/navigation',
+        '@ng-internal/ui',
+        '@ng-internal/url',
+        'rxjs',
+        'tslib',
+      ].map((packageName) => [packageName, 'share-registration']),
+    );
+    expect(projection.completeness.total).toEqual({
+      unknownResolutions: 0,
+      unmappedResolutions: 0,
+      blockedResolutions: 0,
+      ambiguousSourceClaims: 0,
+    });
+  });
+});
+
 describe('ingestSnapshot — core relation (T6-AC-01)', () => {
   it('keeps the clean-skip skip row and its participant intact', () => {
     const model = ingestSnapshot(FIXTURES['clean-skip']);

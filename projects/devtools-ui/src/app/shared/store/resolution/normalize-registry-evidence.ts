@@ -1,5 +1,6 @@
 import type { ExternalRemoteV1, RemoteV1, SnapshotV1 } from 'devtools-bridge';
 
+import type { ResolutionBase } from '../merge-document-maps';
 import { nextEqualKeyOrdinal, registryEvidenceId } from './ids';
 import type {
   CandidateUrlState,
@@ -37,11 +38,24 @@ interface AddCandidateOptions {
   sourceEvidence: EvidenceRef[];
 }
 
+export interface NormalizeRegistryEvidenceOptions {
+  /**
+   * Base for resolving relative remote scope URLs — the runtime resolved
+   * them against the document base at load time, which SPA navigation moves
+   * away from `capture.pageUrl`. Defaults to `capture.pageUrl` (the two
+   * coincide on a never-navigated page).
+   */
+  resolutionBase?: ResolutionBase;
+}
+
 /**
  * Projects raw runtime registries into canonical evidence exactly once.
  * Source order and duplicate array elements are retained; no winner is selected.
  */
-export function normalizeRegistryEvidence(snapshot: SnapshotV1): CanonicalRegistryEvidence {
+export function normalizeRegistryEvidence(
+  snapshot: SnapshotV1,
+  options: NormalizeRegistryEvidenceOptions = {},
+): CanonicalRegistryEvidence {
   const sharedExternals: SharedExternalRecord[] = [];
   const versionRegistrations: VersionRegistration[] = [];
   const participantDeclarations: ParticipantDeclaration[] = [];
@@ -60,17 +74,16 @@ export function normalizeRegistryEvidence(snapshot: SnapshotV1): CanonicalRegist
   const remotes = runtime?.remotes ?? {};
   const sharedRepo = runtime?.sharedExternals ?? {};
   const scopedRepo = runtime?.scopedExternals ?? {};
+  const resolutionBase = options.resolutionBase ?? {
+    url: snapshot.capture.pageUrl,
+    source: 'page-url' as const,
+  };
 
   const addCandidate = (options: AddCandidateOptions): EntrypointCandidateId => {
     const candidateKey = [options.sourceRecordId, options.specifier, options.file] as const;
     const ordinal = nextEqualKeyOrdinal(candidateOccurrences, candidateKey);
     const id = registryEvidenceId('entrypoint-candidate', candidateKey, ordinal);
-    const url = constructCandidateUrl(
-      snapshot.capture.pageUrl,
-      remotes,
-      options.ownerRemote,
-      options.file,
-    );
+    const url = constructCandidateUrl(resolutionBase, remotes, options.ownerRemote, options.file);
 
     entrypointCandidates.push({
       id,
@@ -316,24 +329,27 @@ function normalizeParticipantAnchor(
 }
 
 function constructCandidateUrl(
-  pageUrl: string,
+  base: ResolutionBase,
   remotes: Record<string, RemoteV1>,
   ownerRemote: string,
   file: string,
 ): CandidateUrlResult {
-  const pageEvidence = presentEvidence(['capture', 'pageUrl']);
+  const baseEvidence =
+    base.source === 'shim-effective-map'
+      ? presentEvidence(['importMaps', 'effective'])
+      : presentEvidence(['capture', 'pageUrl']);
   const scopePath: EvidencePathSegment[] = ['runtime', 'remotes', ownerRemote, 'scopeUrl'];
   if (!hasOwn(remotes, ownerRemote)) {
     return {
       candidateUrl: null,
       candidateUrlState: 'missing-owner-scope',
-      evidence: [pageEvidence, missingEvidence(scopePath)],
+      evidence: [baseEvidence, missingEvidence(scopePath)],
     };
   }
 
   let ownerScopeUrl: string;
   try {
-    ownerScopeUrl = new URL(remotes[ownerRemote].scopeUrl, pageUrl).href;
+    ownerScopeUrl = new URL(remotes[ownerRemote].scopeUrl, base.url).href;
     // A syntactically valid non-hierarchical URL (for example `mailto:`)
     // still cannot act as the required base for a recorded relative file.
     new URL('.', ownerScopeUrl);
@@ -341,7 +357,7 @@ function constructCandidateUrl(
     return {
       candidateUrl: null,
       candidateUrlState: 'unusable-owner-scope',
-      evidence: [pageEvidence, presentEvidence(scopePath)],
+      evidence: [baseEvidence, presentEvidence(scopePath)],
     };
   }
 
@@ -349,13 +365,13 @@ function constructCandidateUrl(
     return {
       candidateUrl: new URL(file, ownerScopeUrl).href,
       candidateUrlState: 'available',
-      evidence: [pageEvidence, presentEvidence(scopePath)],
+      evidence: [baseEvidence, presentEvidence(scopePath)],
     };
   } catch {
     return {
       candidateUrl: null,
       candidateUrlState: 'unusable-file',
-      evidence: [pageEvidence, presentEvidence(scopePath)],
+      evidence: [baseEvidence, presentEvidence(scopePath)],
     };
   }
 }

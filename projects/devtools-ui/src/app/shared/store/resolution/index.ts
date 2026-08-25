@@ -13,7 +13,10 @@ export type * from './copies-model';
 export type * from './bundle-claims-model';
 export type * from './projection-model';
 
-export { normalizeRegistryEvidence } from './normalize-registry-evidence';
+export {
+  normalizeRegistryEvidence,
+  type NormalizeRegistryEvidenceOptions,
+} from './normalize-registry-evidence';
 export {
   resolveEffectiveConsumerBindings,
   type ResolveEffectiveConsumerBindingsContext,

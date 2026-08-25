@@ -53,6 +53,40 @@ describe('fixture privacy scan (T2-AC-03)', () => {
     const stray = scanForPrivacyViolations({ integrityFor: [hash] });
     expect(stray.map((v) => v.message).join('; ')).toContain('SRI integrity hash');
   });
+
+  it('treats integrity-map keys as URL data, not structural keys (playground-witnessed)', () => {
+    const hash = 'sha384-57khIiCnWo5tC9kEt0ibpdoHhHGtPXp1KmeWeJyyX0+UPwenA+Wj+0qvj7ajI3As';
+    // A chunk filename containing a forbidden word names a page resource —
+    // the playground's `mfe-header-<hash>.js` must pass.
+    expect(
+      scanForPrivacyViolations({
+        runtime: { remotes: { r: { integrity: { 'mfe-header-W2OE6E3A.js': hash } } } },
+        importMaps: {
+          documentMaps: [{ integrity: { '/playground/explore/mfe-header-W2OE6E3A.js': hash } }],
+        },
+      }),
+    ).toEqual([]);
+    // URL rules still apply to those keys; the same name as a structural
+    // key elsewhere stays forbidden.
+    const poisonedKey = scanForPrivacyViolations({
+      integrity: { '/app/chunk.js?session=42': hash },
+    });
+    expect(poisonedKey.map((v) => v.message).join('; ')).toContain(
+      'relative URL carries a query string',
+    );
+    expect(
+      scanForPrivacyViolations({ headers: {} }).map((v) => v.message).join('; '),
+    ).toContain("forbidden key 'headers'");
+  });
+
+  it('does not let the integrity-key exemption cross an array boundary', () => {
+    // Codex-review repro: an array under `integrity` is not a plain
+    // integrity map — objects inside it get ordinary structural keys, and
+    // attacker-shaped input must not smuggle them past the forbidden-key
+    // rule.
+    const violations = scanForPrivacyViolations({ integrity: [{ headers: 'secret' }] });
+    expect(violations.map((v) => v.message).join('; ')).toContain("forbidden key 'headers'");
+  });
 });
 
 // Checked-in captures follow the lab-data-only policy (captures/README.md):

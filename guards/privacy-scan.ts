@@ -11,6 +11,12 @@
  *    map. Inside such a map the hash values are collected by policy
  *    (V2 corpus decision — per-remote integrity in SnapshotV1); everywhere
  *    else, e.g. `integrityFor`, presence lists remain the rule.
+ *
+ * The KEYS of an `integrity`-keyed map are resource URLs/filenames — data,
+ * not structure. They are held to the URL value rules (userinfo, query,
+ * fragment) instead of the forbidden-key rule: a chunk filename like
+ * `mfe-header-<hash>.js` names a page resource, not a header container
+ * (playground-witnessed).
  */
 
 export interface PrivacyViolation {
@@ -25,6 +31,11 @@ export interface PrivacyScanOptions {
   allowSriHashes?: boolean;
   /** Exact key names exempt from the forbidden-key rule (e.g. `encodedBodySize`). */
   allowedKeys?: string[];
+  /** Internal: set for the direct children of an `integrity`-keyed map,
+   * whose keys are resource URLs — URL rules apply to them, the
+   * forbidden-key rule does not. Never propagates further down — object
+   * AND array boundaries clear it. */
+  keysAreUrls?: boolean;
 }
 
 const FORBIDDEN_KEY = /(cookie|header|body|credential|password|secret|token|authorization|session[-_]?id|account|customer|business)/i;
@@ -64,25 +75,35 @@ export function scanForPrivacyViolations(
   }
 
   if (Array.isArray(value)) {
+    // Arrays have no keys: an array under `integrity` is not a plain
+    // integrity map, so the key-exemption must not reach objects inside it
+    // (attacker-shaped input would smuggle forbidden keys through).
+    const itemOptions = options.keysAreUrls ? { ...options, keysAreUrls: false } : options;
     value.forEach((item, index) => {
-      violations.push(...scanForPrivacyViolations(item, `${path}[${index}]`, options));
+      violations.push(...scanForPrivacyViolations(item, `${path}[${index}]`, itemOptions));
     });
     return violations;
   }
 
   if (value !== null && typeof value === 'object') {
+    const { keysAreUrls, ...descend } = options;
     for (const [key, child] of Object.entries(value)) {
       const childPath = `${path}.${key}`;
-      if (FORBIDDEN_KEY.test(key) && !options.allowedKeys?.includes(key)) {
+      if (keysAreUrls) {
+        // Integrity-map keys are URL data: scan the key like a string
+        // value (userinfo/query/fragment), never as a structural key.
+        violations.push(...scanForPrivacyViolations(key, childPath, descend));
+      } else if (FORBIDDEN_KEY.test(key) && !descend.allowedKeys?.includes(key)) {
         violations.push({ path: childPath, message: `forbidden key '${key}'` });
       }
       // Descending into an `integrity` map switches the SRI rule to
-      // by-policy: its values ARE hashes. The exemption covers only that
-      // subtree — an SRI hash anywhere else stays a violation.
+      // by-policy (its values ARE hashes) and marks its keys as URLs.
+      // Both cover only that subtree — an SRI hash anywhere else stays a
+      // violation.
       const childOptions =
-        key === 'integrity' && !options.allowSriHashes
-          ? { ...options, allowSriHashes: true }
-          : options;
+        key === 'integrity'
+          ? { ...descend, allowSriHashes: true, keysAreUrls: true }
+          : descend;
       violations.push(...scanForPrivacyViolations(child, childPath, childOptions));
     }
   }

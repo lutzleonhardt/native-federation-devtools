@@ -13,7 +13,12 @@ import { loadLabCapture } from '../testing/lab-corpus';
 const LIVE_ID = 'frankenstein-live';
 const LIVE_FILE = '20260811T115536Z-01-initial.json';
 
-const derivedIds = Object.keys(FIXTURES).filter((id) => !id.startsWith('synthetic-'));
+// `synthetic-` fixtures are hand-written; `exported-` fixtures are verbatim
+// panel exports without a lab-lossless envelope — neither has a capture to
+// re-derive from.
+const derivedIds = Object.keys(FIXTURES).filter(
+  (id) => !id.startsWith('synthetic-') && !id.startsWith('exported-'),
+);
 
 describe('corpus-derived fixtures equal fresh pipeline output (T5-AC-01, T2.1-AC-02)', () => {
   it.each(derivedIds)('%s', (id) => {
