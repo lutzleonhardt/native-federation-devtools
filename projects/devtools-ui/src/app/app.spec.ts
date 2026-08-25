@@ -59,7 +59,9 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
-  // T8-AC-01: the nav shows the V2 tab set in spec order.
+  // T8-AC-01 + T4-AC-01 (graph-view): the nav shows the V2 tab set in spec
+  // order, without the Diagnostics tab (hidden until resolution-model
+  // Task 10 lands).
   it('renders the V2 tab set', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
@@ -67,12 +69,14 @@ describe('App', () => {
     const labels = Array.from(compiled.querySelectorAll('.shell-nav a')).map((a) =>
       a.textContent?.trim(),
     );
-    expect(labels).toEqual(['Packages', 'Remotes', 'Import Map', 'Graph (preview)', 'Diagnostics']);
+    expect(labels).toEqual(['Packages', 'Remotes', 'Import Map', 'Graph (preview)']);
   });
 
   // T8-AC-01: `/packages` is the default route (since Task 10 the real
   // Packages view, since Task 11 the real Remotes view, since Task 12 the
-  // real Import Map view); the remaining tab renders an honest placeholder.
+  // real Import Map view). T4-AC-01 (graph-view): the diagnostics route is
+  // no nav tab anymore but stays reachable by direct URL and still renders
+  // the honest placeholder.
   it('defaults to /packages and renders honest placeholders on the open tabs', async () => {
     const fixture = TestBed.createComponent(App);
     const router = TestBed.inject(Router);
