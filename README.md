@@ -1,71 +1,90 @@
+<div align="center">
+
+<img src="docs/assets/readme/native-federation-logo.png" alt="Native Federation logo" width="110">
+
 # Native Federation DevTools
 
-A read-only Chrome DevTools extension for inspecting [Native Federation](https://native-federation.com)
-applications: remotes and exposes, shared-dependency resolution, and the
-effective import map — with honest evidence states instead of guesses.
+**See what your micro frontends actually negotiated.**
 
-> Official Native Federation tooling — published under the project's GitHub
-> organization and Chrome Web Store presence.
+A read-only Chrome DevTools panel for [Native Federation](https://native-federation.com) applications.
 
-**Status:** pre-release, under active development. The Packages and Remotes
-tabs are implemented; Import Map and Diagnostics currently render placeholders.
+![License: MIT](https://img.shields.io/badge/license-MIT-blue)
+![Chrome Web Store](https://img.shields.io/badge/Chrome_Web_Store-coming_soon-orange)
+![Manifest V3](https://img.shields.io/badge/manifest-v3-informational)
 
-## Why
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/hero-graph-dark.png">
+  <img src="docs/assets/readme/hero-graph-light.png" alt="The Graph tab: remotes, the dependency copies they resolve to, and the chunk files those copies load">
+</picture>
 
-In a micro-frontend setup with mixed framework versions, the interesting
-questions are hard to answer from the outside: *Which version of
-`@angular/core` won? Who provided it? Why did this remote end up with its own
-copy?* The negotiation happens once at startup and then disappears into the
-import map. This extension reads the result back out and explains it.
+</div>
 
-## What it shows
+> *Which version of `@angular/core` won? Who provided it? Why did that remote
+> end up with its own copy?*
 
-**Packages** — per-package negotiation detail: every candidate version with
-its outcome (shared, scoped, or skipped), the requesting participant and its
-range, strict requirements, and which participant provides the mapped entry.
-Conflicts are listed separately. Includes SRI coverage and chunk mapping where
-the capture provides it.
+The negotiation happens once at startup — then it disappears into the import
+map. Native Federation DevTools reads it back out of the running page and
+explains it: every shared package, every remote, every chunk. Evidence, not
+guesses.
 
-**Remotes** — the same data from each participant's point of view: exposes
-with their mapped targets, the remote's own dependency declarations and where
-each one resolves, capability evidence (SRI, dense chunking), chunk
-attribution, and scoped externals.
+## What you get
 
-Any snapshot can be exported as JSON, which doubles as a reproducible bug
-report.
+- 📦 **Packages** — the negotiation, per package: every candidate version, who
+  declared which range, which file actually serves it. Conflicts are called
+  out, not averaged away.
+- 🛰️ **Remotes** — each participant from its own point of view: what it
+  exposes, what it declares, and where every single dependency really
+  resolves.
+- 🕸️ **Graph** — remotes, dependency copies, and chunks as one traceable
+  picture. Hover to trace, click to filter.
+- 🗺️ **Import Map** — the effective map, row by row, each entry attributed
+  to its package, its provider, and the chunk bundle that serves it.
+- 📤 **Export JSON** — freeze the entire snapshot to a file. Doubles as a
+  reproducible bug report.
+- 🔒 **Read-only, zero permissions** — no host permissions, no content
+  scripts. The panel inspects; it never mutates the page. Enforced by tests,
+  not by convention.
 
-In progress: **Import Map** (the effective map with attribution per row),
-**Diagnostics** (registry↔map lint), and global search. The data layer behind
-them is in place — the views are not.
+In progress: **Diagnostics** (registry↔map lint) and global search.
 
-## Design constraints
+## Hover to trace
 
-**Read-only by construction.** The extension inspects without invoking getters
-or triggering side effects — it never mutates the application it is pointed
-at. This is enforced by tests in `guards/`, not by convention.
+One hover answers *"who shares this — and which files does it load?"*
 
-**Explicit about what it cannot know.** Where the runtime data proves
-resolution but not intent, the UI says so instead of inferring. Derived values
-are labelled (`source-derived`); missing chunk evidence is stated rather than
-silently omitted.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/hover-trace-dark.gif">
+  <img src="docs/assets/readme/hover-trace-light.gif" alt="Hovering nodes in the Graph tab: the trace lights up the hovered node's remotes, dependency copies, and chunk files while everything else dims">
+</picture>
 
-**No permissions.** The manifest requests none — no host permissions, no
-content scripts. The panel talks to the inspected page through the DevTools
-API only.
+Dashed nodes are isolated copies, dotted edges are borrowed dependencies —
+the sharing story is visible at a glance.
 
-## Resolution data model
+## Every negotiation, explained
 
-One captured `SnapshotV1` becomes one `FederationModel`: a probe observes
-what the page really declared, ingest orders it into canonical evidence,
-pure derivations compute which package lands where for which consumer — and
-why — and one raw-free projection publishes the result to the views.
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/packages-dark.png">
+  <img src="docs/assets/readme/packages-light.png" alt="The Packages tab: @angular/core with its mapped files, SRI coverage, the four participants that declared it with their ranges, and the chunk files it loads">
+</picture>
 
-The maintained model documentation — the big picture plus five class-diagram
-views (registry evidence, effective resolution, declaration claims, resolved
-copies, canonical projection) — lives in
-[docs/resolution-data-model.md](docs/resolution-data-model.md).
+Four participants declared `@angular/core` — one version won, three were not
+selected, and every mapped file is accounted for, SRI included.
 
-## Install (development build)
+## Every remote, from its own point of view
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/remotes-dark.png">
+  <img src="docs/assets/readme/remotes-light.png" alt="The Remotes tab: a remote's exposes with mapped files, what it provides to the federation, and every dependency it consumes from other remotes">
+</picture>
+
+Exposes, provided packages, and — line by line — which dependency this remote
+consumes from whom, and which own version lost the negotiation.
+
+## Install
+
+🛒 **Chrome Web Store: coming soon** — the extension will be published under
+the official Native Federation presence.
+
+Until then, load a development build:
 
 ```bash
 npm install
@@ -73,40 +92,27 @@ npm run build:extension
 ```
 
 Then in Chrome: `chrome://extensions` → enable **Developer mode** → **Load
-unpacked** → select the built extension directory. Open DevTools on any Native
-Federation application; the panel appears as a new tab.
+unpacked** → select the built extension directory. Open DevTools on any
+Native Federation application — the panel appears as a new tab.
 
-## Development
+## Native Federation ecosystem
 
-```bash
-npm start        # dev panel in the browser, with fixtures
-npm test         # UI, bridge, collector, and guard suites
-```
-
-The dev panel can replay captured scenarios without a running application via
-`?fixture=<id>` — strict share scopes, split versions across remotes, scope
-isolation, dynamic initialization, and a live capture of a deployed
-Angular/React host.
-
-## Repository layout
-
-| Path | Contents |
+| Project | What it is |
 | --- | --- |
-| `extension/` | MV3 manifest and DevTools page |
-| `projects/` | collector, bridge, and UI libraries |
-| `captures/` | raw runtime captures and the corpus manifest |
-| `guards/` | invariant tests, including the privacy scan |
-| `docs/` | specs and validation reports |
-| `scripts/` | capture, fixture derivation, and build tooling |
+| [native-federation.com](https://native-federation.com) | Project home — docs, guides, team, resources |
+| [orchestrator](https://github.com/native-federation/orchestrator) | Runtime micro frontend orchestrator |
+| **devtools** (this repo) | Chrome DevTools panel for inspecting running federations |
 
-Captures are lab data of this project's own scenario runner and its own
-deployed demo application only — never third-party pages. See
-[`captures/README.md`](captures/README.md) for the corpus policy, provenance,
-and regeneration steps.
+## Documentation
 
-The product boundary is defined in
-[`docs/specs/native-federation-devtools.md`](docs/specs/native-federation-devtools.md).
+- [Development & Architecture](docs/DEVELOPMENT.md) — build, run, test,
+  repository layout, and the design constraints behind the tool
+- [Resolution data model](docs/resolution-data-model.md) — how a captured
+  snapshot becomes the model behind the views
 
-## License
+## About
 
-MIT
+Developed and maintained by [Lutz Leonhardt](https://lutzleonhardt.de) as
+part of the official Native Federation project.
+
+Licensed under [MIT](LICENSE).
