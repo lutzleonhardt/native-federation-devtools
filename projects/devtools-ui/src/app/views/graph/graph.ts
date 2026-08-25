@@ -9,7 +9,7 @@ import { buildGraphModel, graphAdjacencyOf } from './graph-model';
 import { BundleEdgeRef, GraphEdge, GraphModel } from './graph-types';
 
 /**
- * Graph tab (preview) — the resolution graph over the canonical projection:
+ * Graph tab — the resolution graph over the canonical projection:
  * remotes, resolved dependency copies clustered by evidenced source, and
  * claimed chunk files clustered by emitter · bundle, one consume edge per
  * `ConsumerCopyRelation`. Dumb component over the pure `buildGraphModel`

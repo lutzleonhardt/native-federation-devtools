@@ -69,7 +69,7 @@ describe('App', () => {
     const labels = Array.from(compiled.querySelectorAll('.shell-nav a')).map((a) =>
       a.textContent?.trim(),
     );
-    expect(labels).toEqual(['Packages', 'Remotes', 'Import Map', 'Graph (preview)']);
+    expect(labels).toEqual(['Packages', 'Remotes', 'Import Map', 'Graph']);
   });
 
   // T8-AC-01: `/packages` is the default route (since Task 10 the real
@@ -90,7 +90,7 @@ describe('App', () => {
     for (const [url, title] of [
       ['/remotes', 'Remotes'],
       ['/import-map', 'Import Map'],
-      ['/graph', 'Graph (preview)'],
+      ['/graph', 'Graph'],
     ]) {
       await router.navigateByUrl(url);
       await settle(fixture);
