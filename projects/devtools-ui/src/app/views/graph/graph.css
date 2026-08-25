@@ -1,0 +1,232 @@
+.graph-toolbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 0 8px;
+}
+
+.graph-toolbar-line {
+  font-size: 12px;
+  color: var(--nf-color-text-muted);
+}
+
+.graph-toolbar-clear {
+  font-size: 12px;
+  padding: 1px 8px;
+}
+
+.graph-scroll {
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.graph-canvas {
+  display: block;
+}
+
+.graph-column-header {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  fill: var(--nf-color-text-muted);
+}
+
+.graph-cluster rect {
+  fill: none;
+  stroke: var(--nf-color-border);
+}
+
+.graph-cluster-label {
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--nf-color-text-muted);
+}
+
+/*
+ * Cluster identity hues — the same 1-based participant palette slots the
+ * chip dots use; a cluster without an assigned owner stays neutral.
+ */
+.graph-cluster.hue-1 rect {
+  stroke: var(--nf-participant-color-1);
+}
+.graph-cluster.hue-1 .graph-cluster-label {
+  fill: var(--nf-participant-color-1);
+}
+.graph-cluster.hue-2 rect {
+  stroke: var(--nf-participant-color-2);
+}
+.graph-cluster.hue-2 .graph-cluster-label {
+  fill: var(--nf-participant-color-2);
+}
+.graph-cluster.hue-3 rect {
+  stroke: var(--nf-participant-color-3);
+}
+.graph-cluster.hue-3 .graph-cluster-label {
+  fill: var(--nf-participant-color-3);
+}
+.graph-cluster.hue-4 rect {
+  stroke: var(--nf-participant-color-4);
+}
+.graph-cluster.hue-4 .graph-cluster-label {
+  fill: var(--nf-participant-color-4);
+}
+.graph-cluster.hue-5 rect {
+  stroke: var(--nf-participant-color-5);
+}
+.graph-cluster.hue-5 .graph-cluster-label {
+  fill: var(--nf-participant-color-5);
+}
+.graph-cluster.hue-6 rect {
+  stroke: var(--nf-participant-color-6);
+}
+.graph-cluster.hue-6 .graph-cluster-label {
+  fill: var(--nf-participant-color-6);
+}
+.graph-cluster.hue-7 rect {
+  stroke: var(--nf-participant-color-7);
+}
+.graph-cluster.hue-7 .graph-cluster-label {
+  fill: var(--nf-participant-color-7);
+}
+.graph-cluster.hue-8 rect {
+  stroke: var(--nf-participant-color-8);
+}
+.graph-cluster.hue-8 .graph-cluster-label {
+  fill: var(--nf-participant-color-8);
+}
+
+.graph-edge {
+  fill: none;
+  stroke: var(--nf-color-text-muted);
+  stroke-width: 1.5;
+  transition: opacity 120ms ease;
+}
+
+.graph-edge-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 12;
+  pointer-events: stroke;
+}
+
+.graph-edge.dotted {
+  stroke-dasharray: 2 4;
+}
+
+/*
+ * Hover trace — emphasis only: classes flip on existing elements, the model
+ * never changes. Consume edges not touching the hovered node fade almost
+ * out; untraced nodes dim but stay legible as context.
+ */
+.graph-edge-group.dim .graph-edge {
+  opacity: 0.07;
+}
+
+.graph-node.dim {
+  opacity: 0.2;
+}
+
+/* Revealed bundle edges of the hovered node, colored by the source cluster. */
+.graph-bundle-edge {
+  fill: none;
+  stroke: var(--nf-color-text-muted);
+  stroke-width: 1.5;
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.graph-bundle-edge.hue-1 {
+  stroke: var(--nf-participant-color-1);
+}
+.graph-bundle-edge.hue-2 {
+  stroke: var(--nf-participant-color-2);
+}
+.graph-bundle-edge.hue-3 {
+  stroke: var(--nf-participant-color-3);
+}
+.graph-bundle-edge.hue-4 {
+  stroke: var(--nf-participant-color-4);
+}
+.graph-bundle-edge.hue-5 {
+  stroke: var(--nf-participant-color-5);
+}
+.graph-bundle-edge.hue-6 {
+  stroke: var(--nf-participant-color-6);
+}
+.graph-bundle-edge.hue-7 {
+  stroke: var(--nf-participant-color-7);
+}
+.graph-bundle-edge.hue-8 {
+  stroke: var(--nf-participant-color-8);
+}
+
+.graph-node {
+  transition: opacity 120ms ease;
+}
+
+.graph-node rect {
+  fill: var(--nf-color-surface);
+  stroke: var(--nf-color-border);
+}
+
+.graph-node.remote {
+  cursor: pointer;
+}
+
+/* Selected consumer filter: distinct fill plus a heavier stroke. */
+.graph-node.remote.selected rect {
+  fill: color-mix(in srgb, var(--nf-color-accent) 18%, var(--nf-color-surface));
+  stroke: var(--nf-color-accent);
+  stroke-width: 2;
+}
+
+.graph-node.isolated rect {
+  stroke-dasharray: 4 3;
+}
+
+.graph-node-label {
+  font-size: 12px;
+  fill: currentColor;
+}
+
+.graph-node.dependency .graph-node-label {
+  font-family: var(--nf-font-mono);
+}
+
+.graph-node-sublabel {
+  font-size: 11px;
+  text-anchor: end;
+  fill: var(--nf-color-text-muted);
+  font-family: var(--nf-font-mono);
+}
+
+.graph-node.chunk .graph-node-label {
+  font-family: var(--nf-font-mono);
+}
+
+.graph-node.chunk.stub rect {
+  stroke-dasharray: 4 3;
+}
+
+.graph-node-qualifier {
+  font-size: 10px;
+  fill: var(--nf-color-text-muted);
+}
+
+.graph-footer {
+  flex: none;
+  padding: 6px 0 2px;
+}
+
+.graph-footer-line {
+  margin: 0;
+  font-size: 12px;
+  color: var(--nf-color-text-muted);
+}
+
+.graph-footer-line a {
+  color: inherit;
+}

@@ -401,8 +401,8 @@ function claimVmOf(claim: DeclarationResolutionClaim): RowClaimVm {
  * `unattributable` outcome the copy's observed attribution evidences (a
  * CDN/foreign origin is an honest external URL, not an unknown).
  */
-function rowSourceOf(copy: ResolvedDependencyCopy, indexes: CanonicalIndexes): RowSourceVm {
-  const ladder = copySourceVmOf(copy, indexes);
+function rowSourceOf(copy: ResolvedDependencyCopy): RowSourceVm {
+  const ladder = copySourceVmOf(copy);
   const unattributable =
     ladder.qualifier === 'unknown-source' &&
     copy.observedTargetProviders.some((provider) => provider.outcome === 'unattributable');
@@ -896,7 +896,7 @@ export function buildImportMapVm(model: FederationModel, ui: ImportMapUiState): 
           : entry.target,
       hasIntegrity: entry.hasIntegrity,
       resolutionIds: resolutions.map((resolution) => resolution.id),
-      sources: copies.map((copy) => rowSourceOf(copy, indexes)),
+      sources: copies.map((copy) => rowSourceOf(copy)),
       sourceQuiet: false,
       claims: claimVms,
       claimlessConsumers,

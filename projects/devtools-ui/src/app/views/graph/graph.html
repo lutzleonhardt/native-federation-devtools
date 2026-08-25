@@ -1,0 +1,198 @@
+<section class="view graph-view">
+  <h1>Graph (preview)</h1>
+  @if (vm(); as vm) {
+    @if (vm.empty) {
+      <p class="view-observation">Nothing to graph.</p>
+    } @else {
+      <div class="graph-toolbar">
+        @if (selectedRemotes().size > 0) {
+          <span class="graph-toolbar-line">{{ filterLine(selectedRemotes().size) }}</span>
+          <button type="button" class="nf-button graph-toolbar-clear" (click)="clearSelection()">
+            Clear
+          </button>
+        } @else {
+          <span class="graph-toolbar-line graph-toolbar-hint">
+            click remotes to filter · hover to trace · dashed node = isolated copy · dotted edge =
+            borrowed
+          </span>
+        }
+        @if (vm.cappedEdges > 0) {
+          <span class="graph-toolbar-line graph-toolbar-cap">{{ cappedLine(vm.cappedEdges) }}</span>
+        }
+      </div>
+      <div class="graph-scroll">
+        <svg
+          class="graph-canvas"
+          role="img"
+          aria-label="Resolution graph: remotes, the dependency copies they resolve to, and the chunk files claimed by the copies' bundles"
+          [attr.width]="vm.width"
+          [attr.height]="vm.height"
+          [attr.viewBox]="'0 0 ' + vm.width + ' ' + vm.height"
+          (mouseleave)="setHovered(null)"
+        >
+          @for (column of vm.columns; track column.key) {
+            <text class="graph-column-header" [attr.x]="column.headerX" [attr.y]="column.headerY">
+              {{ column.label }}
+            </text>
+          }
+          @for (cluster of vm.clusters; track cluster.key) {
+            <g
+              class="graph-cluster"
+              [class]="cluster.colorIndex !== null ? 'hue-' + cluster.colorIndex : ''"
+            >
+              <rect
+                [attr.x]="cluster.x"
+                [attr.y]="cluster.y"
+                [attr.width]="cluster.width"
+                [attr.height]="cluster.height"
+                rx="6"
+              />
+              <text class="graph-cluster-label" [attr.x]="cluster.labelX" [attr.y]="cluster.labelY">
+                {{ cluster.label }} ({{ cluster.count }})
+              </text>
+            </g>
+          }
+          @for (edge of vm.edges; track edge.id) {
+            <g class="graph-edge-group" [class.dim]="edgeDimmed(edge)">
+              @if (edge.tooltip) {
+                <title>{{ edge.tooltip }}</title>
+              }
+              <!-- Invisible wide stroke: the 1.5px edge itself is no hover target. -->
+              <path class="graph-edge-hit" [attr.d]="edge.path" />
+              <path
+                class="graph-edge"
+                [class.dotted]="edge.style === 'dotted'"
+                [attr.d]="edge.path"
+              />
+            </g>
+          }
+          <!-- Hover reveal: the hovered node's precomputed bundle edges only —
+               an emphasis overlay, never a model change. -->
+          @for (edge of hoveredBundleEdges(); track edge.key) {
+            <path
+              class="graph-bundle-edge"
+              [class]="edge.colorIndex !== null ? 'hue-' + edge.colorIndex : ''"
+              [attr.d]="edge.path"
+            />
+          }
+          @for (node of vm.nodes; track node.key) {
+            @switch (node.kind) {
+              @case ('remote') {
+                <g
+                  class="graph-node remote"
+                  [class.host]="node.isHost"
+                  [class.selected]="selectedRemotes().has(node.id)"
+                  [class.dim]="nodeDimmed(node.key)"
+                  (mouseenter)="setHovered(node.key)"
+                  (mouseleave)="setHovered(null)"
+                  (click)="toggleRemote(node.id)"
+                >
+                  @if (node.labelTooltip) {
+                    <title>{{ node.labelTooltip }}</title>
+                  }
+                  <rect
+                    [attr.x]="node.x"
+                    [attr.y]="node.y"
+                    [attr.width]="node.width"
+                    [attr.height]="node.height"
+                    rx="4"
+                  />
+                  <text class="graph-node-label" [attr.x]="node.labelX" [attr.y]="node.labelY">
+                    {{ node.label }}
+                  </text>
+                </g>
+              }
+              @case ('dependency') {
+                <g
+                  class="graph-node dependency"
+                  [class.isolated]="node.isolated"
+                  [class.dim]="nodeDimmed(node.key)"
+                  (mouseenter)="setHovered(node.key)"
+                  (mouseleave)="setHovered(null)"
+                >
+                  @if (node.labelTooltip) {
+                    <title>{{ node.labelTooltip }}</title>
+                  }
+                  <rect
+                    [attr.x]="node.x"
+                    [attr.y]="node.y"
+                    [attr.width]="node.width"
+                    [attr.height]="node.height"
+                    rx="4"
+                  />
+                  <text class="graph-node-label" [attr.x]="node.labelX" [attr.y]="node.labelY">
+                    {{ node.label }}
+                  </text>
+                  @if (node.subLabel) {
+                    <text
+                      class="graph-node-sublabel"
+                      [attr.x]="node.subLabelX"
+                      [attr.y]="node.subLabelY"
+                    >
+                      @if (node.subLabelTooltip) {
+                        <title>{{ node.subLabelTooltip }}</title>
+                      }
+                      {{ node.subLabel }}
+                    </text>
+                  }
+                </g>
+              }
+              @case ('chunk') {
+                <g
+                  class="graph-node chunk"
+                  [class.stub]="node.qualifier !== null"
+                  [class.dim]="nodeDimmed(node.key)"
+                  (mouseenter)="setHovered(node.key)"
+                  (mouseleave)="setHovered(null)"
+                >
+                  @if (node.labelTooltip) {
+                    <title>{{ node.labelTooltip }}</title>
+                  }
+                  <rect
+                    [attr.x]="node.x"
+                    [attr.y]="node.y"
+                    [attr.width]="node.width"
+                    [attr.height]="node.height"
+                    rx="4"
+                  />
+                  <text class="graph-node-label" [attr.x]="node.labelX" [attr.y]="node.labelY">
+                    {{ node.label }}
+                  </text>
+                  @if (node.qualifier !== null) {
+                    <text
+                      class="graph-node-qualifier"
+                      [attr.x]="node.qualifierX"
+                      [attr.y]="node.qualifierY"
+                    >
+                      {{ node.qualifier }}
+                    </text>
+                  }
+                </g>
+              }
+            }
+          }
+        </svg>
+      </div>
+    }
+    <!-- Outside the empty branch: a capture can diverge without yielding a
+         single node — an incomplete capture must never look merely blank. -->
+    @if (vm.divergent || vm.droppedRelationIds.length > 0) {
+      <footer class="graph-footer">
+        @if (vm.divergent) {
+          <p class="graph-footer-line">
+            {{ vm.completeness.unknownResolutions }} unknown ·
+            {{ vm.completeness.unmappedResolutions }} unmapped ·
+            {{ vm.completeness.blockedResolutions }} blocked ·
+            {{ vm.completeness.ambiguousSourceClaims }} ambiguous — details in the
+            <a [routerLink]="['/remotes']">Remotes view</a>
+          </p>
+        }
+        @if (vm.droppedRelationIds.length > 0) {
+          <p class="graph-footer-line">{{ droppedRelationLine(vm.droppedRelationIds.length) }}</p>
+        }
+      </footer>
+    }
+  } @else {
+    <p class="view-observation">no captured snapshot to render</p>
+  }
+</section>

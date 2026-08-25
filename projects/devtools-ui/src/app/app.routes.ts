@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 
 import { environment } from '../environments/environment';
+import { GraphView } from './views/graph/graph';
 import { ImportMapView } from './views/import-map/import-map';
 import { PackagesView } from './views/packages/packages';
 import { RemotesView } from './views/remotes/remotes';
@@ -22,6 +23,9 @@ export const routes: Routes = [
   { path: 'packages', component: PackagesView },
   { path: 'remotes', component: RemotesView },
   { path: 'import-map', component: ImportMapView },
+  { path: 'graph', component: GraphView },
+  // Hidden from the nav until resolution-model Task 10 (canonical
+  // Diagnostics) lands; stays reachable by direct URL (no redirect).
   { path: 'diagnostics', component: ViewPlaceholder, data: { title: 'Diagnostics' } },
   // Dev-only additions (e.g. /kit-demo); empty in the extension build.
   ...environment.extraRoutes,

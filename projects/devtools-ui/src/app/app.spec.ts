@@ -59,7 +59,9 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
-  // T8-AC-01: the nav shows the V2 tab set in spec order.
+  // T8-AC-01 + T4-AC-01 (graph-view): the nav shows the V2 tab set in spec
+  // order, without the Diagnostics tab (hidden until resolution-model
+  // Task 10 lands).
   it('renders the V2 tab set', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
@@ -67,12 +69,14 @@ describe('App', () => {
     const labels = Array.from(compiled.querySelectorAll('.shell-nav a')).map((a) =>
       a.textContent?.trim(),
     );
-    expect(labels).toEqual(['Packages', 'Remotes', 'Import Map', 'Diagnostics']);
+    expect(labels).toEqual(['Packages', 'Remotes', 'Import Map', 'Graph (preview)']);
   });
 
   // T8-AC-01: `/packages` is the default route (since Task 10 the real
   // Packages view, since Task 11 the real Remotes view, since Task 12 the
-  // real Import Map view); the remaining tab renders an honest placeholder.
+  // real Import Map view). T4-AC-01 (graph-view): the diagnostics route is
+  // no nav tab anymore but stays reachable by direct URL and still renders
+  // the honest placeholder.
   it('defaults to /packages and renders honest placeholders on the open tabs', async () => {
     const fixture = TestBed.createComponent(App);
     const router = TestBed.inject(Router);
@@ -86,6 +90,7 @@ describe('App', () => {
     for (const [url, title] of [
       ['/remotes', 'Remotes'],
       ['/import-map', 'Import Map'],
+      ['/graph', 'Graph (preview)'],
     ]) {
       await router.navigateByUrl(url);
       await settle(fixture);
@@ -158,7 +163,9 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     await settle(fixture);
     expect(
-      (fixture.nativeElement as HTMLElement).querySelector('.strip-generation')?.textContent?.trim(),
+      (fixture.nativeElement as HTMLElement)
+        .querySelector('.strip-generation')
+        ?.textContent?.trim(),
     ).toBe('v4.5');
   });
 
@@ -196,9 +203,7 @@ describe('App', () => {
     expect(el.querySelector('.shell-status')?.textContent).toContain('synthetic-fixture.example');
     // The empty page collapses to the no-federation summary (a normal
     // state), with no warnings and no per-tab entries.
-    expect(el.querySelector('.strip-none')?.textContent).toContain(
-      'no Native Federation detected',
-    );
+    expect(el.querySelector('.strip-none')?.textContent).toContain('no Native Federation detected');
     expect(el.querySelectorAll('.strip-entry')).toHaveLength(0);
     expect(el.querySelectorAll('.strip-warning')).toHaveLength(0);
   });

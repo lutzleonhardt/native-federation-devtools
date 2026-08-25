@@ -669,11 +669,16 @@ A resolved copy is a source-oriented grouping over mapped resolution claims,
 not over raw participant rows and not over claim count. It records every
 consumer context separately from the source record so a pool anchor can supply
 a specifier from another external without splitting one evidenced source copy.
+Evidenced source variants embed the remote name of their referenced record
+(`participant` / `ownerRemote`), copied verbatim at materialization so source
+attribution reads from the projection alone; the ID stays the identity and
+link anchor, and URL-identified copies carry no name field — its absence is
+the no-evidenced-source statement.
 
 ```ts
 type CopySource =
-  | { kind: 'shared-declaration'; declarationId: ParticipantDeclarationId }
-  | { kind: 'private-registration'; registrationId: PrivateRegistrationId }
+  | { kind: 'shared-declaration'; declarationId: ParticipantDeclarationId; participant: string }
+  | { kind: 'private-registration'; registrationId: PrivateRegistrationId; ownerRemote: string }
   | { kind: 'target-url'; targetUrl: string };
 
 type CopySourceDisposition =

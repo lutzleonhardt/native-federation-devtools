@@ -84,9 +84,9 @@ export interface EntrypointRowVm {
 export type PackagesRowPayload = PackageRowVm | EntrypointRowVm;
 
 /** Own-copy claim of one muted resolved tag, from its copies' sources. */
-function mutedNoteOf(copies: ResolvedDependencyCopy[], indexes: CanonicalIndexes): string {
+function mutedNoteOf(copies: ResolvedDependencyCopy[]): string {
   const claims = copies.map((copy) => {
-    const source = copySourceRemote(copy, indexes);
+    const source = copySourceRemote(copy);
     return source === null
       ? 'source unknown'
       : `${participantDisplay(source)} (${copy.sourceActions.join(', ')})`;
@@ -100,7 +100,7 @@ function mutedNoteOf(copies: ResolvedDependencyCopy[], indexes: CanonicalIndexes
  * Without any shared-elected tag, all resolved tags list unmuted (nothing
  * to privilege).
  */
-function rowVersionsOf(group: PackageGroup, indexes: CanonicalIndexes): RowVersionVm[] {
+function rowVersionsOf(group: PackageGroup): RowVersionVm[] {
   const copiesByTag = new Map<string, ResolvedDependencyCopy[]>();
   for (const copy of group.copies) {
     if (copy.resolvedTag === null) {
@@ -117,7 +117,7 @@ function rowVersionsOf(group: PackageGroup, indexes: CanonicalIndexes): RowVersi
     ...otherTags.map((tag) => ({
       tag,
       muted: sharedTags.length > 0,
-      note: sharedTags.length > 0 ? mutedNoteOf(copiesByTag.get(tag) ?? [], indexes) : null,
+      note: sharedTags.length > 0 ? mutedNoteOf(copiesByTag.get(tag) ?? []) : null,
     })),
   ];
 }
@@ -134,7 +134,7 @@ function packageRowOf(
     scopeLabel: group.scope === GLOBAL_SCOPE ? null : group.scope,
     packageName: group.packageName,
     displayName: linked ? group.packageName.slice(linked.parentPackage.length) : group.packageName,
-    versions: rowVersionsOf(group, indexes),
+    versions: rowVersionsOf(group),
     unknownTagged:
       group.unknownTagCopyCount > 0
         ? {
