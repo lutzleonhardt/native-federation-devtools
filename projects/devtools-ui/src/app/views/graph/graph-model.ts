@@ -13,6 +13,7 @@ import {
   edgeOf,
   edgePath,
   nodeBaseAt,
+  nodeKeyOf,
   remoteNodeAt,
   remoteOrder,
   stubQualifierOf,
@@ -90,8 +91,24 @@ export function buildGraphModel(
     .sort(remoteOrder)
     .map((remote, row) => remoteNodeAt(remote, row));
 
+  // --- Consumer filter (OR over a copy's consume relations) --------------
+  // The remote column is never filtered, and the honesty surfaces below
+  // (`droppedRelationIds`, `completeness`) stay selection-independent.
+  const selectedRemotes = options.selectedRemotes ?? new Set<string>();
+  const filtering = selectedRemotes.size > 0;
+  const consumersByCopyId = new Map<string, Set<string>>();
+  for (const relation of projection.consumerRelations) {
+    const consumers = consumersByCopyId.get(relation.copyId) ?? new Set<string>();
+    consumers.add(relation.consumerRemote);
+    consumersByCopyId.set(relation.copyId, consumers);
+  }
+  const copyKept = (copyId: string): boolean =>
+    !filtering ||
+    [...(consumersByCopyId.get(copyId) ?? [])].some((name) => selectedRemotes.has(name));
+
   // --- Dependency clustering by evidenced source -------------------------
   const sortedCopies = projection.copies
+    .filter((copy) => copyKept(copy.id))
     .map((copy) => ({ copy, fullLabel: dependencyLabelOf(copy) }))
     .sort(
       (a, b) => compareStrings(a.fullLabel, b.fullLabel) || compareStrings(a.copy.id, b.copy.id),
@@ -127,14 +144,18 @@ export function buildGraphModel(
   const clusters: GraphCluster[] = [];
   const dependencyNodes: DependencyGraphNode[] = [];
   const orderedDependencyEntries: typeof sortedCopies = [];
+  /** Cluster hue of each copy — a revealed bundle edge inherits it. */
+  const dependencyHueByCopyId = new Map<string, number | null>();
   let dependencyCursor = MARGIN + HEADER_H;
 
   const layoutDependencyCluster = (seed: ClusterSeed, entries: typeof sortedCopies): void => {
+    const colorIndex = clusterHueOf(seed.hueRemote);
     const boxY = dependencyCursor;
     let nodeY = boxY + CLUSTER_HEADER + CLUSTER_PAD;
     for (const entry of entries) {
       dependencyNodes.push(dependencyNodeAt(entry.copy, entry.fullLabel, nodeY));
       orderedDependencyEntries.push(entry);
+      dependencyHueByCopyId.set(entry.copy.id, colorIndex);
       nodeY += NODE_H + NODE_VGAP;
     }
     const boxHeight = nodeY - NODE_VGAP - boxY + CLUSTER_PAD;
@@ -144,7 +165,7 @@ export function buildGraphModel(
       column: 'dependencies',
       label: seed.label,
       count: entries.length,
-      colorIndex: clusterHueOf(seed.hueRemote),
+      colorIndex,
       x: boxX,
       y: boxY,
       width: NODE_W + 2 * CLUSTER_PAD,
@@ -315,20 +336,27 @@ export function buildGraphModel(
   }
 
   // --- Consume edges -----------------------------------------------------
-  // One edge per relation. A relation endpoint outside the rendered node set
-  // cannot be drawn; such relations are reported via `droppedRelationIds` —
-  // nodes come only from the projection's remotes and copies, never invented
-  // for an edge.
+  // One edge per relation. A relation endpoint outside the projection's
+  // remotes and copies cannot be drawn; such relations are reported via
+  // `droppedRelationIds` — selection-independent, so an incomplete capture
+  // reads the same in every filter state. A relation from an unselected
+  // consumer is merely filtered, never "dropped". Nodes come only from the
+  // projection's remotes and copies, never invented for an edge.
+  const projectionCopyIds = new Set(projection.copies.map((copy) => copy.id));
   const edges: GraphEdge[] = [];
   const droppedRelationIds: string[] = [];
   for (const relation of projection.consumerRelations) {
     const source = remoteNodeByName.get(relation.consumerRemote);
-    const target = dependencyNodeById.get(relation.copyId);
-    if (source !== undefined && target !== undefined) {
-      edges.push(edgeOf(relation, source, target));
-    } else {
+    if (source === undefined || !projectionCopyIds.has(relation.copyId)) {
       droppedRelationIds.push(relation.id);
+      continue;
     }
+    if (filtering && !selectedRemotes.has(relation.consumerRemote)) {
+      continue;
+    }
+    // A selected (or unfiltered) consumer's relation is exactly what keeps
+    // its copy rendered, so the node lookup cannot miss.
+    edges.push(edgeOf(relation, source, dependencyNodeById.get(relation.copyId)!));
   }
 
   // --- Bundle-edge references (rendered by the hover trace only) ---------
@@ -341,6 +369,7 @@ export function buildGraphModel(
       key: `${dependency.key}\n${chunk.key}`,
       dependencyKey: dependency.key,
       chunkKey: chunk.key,
+      colorIndex: dependencyHueByCopyId.get(pair.copyId) ?? null,
       path: edgePath(
         dependency.x + dependency.width,
         dependency.y + dependency.height / 2,
@@ -402,4 +431,35 @@ export function buildGraphModel(
     height: Math.max(remotesBottom, dependenciesBottom, chunksBottom) + MARGIN,
     empty: nodes.length === 0,
   };
+}
+
+/**
+ * Undirected adjacency over ALL of the model's edges — consume edges and
+ * bundle-edge references alike — keyed by node render keys. Derived once per
+ * model; the hover trace is then a pure lookup: the hovered node plus its
+ * neighbors keep full opacity, everything else dims. Undirected on purpose:
+ * hovering a dependency lights both its consuming remotes and its chunks.
+ */
+export function graphAdjacencyOf(model: GraphModel): ReadonlyMap<string, ReadonlySet<string>> {
+  const adjacency = new Map<string, Set<string>>();
+  const neighborsOf = (key: string): Set<string> => {
+    const existing = adjacency.get(key);
+    if (existing !== undefined) {
+      return existing;
+    }
+    const created = new Set<string>();
+    adjacency.set(key, created);
+    return created;
+  };
+  const link = (a: string, b: string): void => {
+    neighborsOf(a).add(b);
+    neighborsOf(b).add(a);
+  };
+  for (const edge of model.edges) {
+    link(nodeKeyOf('remote', edge.sourceId), nodeKeyOf('dependency', edge.targetId));
+  }
+  for (const ref of model.bundleEdgeRefs) {
+    link(ref.dependencyKey, ref.chunkKey);
+  }
+  return adjacency;
 }

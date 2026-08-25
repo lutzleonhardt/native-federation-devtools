@@ -93,6 +93,14 @@ export function columnX(index: number): number {
   return MARGIN + index * (NODE_W + COL_GAP);
 }
 
+/**
+ * Kind-qualified render key (`<kind>:<id>`) — the one identity rule shared
+ * by node construction and every key-based lookup (hover adjacency).
+ */
+export function nodeKeyOf(kind: GraphNode['kind'], id: string): string {
+  return `${kind}:${id}`;
+}
+
 export function nodeBaseAt(
   kind: GraphNode['kind'],
   id: string,
@@ -103,7 +111,7 @@ export function nodeBaseAt(
 ): GraphNodeBase {
   return {
     id,
-    key: `${kind}:${id}`,
+    key: nodeKeyOf(kind, id),
     ...truncated(fullLabel, labelMax),
     x,
     y,

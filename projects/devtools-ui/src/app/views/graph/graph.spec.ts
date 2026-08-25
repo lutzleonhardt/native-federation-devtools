@@ -21,16 +21,22 @@ import { FederationStore } from '../../shared/store/federation-store';
 import { ingestSnapshot } from '../../shared/store/ingest';
 import { provideParticipantColors } from '../../shared/store/participant-colors-provider';
 import type {
+  BundleClaim,
+  BundleClaimId,
   CanonicalResolutionProjection,
+  ChunkGroupId,
+  ChunkGroupProjection,
   ConsumerCopyRelation,
   ConsumerCopyRelationId,
   ResolvedDependencyCopy,
   ResolvedDependencyCopyId,
 } from '../../shared/store/resolution';
 import { GraphView } from './graph';
+import { MAX_BUNDLE_EDGES } from './graph-types';
 
 class FixtureSnapshotProvider implements SnapshotProvider {
-  constructor(private readonly id: FixtureId | null) {}
+  /** Mutable so a test can change the captured content between refreshes. */
+  constructor(public id: FixtureId | null) {}
 
   captureSnapshot(): Promise<SnapshotV1> {
     return this.id === null
@@ -46,7 +52,7 @@ async function settle(fixture: { whenStable(): Promise<unknown>; detectChanges()
   fixture.detectChanges();
 }
 
-async function createView(fixtureId: FixtureId | null, extraProviders: Provider[] = []) {
+async function createViewFixture(fixtureId: FixtureId | null, extraProviders: Provider[] = []) {
   await TestBed.configureTestingModule({
     imports: [GraphView],
     providers: [
@@ -59,7 +65,11 @@ async function createView(fixtureId: FixtureId | null, extraProviders: Provider[
   const fixture = TestBed.createComponent(GraphView);
   fixture.detectChanges();
   await settle(fixture);
-  return fixture.nativeElement as HTMLElement;
+  return { fixture, el: fixture.nativeElement as HTMLElement };
+}
+
+async function createView(fixtureId: FixtureId | null, extraProviders: Provider[] = []) {
+  return (await createViewFixture(fixtureId, extraProviders)).el;
 }
 
 /**
@@ -85,7 +95,7 @@ async function createSeededView(projection: CanonicalResolutionProjection): Prom
 }
 
 /** Minimal canonical seeds (branded-ID casts) for the seeded harness. */
-function seededCopy(id: string): ResolvedDependencyCopy {
+function seededCopy(id: string, bundleClaimIds: string[] = []): ResolvedDependencyCopy {
   return {
     id: id as ResolvedDependencyCopyId,
     sourcePackage: 'pkg',
@@ -100,7 +110,32 @@ function seededCopy(id: string): ResolvedDependencyCopy {
     sourceRegistrationRefs: [],
     observedTargetProviders: [],
     registryServingSlotClaims: [],
-    bundleClaimIds: [],
+    bundleClaimIds: bundleClaimIds as BundleClaimId[],
+    provenance: { evidence: [] },
+  };
+}
+
+function seededClaim(id: string, copyId: string, chunkGroupIds: string[]): BundleClaim {
+  return {
+    id: id as BundleClaimId,
+    copyId: copyId as ResolvedDependencyCopyId,
+    source: null,
+    sourceRemote: 'host',
+    bundle: 'bundle-x',
+    chunkGroupIds: chunkGroupIds as ChunkGroupId[],
+    status: 'mapped-source',
+    provenance: { evidence: [] },
+  };
+}
+
+function seededChunkGroup(id: string, files: string[]): ChunkGroupProjection {
+  return {
+    id: id as ChunkGroupId,
+    emitterRemote: 'host',
+    origin: 'shared-chunks',
+    bundleName: 'bundle-x',
+    pseudoPackage: null,
+    files,
     provenance: { evidence: [] },
   };
 }
@@ -118,7 +153,10 @@ function seededRelation(consumerRemote: string, copyId: string): ConsumerCopyRel
 
 function seededProjection(
   partial: Partial<
-    Pick<CanonicalResolutionProjection, 'remotes' | 'copies' | 'consumerRelations' | 'completeness'>
+    Pick<
+      CanonicalResolutionProjection,
+      'remotes' | 'copies' | 'consumerRelations' | 'chunkGroups' | 'bundleClaims' | 'completeness'
+    >
   >,
 ): CanonicalResolutionProjection {
   return {
@@ -162,6 +200,19 @@ function textOf(node: Element | null): string {
 function clusterLabels(el: HTMLElement): string[] {
   return Array.from(el.querySelectorAll('.graph-cluster-label')).map((label) => textOf(label));
 }
+
+/** The node group of the given kind whose main label matches exactly. */
+function nodeByLabel(el: HTMLElement, kind: 'remote' | 'dependency', label: string): SVGGElement {
+  const groups = Array.from(el.querySelectorAll<SVGGElement>(`g.graph-node.${kind}`));
+  const match = groups.find((group) => textOf(group.querySelector('.graph-node-label')) === label);
+  if (match === undefined) {
+    throw new Error(`no ${kind} node labeled ${label}`);
+  }
+  return match;
+}
+
+const TOOLBAR_HINT =
+  'click remotes to filter · hover to trace · dashed node = isolated copy · dotted edge = borrowed';
 
 describe('GraphView', () => {
   // T1-AC-01: one dependency node with a solid and a dotted consume edge;
@@ -410,5 +461,179 @@ describe('GraphView', () => {
       clusters.filter((group) => Array.from(group.classList).some((c) => c.startsWith('hue-')))
         .length,
     ).toBe(1);
+  });
+
+  // ---- Task 3: hover trace and click-to-filter ----
+
+  // T3-AC-01: hovering a dependency reveals exactly its bundle edges and
+  // keeps its consumer remote + claimed chunk nodes at full opacity while
+  // everything else dims; leaving the graph area restores everything.
+  it('reveals the hovered dependency bundle edges and dims the untraced rest', async () => {
+    const { fixture, el } = await createViewFixture('frankenstein-live');
+    const core = nodeByLabel(el, 'dependency', '@angular/core');
+    core.dispatchEvent(new MouseEvent('mouseenter'));
+    fixture.detectChanges();
+
+    // Exactly the hovered copy's 5 references to the browser-angular_core
+    // files appear as bundle edges — nothing else is revealed.
+    expect(el.querySelectorAll('path.graph-bundle-edge').length).toBe(5);
+    expect(core.classList.contains('dim')).toBe(false);
+    expect(nodeByLabel(el, 'remote', 'host').classList.contains('dim')).toBe(false);
+    expect(nodeByLabel(el, 'remote', 'mermaid').classList.contains('dim')).toBe(true);
+    expect(nodeByLabel(el, 'remote', 'whiteboard').classList.contains('dim')).toBe(true);
+
+    const chunks = Array.from(el.querySelectorAll('g.graph-node.chunk'));
+    expect(chunks.length).toBe(9);
+    expect(chunks.filter((chunk) => !chunk.classList.contains('dim')).length).toBe(5);
+    const dependencies = Array.from(el.querySelectorAll('g.graph-node.dependency'));
+    expect(dependencies.filter((node) => !node.classList.contains('dim')).length).toBe(1);
+    const edgeGroups = Array.from(el.querySelectorAll('g.graph-edge-group'));
+    expect(edgeGroups.length).toBe(20);
+    expect(edgeGroups.filter((group) => !group.classList.contains('dim')).length).toBe(1);
+
+    el.querySelector('svg')!.dispatchEvent(new MouseEvent('mouseleave'));
+    fixture.detectChanges();
+    expect(el.querySelectorAll('path.graph-bundle-edge').length).toBe(0);
+    expect(el.querySelectorAll('.dim').length).toBe(0);
+  });
+
+  // T3-AC-05: hover changes emphasis only — the rendered node and
+  // consume-edge multiset is identical before, during, and after hover;
+  // the revealed bundle edges are the AC-01 overlay, not a model change.
+  it('keeps the node and consume-edge multiset identical across hover', async () => {
+    const { fixture, el } = await createViewFixture('frankenstein-live');
+    const snapshot = () => ({
+      nodes: Array.from(el.querySelectorAll('g.graph-node .graph-node-label'))
+        .map((label) => textOf(label))
+        .sort(),
+      edges: Array.from(el.querySelectorAll('path.graph-edge'))
+        .map((path) => path.getAttribute('d'))
+        .sort(),
+    });
+    const before = snapshot();
+
+    nodeByLabel(el, 'dependency', '@angular/core').dispatchEvent(new MouseEvent('mouseenter'));
+    fixture.detectChanges();
+    expect(snapshot()).toEqual(before);
+
+    el.querySelector('svg')!.dispatchEvent(new MouseEvent('mouseleave'));
+    fixture.detectChanges();
+    expect(snapshot()).toEqual(before);
+    expect(el.querySelectorAll('path.graph-bundle-edge').length).toBe(0);
+  });
+
+  // T3-AC-02: with only the borrowing consumer selected, the shared copy
+  // is kept (OR over consumers) and its chunks stay rendered although the
+  // emitting source remote is unselected — the emitter is not the consumer.
+  it('keeps the borrowed copy and its chunks when only the borrower is selected', async () => {
+    const { fixture, el } = await createViewFixture('clean-skip');
+    nodeByLabel(el, 'remote', 'mfe1').dispatchEvent(new MouseEvent('click'));
+    fixture.detectChanges();
+
+    expect(textOf(el.querySelector('.graph-toolbar'))).toContain('filtering by 1 remote');
+    expect(nodeByLabel(el, 'remote', 'mfe1').classList.contains('selected')).toBe(true);
+    expect(nodeByLabel(el, 'remote', 'mfe2').classList.contains('selected')).toBe(false);
+    // Chunk attribution ignores the selection: the mfe2-emitted stub stays.
+    expect(clusterLabels(el)).toEqual(['mfe2 (1)', 'mfe2 · browser-shared (1)']);
+    expect(el.querySelectorAll('.graph-node.chunk').length).toBe(1);
+    expect(el.querySelectorAll('.graph-node.remote').length).toBe(3);
+    expect(el.querySelectorAll('path.graph-edge').length).toBe(1);
+  });
+
+  // T3-AC-03: multi-select is OR — two selected remotes keep the union of
+  // their copies, the remote column renders completely in every filter
+  // state, and Clear restores the unfiltered view.
+  it('filters by the union of selected remotes and restores on Clear', async () => {
+    const { fixture, el } = await createViewFixture('frankenstein-live');
+    expect(el.querySelectorAll('.graph-node.dependency').length).toBe(20);
+
+    nodeByLabel(el, 'remote', 'mermaid').dispatchEvent(new MouseEvent('click'));
+    fixture.detectChanges();
+    expect(el.querySelectorAll('.graph-node.dependency').length).toBe(1);
+    expect(el.querySelectorAll('.graph-node.remote').length).toBe(3);
+
+    nodeByLabel(el, 'remote', 'whiteboard').dispatchEvent(new MouseEvent('click'));
+    fixture.detectChanges();
+    expect(textOf(el.querySelector('.graph-toolbar'))).toContain('filtering by 2 remotes');
+    expect(el.querySelectorAll('.graph-node.dependency').length).toBe(8);
+    expect(el.querySelectorAll('.graph-node.remote').length).toBe(3);
+
+    (el.querySelector('.graph-toolbar-clear') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(el.querySelectorAll('.graph-node.dependency').length).toBe(20);
+    expect(el.querySelectorAll('.graph-node.remote').length).toBe(3);
+    expect(textOf(el.querySelector('.graph-toolbar-hint'))).toBe(TOOLBAR_HINT);
+  });
+
+  // T3-AC-04: the toolbar switches hint line ↔ filter state; the cap
+  // message appears only when references were actually capped.
+  it('switches the toolbar states and shows the cap message only when capped', async () => {
+    const { fixture, el } = await createViewFixture('co-declared-share');
+    expect(textOf(el.querySelector('.graph-toolbar-hint'))).toBe(TOOLBAR_HINT);
+    expect(el.querySelector('.graph-toolbar-clear')).toBeNull();
+    expect(el.querySelector('.graph-toolbar-cap')).toBeNull();
+
+    nodeByLabel(el, 'remote', 'mfe1').dispatchEvent(new MouseEvent('click'));
+    fixture.detectChanges();
+    expect(el.querySelector('.graph-toolbar-hint')).toBeNull();
+    expect(textOf(el.querySelector('.graph-toolbar-line'))).toBe('filtering by 1 remote');
+    expect(el.querySelector('.graph-toolbar-clear')).not.toBeNull();
+    expect(el.querySelector('.graph-toolbar-cap')).toBeNull();
+  });
+
+  // Codex review fix: interaction state is per capture — an in-place
+  // Refresh resets selection and hover, so no stale remote name can filter
+  // a newer capture's graph empty and no stale hover key can dim it. (A
+  // fixture switch reloads the whole app; this covers the in-place path.)
+  it('resets selection and hover when a new capture arrives', async () => {
+    const provider = new FixtureSnapshotProvider('clean-skip');
+    const { fixture, el } = await createViewFixture('clean-skip', [
+      { provide: SNAPSHOT_PROVIDER, useValue: provider },
+    ]);
+    nodeByLabel(el, 'remote', 'mfe1').dispatchEvent(new MouseEvent('click'));
+    fixture.detectChanges();
+    nodeByLabel(el, 'dependency', '@nf-lab/conflict-lib').dispatchEvent(
+      new MouseEvent('mouseenter'),
+    );
+    fixture.detectChanges();
+    expect(textOf(el.querySelector('.graph-toolbar'))).toContain('filtering by 1 remote');
+    expect(el.querySelectorAll('.dim').length).toBeGreaterThan(0);
+
+    // The inspected content changes underneath the open panel, then Refresh.
+    provider.id = 'frankenstein-live';
+    await TestBed.inject(FederationStore).refresh();
+    await settle(fixture);
+
+    expect(textOf(el.querySelector('.graph-toolbar-hint'))).toBe(TOOLBAR_HINT);
+    expect(el.querySelectorAll('.graph-node.remote.selected').length).toBe(0);
+    expect(el.querySelectorAll('.graph-node.dependency').length).toBe(20);
+    expect(el.querySelectorAll('.dim').length).toBe(0);
+    expect(el.querySelectorAll('path.graph-bundle-edge').length).toBe(0);
+  });
+
+  // T3-AC-04: the cap message renders with the honest overflow count when
+  // the reference budget is exceeded (seeded — no fixture reaches the cap).
+  it('shows the cap message when bundle references were capped', async () => {
+    const files = Array.from({ length: MAX_BUNDLE_EDGES + 100 }, (_, i) => `chunk-${i}.js`);
+    const el = await createSeededView(
+      seededProjection({
+        remotes: [
+          {
+            name: 'host',
+            isHost: true,
+            scopeUrl: './host/',
+            resolvedScopeUrl: 'https://page.test/host/',
+          },
+        ],
+        copies: [seededCopy('copy-1', ['claim-1'])],
+        consumerRelations: [seededRelation('host', 'copy-1')],
+        bundleClaims: [seededClaim('claim-1', 'copy-1', ['group-1'])],
+        chunkGroups: [seededChunkGroup('group-1', files)],
+      }),
+    );
+
+    expect(textOf(el.querySelector('.graph-toolbar-cap'))).toBe(
+      '99 additional bundle links hidden to keep the graph responsive.',
+    );
   });
 });

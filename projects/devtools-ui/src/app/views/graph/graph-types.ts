@@ -172,6 +172,11 @@ export interface BundleEdgeRef {
   dependencyKey: string;
   /** Render key of the claimed chunk node. */
   chunkKey: string;
+  /**
+   * Hue slot of the claiming dependency's cluster (null renders neutral) —
+   * the hover trace colors a revealed bundle edge by its source cluster.
+   */
+  colorIndex: number | null;
   path: string;
 }
 
@@ -211,4 +216,15 @@ export interface GraphBuildOptions {
    * cluster hues stable under later filtering.
    */
   participantColors?: ReadonlyMap<string, number>;
+  /**
+   * Consumer filter: with a non-empty selection a copy is kept when at
+   * least one of its consume relations names a selected remote (OR), and
+   * consume edges from unselected remotes drop. The remote column always
+   * renders completely, and chunk attribution follows the kept copies'
+   * claims regardless of the emitter's selection state — the emitter is
+   * not the consumer. Capture honesty (`droppedRelationIds`,
+   * `completeness`) stays selection-independent: a relation removed by the
+   * filter is filtered, never "dropped".
+   */
+  selectedRemotes?: ReadonlySet<string>;
 }

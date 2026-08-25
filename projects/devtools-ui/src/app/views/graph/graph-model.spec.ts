@@ -28,7 +28,7 @@ import type {
   ResolvedDependencyCopy,
   ResolvedDependencyCopyId,
 } from '../../shared/store/resolution';
-import { buildGraphModel } from './graph-model';
+import { buildGraphModel, graphAdjacencyOf } from './graph-model';
 import {
   CLUSTER_HEADER,
   CLUSTER_PAD,
@@ -752,5 +752,169 @@ describe('buildGraphModel', () => {
     expect(model.cappedEdges).toBe(99);
     // The cap limits references, never nodes — every recorded file renders.
     expect(chunkNodesOf(model).length).toBe(files.length);
+  });
+
+  // ---- Task 3: consumer filter (selection input) ----
+
+  it('treats an empty selection as no filter', () => {
+    const projection = projectionOf('frankenstein-live');
+    expect(buildGraphModel(projection, { selectedRemotes: new Set() })).toEqual(
+      buildGraphModel(projection),
+    );
+  });
+
+  // T3-AC-03 (model level): OR over a copy's consumers — the co-declared
+  // copy is kept when only its borrowing consumer is selected, and the
+  // unselected consumer's edge drops while the remote column stays complete.
+  it('keeps a copy consumed by a selected remote and drops unselected consume edges', () => {
+    const projection = projectionOf('co-declared-share');
+    const model = buildGraphModel(projection, { selectedRemotes: new Set(['mfe2']) });
+
+    expect(remoteNodesOf(model).map((n) => n.id)).toEqual(['__NF-HOST__', 'mfe1', 'mfe2']);
+    expect(dependencyNodesOf(model).length).toBe(1);
+    // The copy's evidenced source cluster is untouched by the filter.
+    expect(clusterLabelsOf(model, 'dependencies')).toEqual([['mfe1', 1]]);
+    expect(model.edges).toEqual([
+      expect.objectContaining({ sourceId: 'mfe2', style: 'dotted', tooltip: 'not-selected' }),
+    ]);
+  });
+
+  // T3-AC-02 (model level): chunk attribution ignores the selection — with
+  // only the borrowing consumer (mfe1) selected, the mfe2-sourced copy and
+  // its qualified chunk stub stay although the emitter is unselected.
+  it('keeps clean-skip chunk evidence when only the borrowing consumer is selected', () => {
+    const projection = projectionOf('clean-skip');
+    const model = buildGraphModel(projection, { selectedRemotes: new Set(['mfe1']) });
+
+    expect(clusterLabelsOf(model, 'dependencies')).toEqual([['mfe2', 1]]);
+    expect(clusterLabelsOf(model, 'chunks')).toEqual([['mfe2 · browser-shared', 1]]);
+    expect(chunkNodesOf(model).map((n) => [n.label, n.qualifier])).toEqual([
+      ['browser-shared', 'source-only — no registered chunk list'],
+    ]);
+    expect(model.bundleEdgeRefs.length).toBe(1);
+    expect(model.edges.map((e) => e.sourceId)).toEqual(['mfe1']);
+    expect(remoteNodesOf(model).map((n) => n.id)).toEqual(['__NF-HOST__', 'mfe1', 'mfe2']);
+  });
+
+  // T3-AC-03 (model level): multi-select is OR — two selected remotes keep
+  // the union of their copies; cluster hues stay the app-wide identity
+  // slots in every filter state.
+  it('keeps the union of copies under a multi-remote selection', () => {
+    const projection = projectionOf('frankenstein-live');
+    const colors = new Map([
+      ['mermaid', 1],
+      ['whiteboard', 2],
+    ]);
+    const model = buildGraphModel(projection, {
+      participantColors: colors,
+      selectedRemotes: new Set(['mermaid', 'whiteboard']),
+    });
+
+    expect(clusterLabelsOf(model, 'dependencies')).toEqual([
+      ['mermaid', 1],
+      ['whiteboard', 7],
+    ]);
+    expect(dependencyNodesOf(model).length).toBe(8);
+    expect(model.edges.length).toBe(8);
+    expect(remoteNodesOf(model).map((n) => n.id)).toEqual(['__NF-HOST__', 'mermaid', 'whiteboard']);
+    // The mermaid/whiteboard copies carry no bundle claims — the chunk
+    // column honestly empties instead of borrowing the host's evidence.
+    expect(chunkNodesOf(model)).toEqual([]);
+    const byLabel = new Map(model.clusters.map((c) => [c.label, c.colorIndex]));
+    expect(byLabel.get('mermaid')).toBe(1);
+    expect(byLabel.get('whiteboard')).toBe(2);
+  });
+
+  // Capture honesty is selection-independent: a ghost-consumer relation is
+  // reported in every filter state, while a relation removed by the filter
+  // is merely filtered — never "dropped".
+  it('keeps droppedRelationIds selection-independent', () => {
+    const ghost = relationOf('ghost', 'copy-1', ['own-selected']);
+    const projection = syntheticProjection({
+      remotes: [remoteOf('host', true), remoteOf('other')],
+      copies: [
+        copyOf('copy-1', { sourcePackage: 'a-pkg' }),
+        copyOf('copy-2', { sourcePackage: 'b-pkg' }),
+      ],
+      consumerRelations: [
+        relationOf('host', 'copy-1', ['own-selected']),
+        relationOf('other', 'copy-2', ['own-selected']),
+        ghost,
+      ],
+    });
+
+    const filtered = buildGraphModel(projection, { selectedRemotes: new Set(['host']) });
+    expect(filtered.droppedRelationIds).toEqual([ghost.id]);
+    // `other`'s relation is filtered: no edge, no copy-2 node, no report.
+    expect(filtered.edges.map((e) => e.sourceId)).toEqual(['host']);
+    expect(dependencyNodesOf(filtered).map((n) => n.label)).toEqual(['a-pkg']);
+    expect(buildGraphModel(projection).droppedRelationIds).toEqual([ghost.id]);
+  });
+
+  // A revealed bundle edge inherits the hue of its claiming dependency's
+  // cluster — host-sourced copies stay neutral by the forced-neutral rule.
+  it('stamps bundle-edge references with the source cluster hue', () => {
+    const model = buildGraphModel(
+      syntheticProjection({
+        remotes: [remoteOf('host-r', true), remoteOf('zzz-remote')],
+        copies: [
+          copyOf('copy-colored', {
+            sourcePackage: 'a-colored',
+            source: {
+              kind: 'shared-declaration',
+              declarationId: 'decl-1' as never,
+              participant: 'zzz-remote',
+            },
+            sourceDisposition: 'share-registration',
+            bundleClaimIds: ['claim-z'] as BundleClaimId[],
+          }),
+          copyOf('copy-host', {
+            sourcePackage: 'b-host',
+            source: {
+              kind: 'shared-declaration',
+              declarationId: 'decl-2' as never,
+              participant: 'host-r',
+            },
+            sourceDisposition: 'share-registration',
+            bundleClaimIds: ['claim-h'] as BundleClaimId[],
+          }),
+        ],
+        bundleClaims: [
+          bundleClaimOf('claim-z', 'copy-colored', 'mapped-source', 'zzz-remote', 'bundle-z', [
+            'group-z',
+          ]),
+          bundleClaimOf('claim-h', 'copy-host', 'mapped-source', 'host-r', 'bundle-h', ['group-h']),
+        ],
+        chunkGroups: [
+          chunkGroupOf('group-z', 'zzz-remote', 'bundle-z', ['z.js']),
+          chunkGroupOf('group-h', 'host-r', 'bundle-h', ['h.js']),
+        ],
+      }),
+      { participantColors: new Map([['zzz-remote', 3]]) },
+    );
+
+    const byDependency = new Map(model.bundleEdgeRefs.map((r) => [r.dependencyKey, r.colorIndex]));
+    expect(byDependency.get('dependency:copy-colored')).toBe(3);
+    expect(byDependency.get('dependency:copy-host')).toBeNull();
+  });
+});
+
+describe('graphAdjacencyOf', () => {
+  // T3-AC-01 (model level): adjacency is undirected over ALL edges — a
+  // dependency neighbors its consuming remotes AND its claimed chunks; a
+  // remote without relations has no entry and traces alone.
+  it('derives undirected adjacency from consume edges and bundle references', () => {
+    const model = modelOf('clean-skip');
+    const adjacency = graphAdjacencyOf(model);
+    const [dependency] = dependencyNodesOf(model);
+    const [chunk] = chunkNodesOf(model);
+
+    expect(adjacency.get(dependency.key)).toEqual(
+      new Set(['remote:mfe1', 'remote:mfe2', chunk.key]),
+    );
+    expect(adjacency.get(chunk.key)).toEqual(new Set([dependency.key]));
+    expect(adjacency.get('remote:mfe1')).toEqual(new Set([dependency.key]));
+    // The host consumes nothing in clean-skip — no adjacency entry.
+    expect(adjacency.get('remote:__NF-HOST__')).toBeUndefined();
   });
 });

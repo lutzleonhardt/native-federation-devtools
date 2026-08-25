@@ -1,3 +1,21 @@
+.graph-toolbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 0 8px;
+}
+
+.graph-toolbar-line {
+  font-size: 12px;
+  color: var(--nf-color-text-muted);
+}
+
+.graph-toolbar-clear {
+  font-size: 12px;
+  padding: 1px 8px;
+}
+
 .graph-scroll {
   overflow: auto;
   flex: 1;
@@ -84,6 +102,7 @@
   fill: none;
   stroke: var(--nf-color-text-muted);
   stroke-width: 1.5;
+  transition: opacity 120ms ease;
 }
 
 .graph-edge-hit {
@@ -97,14 +116,71 @@
   stroke-dasharray: 2 4;
 }
 
+/*
+ * Hover trace — emphasis only: classes flip on existing elements, the model
+ * never changes. Consume edges not touching the hovered node fade almost
+ * out; untraced nodes dim but stay legible as context.
+ */
+.graph-edge-group.dim .graph-edge {
+  opacity: 0.07;
+}
+
+.graph-node.dim {
+  opacity: 0.2;
+}
+
+/* Revealed bundle edges of the hovered node, colored by the source cluster. */
+.graph-bundle-edge {
+  fill: none;
+  stroke: var(--nf-color-text-muted);
+  stroke-width: 1.5;
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.graph-bundle-edge.hue-1 {
+  stroke: var(--nf-participant-color-1);
+}
+.graph-bundle-edge.hue-2 {
+  stroke: var(--nf-participant-color-2);
+}
+.graph-bundle-edge.hue-3 {
+  stroke: var(--nf-participant-color-3);
+}
+.graph-bundle-edge.hue-4 {
+  stroke: var(--nf-participant-color-4);
+}
+.graph-bundle-edge.hue-5 {
+  stroke: var(--nf-participant-color-5);
+}
+.graph-bundle-edge.hue-6 {
+  stroke: var(--nf-participant-color-6);
+}
+.graph-bundle-edge.hue-7 {
+  stroke: var(--nf-participant-color-7);
+}
+.graph-bundle-edge.hue-8 {
+  stroke: var(--nf-participant-color-8);
+}
+
+.graph-node {
+  transition: opacity 120ms ease;
+}
+
 .graph-node rect {
   fill: var(--nf-color-surface);
   stroke: var(--nf-color-border);
 }
 
-.graph-node.host rect {
+.graph-node.remote {
+  cursor: pointer;
+}
+
+/* Selected consumer filter: distinct fill plus a heavier stroke. */
+.graph-node.remote.selected rect {
+  fill: color-mix(in srgb, var(--nf-color-accent) 18%, var(--nf-color-surface));
   stroke: var(--nf-color-accent);
-  stroke-width: 1.5;
+  stroke-width: 2;
 }
 
 .graph-node.isolated rect {
