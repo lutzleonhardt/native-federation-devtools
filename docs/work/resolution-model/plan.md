@@ -79,6 +79,28 @@ Decided with Lutz at Task-11 start:
   `frankenstein-live`; `pooling-anchor` joined in Task 2), not the 12
   the original block stated.
 
+## Plan amendment (2026-08-26): Task 11.5 scoped down (YAGNI)
+
+Decided with Lutz at Task-11.5 start:
+
+- **T11.5-AC-03 (focused DOM coverage) is dropped, not split off.** The
+  coverage gap it was written against no longer exists: `remotes.spec.ts`
+  (T8-AC-05) renders the co-declared `not selected` chip and the `scoped`
+  private-path anatomy (`.scoped-tag`/`.scoped-file`), `import-map.spec.ts`
+  (T9-AC-01) renders the co-declared claim/source chips, and
+  `graph.spec.ts` renders all three fixtures incl. `frankenstein-live`.
+  (Import-Map DOM touches `scoped` only in its wording sweep; that
+  fixture's Import-Map semantics are pinned at VM level, T9.)
+  Re-rendering four views for three fixtures would duplicate those
+  suites. The visual acceptance of the views is Task 12's walkthrough.
+- **The contract stays on default view states** (no selection). Detail
+  view models are reached by selection only and are pinned by the
+  per-view suites; the contract checks that the four views agree with
+  each other and with the canonical façade, not that every detail field
+  is displayed.
+- Task 11.5 therefore ships two spec files (`witness-oracle.spec.ts`,
+  `cross-view-contract.spec.ts`); the 11.6 break-point is moot.
+
 ## Task 1: Normalize canonical registry evidence
 
 ### Instructions
@@ -1349,20 +1371,20 @@ stays a placeholder and Task 11 covers the Graph view retroactively.)
   - `frankenstein-live`: 3 remotes, 22 global and 7 scoped import-map entries.
 - Prove the oracle's sensitivity: a deliberate participant-flattening mutation of an in-memory copy of `co-declared-share` (the two declarations collapsed into one) must break the oracle.
 - Run a parameterized semantic contract over every corpus-derived fixture (13 — the twelve lab scenarios plus `frankenstein-live`, the same set `fixture-drift.spec.ts` pins): every displayed ID exists canonically; the Packages, Remotes, Import Map, and Graph view models agree on IDs/counts/targets/relations; declarations do not inflate registrations/resolutions/copies; each map row appears once; each scope-context/specifier has at most one binding; unselected candidates never become selected copies.
-- Add focused DOM coverage proving the semantic fields render for `co-declared-share`, private `scoped`, and the dense live fixture. Expected values must not be generated from canonical production code or full VM snapshots.
+- ~~Add focused DOM coverage proving the semantic fields render for `co-declared-share`, private `scoped`, and the dense live fixture.~~ Dropped by the 2026-08-26 YAGNI amendment (preamble): the per-view DOM suites already cover these fixtures. Expected values in the two remaining specs must not be generated from canonical production code or full VM snapshots.
 - Probe-first stays allowed for orientation, but a plan cardinality that disagrees with the canonical façade is a finding to investigate — never a reason to adjust the oracle to production output.
-- Break-point (agreed 2026-08-26): if the task outgrows one commit, the DOM coverage (T11.5-AC-03) splits off as Task 11.6; the oracle and the contract stay together.
+- Break-point (agreed 2026-08-26): ~~if the task outgrows one commit, the DOM coverage (T11.5-AC-03) splits off as Task 11.6~~ — moot since the same-day YAGNI amendment dropped the DOM coverage; the oracle and the contract stay together.
 - Do not add a production oracle API, second resolver, new browser-test framework, or pixel/snapshot-golden system.
 
 ### Acceptance
 
 - **T11.5-AC-01** (was T11-AC-02) — The independent six-witness matrix matches the exact stated cardinalities and a deliberate participant-flattening mutation breaks `co-declared-share`. **Contributes:** XC-03.
 - **T11.5-AC-02** (was T11-AC-03) — All 13 corpus-derived fixtures satisfy the cross-view ID/count/target/relation contract, one-binding invariant, exact map-row count, and unselected-candidate rule. **Contributes:** XC-02, XC-03.
-- **T11.5-AC-03** (was T11-AC-04) — Focused DOM tests expose the contracted fields for `co-declared-share`, `scoped`, and `frankenstein-live`. **Contributes:** XC-03.
+- **T11.5-AC-03** (was T11-AC-04) — **N/A (2026-08-26 YAGNI amendment).** ~~Focused DOM tests expose the contracted fields for `co-declared-share`, `scoped`, and `frankenstein-live`.~~ Already covered at DOM level by `remotes.spec.ts` (T8-AC-05: co-declared chip + scoped private path), `import-map.spec.ts` (T9-AC-01: co-declared chips), and `graph.spec.ts` (all three fixtures); the ID kept for traceability.
 
 ### Key Locations
 
-- `projects/devtools-ui/src/app/shared/testing/` (new: `witness-oracle.spec.ts`, `cross-view-contract.spec.ts`, `semantic-fields.spec.ts`)
+- `projects/devtools-ui/src/app/shared/testing/` (new: `witness-oracle.spec.ts`, `cross-view-contract.spec.ts`)
 - `projects/devtools-bridge/src/lib/fixtures/index.ts` (the fixture set — read-only)
 - `captures/` and `scripts/validate-lab-corpus.mjs` (evidence citations — read-only)
 - `projects/devtools-ui/src/app/views/{packages,remotes,import-map,graph}/` (view-model builders and views — read-only consumers)
@@ -1370,7 +1392,7 @@ stays a placeholder and Task 11 covers the Graph view retroactively.)
 
 ### Key Discoveries
 
-- `co-declared-share` currently has no coverage in the six Packages/Remotes/Import-Map VM and DOM specs, which allowed the flattening bug to remain green.
+- ~~`co-declared-share` currently has no coverage in the six Packages/Remotes/Import-Map VM and DOM specs, which allowed the flattening bug to remain green.~~ Stale by Task-11.5 start: the VM and DOM suites of all four views pin `co-declared-share` since Tasks 8/9 and the graph scope. What they pin is probe-first resolver output; the oracle's value is its independence, not a coverage gap.
 - The existing suites pin probe-first output — regression pins, not independent checks; a wrong-from-the-start interpretation stays green under them. The oracle's values are read from the captures instead.
 - The fixture set is the drift guard's `derivedIds` (non-`synthetic-`, non-`exported-`) — reuse that definition so the contract and the drift chain never disagree on membership.
 
