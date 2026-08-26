@@ -56,6 +56,10 @@ One captured `SnapshotV1` becomes one `FederationModel`: a probe observes
 what the page really declared, ingest orders it into canonical evidence,
 pure derivations compute which package lands where for which consumer — and
 why — and one raw-free projection publishes the result to the views.
+Views consume that model through canonical types and the Store façade
+only, and their wording claims resolution, never delivery or cost — both
+enforced by `guards/view-model-boundary.spec.ts` and
+`guards/resolution-vocabulary.spec.ts`.
 
 The maintained model documentation — the big picture plus five class-diagram
 views (registry evidence, effective resolution, declaration claims, resolved
@@ -92,8 +96,9 @@ Angular/React host.
 | `extension/` | MV3 manifest and DevTools page |
 | `projects/` | collector, bridge, and UI libraries |
 | `captures/` | raw runtime captures and the corpus manifest |
-| `guards/` | invariant tests, including the privacy scan |
+| `guards/` | invariant tests: privacy scan, bridge/kit/view-model boundaries, resolution vocabulary |
 | `docs/` | specs and validation reports |
+| `docs/tech-debt-backlog.md` | CodeScene change-gate ledger (`/cs`): deferred, pre-existing findings grazed by a task |
 | `scripts/` | capture, fixture derivation, and build tooling |
 
 Captures are lab data of this project's own scenario runner and its own

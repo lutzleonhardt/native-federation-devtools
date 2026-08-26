@@ -54,6 +54,31 @@ Decided with Lutz for the online conference demo on 2026-08-25 18:00:
   is also the design input of the graph-view spec; the adopt/reject
   verdict lives there.
 
+## Plan amendment (2026-08-26): Task 11 split
+
+Decided with Lutz at Task-11 start:
+
+- **Task 11 keeps the cutover proper** — legacy deletion, the shell's
+  generation-badge source, the architecture + vocabulary guards, and the
+  full check chain: T11-AC-01, T11-AC-05, T11-AC-06.
+- **The independent semantic checks move to the new Task 11.5** — the
+  six-witness oracle with its flattening mutation, the parameterized
+  cross-view contract, and the focused DOM coverage — as
+  T11.5-AC-01..03 (formerly T11-AC-02..04; the Task-11 numbering keeps
+  its gaps for traceability). Task 11.5 is spec files only over the
+  EXISTING fixtures: no new captures, fixtures, or production code.
+- Sizing rationale: the original block bundled two independently
+  reviewable commits ("remove the old door and lock the new one" vs.
+  "recount independently"); the split follows the 7.5/8.5 precedent.
+  Break-point: the DOM coverage splits off as Task 11.6 if 11.5
+  outgrows one commit — the oracle and the contract stay together.
+- Order: Task 11 → Task 11.5 → Task 12 → Task 10. The Task-11
+  "Dependency: Task 10" line was already superseded by the 2026-08-23
+  amendment; the block now says so.
+- The corpus-derived fixture count is 13 (twelve lab scenarios plus
+  `frankenstein-live`; `pooling-anchor` joined in Task 2), not the 12
+  the original block stated.
+
 ## Task 1: Normalize canonical registry evidence
 
 ### Instructions
@@ -1269,39 +1294,33 @@ global`; scoped/strict-scope rows carry none (no global entry);
 
 ## Task 11: Enforce the single-truth cutover
 
-**Dependency:** Task 10.
+**Dependency:** Task 9.5 and the merged graph-view scope. (The original
+"Task 10" dependency is superseded by the 2026-08-23 amendment: Diagnostics
+stays a placeholder and Task 11 covers the Graph view retroactively.)
 
 ### Instructions
 
-- Remove the remaining temporary `SharedParticipantRow`/`sharedRows` compatibility projection and obsolete winner, arrow, provider, conflict, count, and participant-based chunk derivations after all four views use the canonical Store façade. This final deletion should be mechanical because each view task removes its own legacy dependencies.
-- Add a compact hand-authored witness oracle whose expected values are independent of production resolver/builders and cite the validated evidence:
-  - `co-declared-share`: 1 registration, 2 declarations, 2 consumer-scope resolutions, 1 target, 1 copy, 1 exact selected source;
-  - `clean-skip`: 2 registrations, 2 declared tags, 1 copy;
-  - `strict-split`: 3 registrations, 2 declared tags, 2 copies;
-  - `strict-scope`: named scope independent, empty `__GLOBAL__` creates no package;
-  - `scoped`: 2 private registration → resolution → copy paths;
-  - `frankenstein-live`: 3 remotes, 22 global and 7 scoped import-map entries.
-- Run a parameterized semantic contract over every corpus-derived fixture (currently 12): every displayed ID exists canonically; views agree on IDs/counts/targets/relations; declarations do not inflate registrations/resolutions/copies; each map row appears once; each scope-context/specifier has at most one binding; unselected candidates never become selected copies.
-- Add focused DOM coverage proving the semantic fields render for `co-declared-share`, private `scoped`, and the dense live fixture. Expected values must not be generated from canonical production code or full VM snapshots.
+- Remove the remaining temporary `SharedParticipantRow`/`sharedRows` compatibility projection and obsolete winner, arrow, provider, conflict, count, and participant-based chunk derivations after all four views use the canonical Store façade. This final deletion should be mechanical because each view task removes its own legacy dependencies. Source-verified inventory (2026-08-26): `shared/store/derivations.ts` (+ spec), `derived-model.ts`, `resolution/shared-rows-compat.ts` (+ its barrel export), `FederationStore.derived`, `FederationModel.sharedRows`/`SharedParticipantRow`/`EffectiveResolution`, and the consumer-less legacy `FederationModel.chunkGroups`/`scopedPackages` the ingest builds via `allFilesMapped`. The shell's `capture-status-strip` reads the generation badge from `model.provenance.generation` instead of `store.derived()`; the store docblock describes the surviving layers.
 - Add an architecture guard with a seeded failing case. View models may consume only canonical types/the Store façade and must not import `SnapshotV1`, raw repositories, ingest, resolution algorithms, `SharedParticipantRow`, or `sharedRows`. Guard the affected resolution UI against forbidden delivery/cost vocabulary.
 - Keep the existing capture validator and fixture-drift chain green. Run the full UI, bridge, collector, guard, extension-build, and panel-bundle checks.
 - Do not add a production oracle API, second resolver, new browser-test framework, or pixel/snapshot-golden system.
+- The independent witness oracle, the parameterized cross-view semantic contract, and the focused DOM coverage are Task 11.5 (amendment 2026-08-26).
 
 ### Acceptance
 
 - **T11-AC-01** — Repository and architecture-guard searches find no `SharedParticipantRow`, `sharedRows`, or old participant-based resolution semantics in production consumers; a seeded forbidden import makes the guard fail. **Contributes:** XC-01.
-- **T11-AC-02** — The independent six-witness matrix matches the exact stated cardinalities and a deliberate participant-flattening mutation breaks `co-declared-share`. **Contributes:** XC-03.
-- **T11-AC-03** — All 12 corpus-derived fixtures satisfy the cross-view ID/count/target/relation contract, one-binding invariant, exact map-row count, and unselected-candidate rule. **Contributes:** XC-02, XC-03.
-- **T11-AC-04** — Focused DOM tests expose the contracted fields for `co-declared-share`, `scoped`, and `frankenstein-live`. **Contributes:** XC-03.
 - **T11-AC-05** — Forbidden delivery/cost terms are absent from the affected resolution UI and a seeded wording violation makes the guard fail. **Contributes:** XC-06.
 - **T11-AC-06** — Corpus validation, fixture drift, full `npm test`, `npm run build:extension`, and `npm run check:panel-bundle` pass; the raw-free projection boundary remains intact. **Contributes:** XC-04, XC-05.
+
+(T11-AC-02, T11-AC-03, and T11-AC-04 moved to Task 11.5 as T11.5-AC-01..03; the numbering above keeps its gaps for traceability.)
 
 ### Key Locations
 
 - `projects/devtools-ui/src/app/shared/store/federation-model.ts`
-- `projects/devtools-ui/src/app/shared/store/derivations.ts`
-- `projects/devtools-ui/src/app/shared/testing/` or a focused new fixture-contract location
-- Existing Packages, Remotes, Import Map, and Diagnostics VM/DOM specs
+- `projects/devtools-ui/src/app/shared/store/federation-store.ts`
+- `projects/devtools-ui/src/app/shared/store/ingest.ts` (+ spec)
+- `projects/devtools-ui/src/app/shared/store/derivations.ts`, `derived-model.ts`, `resolution/shared-rows-compat.ts`, `resolution/index.ts`
+- `projects/devtools-ui/src/app/shell/capture-status-strip.ts` (+ `capture-status.spec.ts`, `federation-store.spec.ts`)
 - `guards/` and `vitest.guards.config.mts`
 - `scripts/validate-lab-corpus.mjs`
 - `scripts/derive-fixtures.mjs`
@@ -1310,9 +1329,50 @@ global`; scoped/strict-scope rows carry none (no global entry);
 
 ### Key Discoveries
 
-- Capture validation and fixture drift already prove raw reproduction, but not Store interpretation or rendered view consistency.
+- Capture validation and fixture drift already prove raw reproduction, but not Store interpretation or rendered view consistency — the interpretation half is Task 11.5.
+- No production view/shell file imports raw or algorithm surfaces today, and every import from the `resolution` barrel is type-only: the guard locks in a state that already holds and protects the deferred Task 10 (Diagnostics) from reopening a second truth.
+- Together with Task 11.5 this is the spec-required test-focused exception: the durable outcome is an enforceable architecture boundary plus an independent semantic oracle, not generic after-the-fact stabilization.
+
+## Task 11.5: Independent semantic oracle and cross-view contract
+
+**Dependency:** Task 11.
+
+### Instructions
+
+- Spec files only, over the EXISTING corpus-derived fixtures: no new captures, no new fixture modules, no production code. Location: `projects/devtools-ui/src/app/shared/testing/` (new), running under `ng test devtools-ui`.
+- Add a compact hand-authored witness oracle whose expected values are independent of production resolver/builders — written by hand from the validated evidence and citing it (capture path + `validate-lab-corpus.mjs` predicate) next to each expectation:
+  - `co-declared-share`: 1 registration, 2 declarations, 2 consumer-scope resolutions, 1 target, 1 copy, 1 exact selected source;
+  - `clean-skip`: 2 registrations, 2 declared tags, 1 copy;
+  - `strict-split`: 3 registrations, 2 declared tags, 2 copies;
+  - `strict-scope`: named scope independent, empty `__GLOBAL__` creates no package;
+  - `scoped`: 2 private registration → resolution → copy paths;
+  - `frankenstein-live`: 3 remotes, 22 global and 7 scoped import-map entries.
+- Prove the oracle's sensitivity: a deliberate participant-flattening mutation of an in-memory copy of `co-declared-share` (the two declarations collapsed into one) must break the oracle.
+- Run a parameterized semantic contract over every corpus-derived fixture (13 — the twelve lab scenarios plus `frankenstein-live`, the same set `fixture-drift.spec.ts` pins): every displayed ID exists canonically; the Packages, Remotes, Import Map, and Graph view models agree on IDs/counts/targets/relations; declarations do not inflate registrations/resolutions/copies; each map row appears once; each scope-context/specifier has at most one binding; unselected candidates never become selected copies.
+- Add focused DOM coverage proving the semantic fields render for `co-declared-share`, private `scoped`, and the dense live fixture. Expected values must not be generated from canonical production code or full VM snapshots.
+- Probe-first stays allowed for orientation, but a plan cardinality that disagrees with the canonical façade is a finding to investigate — never a reason to adjust the oracle to production output.
+- Break-point (agreed 2026-08-26): if the task outgrows one commit, the DOM coverage (T11.5-AC-03) splits off as Task 11.6; the oracle and the contract stay together.
+- Do not add a production oracle API, second resolver, new browser-test framework, or pixel/snapshot-golden system.
+
+### Acceptance
+
+- **T11.5-AC-01** (was T11-AC-02) — The independent six-witness matrix matches the exact stated cardinalities and a deliberate participant-flattening mutation breaks `co-declared-share`. **Contributes:** XC-03.
+- **T11.5-AC-02** (was T11-AC-03) — All 13 corpus-derived fixtures satisfy the cross-view ID/count/target/relation contract, one-binding invariant, exact map-row count, and unselected-candidate rule. **Contributes:** XC-02, XC-03.
+- **T11.5-AC-03** (was T11-AC-04) — Focused DOM tests expose the contracted fields for `co-declared-share`, `scoped`, and `frankenstein-live`. **Contributes:** XC-03.
+
+### Key Locations
+
+- `projects/devtools-ui/src/app/shared/testing/` (new: `witness-oracle.spec.ts`, `cross-view-contract.spec.ts`, `semantic-fields.spec.ts`)
+- `projects/devtools-bridge/src/lib/fixtures/index.ts` (the fixture set — read-only)
+- `captures/` and `scripts/validate-lab-corpus.mjs` (evidence citations — read-only)
+- `projects/devtools-ui/src/app/views/{packages,remotes,import-map,graph}/` (view-model builders and views — read-only consumers)
+- `projects/devtools-ui/src/app/shared/store/resolution/index.ts` (canonical types — read-only)
+
+### Key Discoveries
+
 - `co-declared-share` currently has no coverage in the six Packages/Remotes/Import-Map VM and DOM specs, which allowed the flattening bug to remain green.
-- This task is the spec-required test-focused exception: the durable outcome is an independent semantic oracle plus an enforceable architecture boundary, not generic after-the-fact stabilization.
+- The existing suites pin probe-first output — regression pins, not independent checks; a wrong-from-the-start interpretation stays green under them. The oracle's values are read from the captures instead.
+- The fixture set is the drift guard's `derivedIds` (non-`synthetic-`, non-`exported-`) — reuse that definition so the contract and the drift chain never disagree on membership.
 
 ## Task 12: Record fixture UX acceptance
 

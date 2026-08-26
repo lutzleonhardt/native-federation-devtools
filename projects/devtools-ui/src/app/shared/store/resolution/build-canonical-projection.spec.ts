@@ -173,7 +173,7 @@ function project(snapshot: SnapshotV1): CanonicalResolutionProjection {
 }
 
 describe('buildCanonicalProjection — raw-free surface (T6-AC-04)', () => {
-  it('pins the projection shape: no raw snapshot, cache, or sharedRows surface', () => {
+  it('pins the projection shape: no raw snapshot, cache, or legacy row surface', () => {
     const projection = project(FIXTURES['pooling-anchor']);
 
     expect(Object.keys(projection).sort()).toEqual([
@@ -498,7 +498,6 @@ describe('resolution layer surface (T6-AC-06)', () => {
       'deriveResolutionClaims',
       'materializeResolvedCopies',
       'normalizeRegistryEvidence',
-      'projectSharedRows',
       'resolveEffectiveConsumerBindings',
     ]);
   });

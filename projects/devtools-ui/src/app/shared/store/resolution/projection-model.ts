@@ -85,9 +85,9 @@ export interface ResolutionCompleteness {
 }
 
 /**
- * The raw-free canonical resolution projection — the one surface migrated
- * views and any future graph read. It never exposes `SnapshotV1`, the raw
- * repositories, or the compatibility `sharedRows`; resolution IDs resolve
+ * The raw-free canonical resolution projection — the one surface the views
+ * and the graph read. It never exposes `SnapshotV1`, the raw repositories,
+ * or any legacy row surface; resolution IDs resolve
  * against the canonical `effectiveConsumerResolutions` collection. Nothing
  * in it proves requests, downloads, cache hits, or execution.
  */

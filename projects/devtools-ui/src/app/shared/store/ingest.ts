@@ -1,22 +1,24 @@
 /**
  * `ingestSnapshot` — one ingest of a `SnapshotV1` produces the
- * `FederationModel` every V2 view projects.
+ * `FederationModel` every view projects.
  *
- * Ingest rules (corpus-derived, see the V2 plan/spec):
- * - Chunk reclassification reads the UNION of both sources: scoped
- *   externals named `@nf-internal/...` (v4.5 non-dense) and the
- *   `shared-chunks` bundle lists (v4/dense). Reclassified entries
- *   become chunk groups of their owning remote and never count as
- *   packages; true scoped packages stay scoped externals.
- * - Version rows sort (semver tag desc, action) in the store — the
- *   registry's semver order is reliable, its same-tag tie order is not.
+ * Ingest rules (corpus-derived, see the plan/spec):
+ * - The registry is read ONCE, into canonical evidence
+ *   (`normalizeRegistryEvidence`): shared externals, version
+ *   registrations, participant declarations, private registrations
+ *   (true scoped packages), and entrypoint candidates — registrations
+ *   keep their raw order, views sort. Chunk groups come from the
+ *   canonical `deriveChunkGroups` over the UNION of both sources:
+ *   scoped externals named `@nf-internal/...` (v4.5 non-dense) and the
+ *   `shared-chunks` bundle lists (v4/dense); chunk groups never count
+ *   as packages.
  * - An absent repository key equals `{}` (the mapper already projects
  *   lazily-absent keys to empty containers; `runtime: null` means the
  *   whole channel was missing — the one zero-entry accessor lives here).
  * - Expose joining tolerates the literal `/./` infix: live maps join
  *   naively (`<remoteName>/./<moduleName>`).
- * - Secondary-entry externals (`pkg/subpath`) stay their own externals —
- *   parent linking is a Task-7 derivation.
+ * - Secondary-entry externals (`pkg/subpath`) stay their own externals;
+ *   their spellings are entrypoint candidates of the registry evidence.
  * - Load-time-relative values (relative map targets, remote scope URLs)
  *   resolve against the recovered parse-time base
  *   (`deriveResolutionBase`), not `capture.pageUrl` — SPA navigation moves
@@ -24,13 +26,11 @@
  */
 import { NF_HOST, type SnapshotV1 } from 'devtools-bridge';
 import type {
-  ChunkGroup,
   EffectiveMap,
   ExposeJoin,
   FederationModel,
   ImportMapEntryRow,
   RemoteEntity,
-  ScopedPackageRow,
 } from './federation-model';
 import {
   deriveResolutionBase,
@@ -48,12 +48,8 @@ import {
   deriveResolutionClaims,
   materializeResolvedCopies,
   normalizeRegistryEvidence,
-  projectSharedRows,
   resolveEffectiveConsumerBindings,
 } from './resolution';
-
-/** Stable specifier marker of chunk pseudo-externals in both generations. */
-const CHUNK_PSEUDO_PACKAGE_PREFIX = '@nf-internal/';
 
 export function ingestSnapshot(snapshot: SnapshotV1): FederationModel {
   const pageUrl = snapshot.capture.pageUrl;
@@ -63,14 +59,16 @@ export function ingestSnapshot(snapshot: SnapshotV1): FederationModel {
   // against the parse-time document base, not the capture URL — on an SPA
   // page `pushState` has moved `pageUrl` away from the base the loader and
   // the NF runtime already resolved against.
-  const resolutionBase = deriveResolutionBase(tags, snapshot.importMaps?.effective ?? null, pageUrl);
+  const resolutionBase = deriveResolutionBase(
+    tags,
+    snapshot.importMaps?.effective ?? null,
+    pageUrl,
+  );
   const baseUrl = resolutionBase.url;
   const effectiveMap = mergeDocumentMaps(tags, baseUrl);
-  const mapTargets = collectTargets(effectiveMap);
 
   const runtime = snapshot.runtime;
   const remotesRepo = runtime?.remotes ?? {};
-  const scopedRepo = runtime?.scopedExternals ?? {};
   const chunksRepo = runtime?.sharedChunks ?? {};
 
   const remotes: RemoteEntity[] = Object.entries(remotesRepo).map(([name, remote]) => ({
@@ -95,10 +93,6 @@ export function ingestSnapshot(snapshot: SnapshotV1): FederationModel {
     effectiveMap,
     consumerScopeUrlByRemote: scopeUrlByRemote,
   });
-  const sharedRows = projectSharedRows(registryEvidence, {
-    effectiveConsumerResolutions,
-  });
-
   const resolutionClaims = deriveResolutionClaims(registryEvidence, effectiveConsumerResolutions, {
     remoteScopeUrlByName: scopeUrlByRemote,
     hostRemote: NF_HOST,
@@ -141,50 +135,6 @@ export function ingestSnapshot(snapshot: SnapshotV1): FederationModel {
     ),
   });
 
-  const scopedPackages: ScopedPackageRow[] = [];
-  const chunkGroups: ChunkGroup[] = [];
-  for (const [scope, packages] of Object.entries(scopedRepo)) {
-    for (const [packageName, scopedPackage] of Object.entries(packages)) {
-      if (packageName.startsWith(CHUNK_PSEUDO_PACKAGE_PREFIX)) {
-        const files = Object.values(scopedPackage.entries);
-        chunkGroups.push({
-          owningRemote: scope,
-          bundleName: scopedPackage.bundle,
-          pseudoPackage: packageName,
-          origin: 'scoped-pseudo-external',
-          files,
-          mapped: allFilesMapped(files, scope, scopeUrlByRemote, baseUrl, mapTargets),
-        });
-      } else {
-        scopedPackages.push({
-          scope,
-          packageName,
-          tag: scopedPackage.tag,
-          bundle: scopedPackage.bundle,
-          entries: scopedPackage.entries,
-        });
-      }
-    }
-  }
-  for (const [remoteName, bundles] of Object.entries(chunksRepo)) {
-    for (const [bundleName, files] of Object.entries(bundles)) {
-      // The registry writes structural zero-entry bundle lists
-      // ('mapping-or-exposed' is empty in every capture — nothing may
-      // depend on its contents); zero files contribute zero chunks.
-      if (files.length === 0) {
-        continue;
-      }
-      chunkGroups.push({
-        owningRemote: remoteName,
-        bundleName,
-        pseudoPackage: null,
-        origin: 'shared-chunks',
-        files,
-        mapped: allFilesMapped(files, remoteName, scopeUrlByRemote, baseUrl, mapTargets),
-      });
-    }
-  }
-
   const importMapEntries: ImportMapEntryRow[] = [];
   for (const [specifier, target] of Object.entries(effectiveMap.imports)) {
     importMapEntries.push({
@@ -219,10 +169,7 @@ export function ingestSnapshot(snapshot: SnapshotV1): FederationModel {
     registryEvidence,
     effectiveConsumerResolutions,
     resolutionProjection,
-    sharedRows,
-    scopedPackages,
     remotes,
-    chunkGroups,
     importMapEntries,
   };
 }
@@ -251,27 +198,6 @@ function joinExpose(
 
 function collapseDotInfix(specifier: string): string {
   return specifier.replace(/\/\.\//g, '/');
-}
-
-function allFilesMapped(
-  files: string[],
-  owningRemote: string,
-  scopeUrlByRemote: Map<string, string>,
-  resolutionBaseUrl: string,
-  mapTargets: Set<string>,
-): boolean {
-  const base = scopeUrlByRemote.get(owningRemote) ?? resolutionBaseUrl;
-  return files.every((file) => mapTargets.has(resolveUrl(file, base)));
-}
-
-function collectTargets(effectiveMap: EffectiveMap): Set<string> {
-  const targets = new Set(Object.values(effectiveMap.imports));
-  for (const scopeImports of Object.values(effectiveMap.scopes)) {
-    for (const target of Object.values(scopeImports)) {
-      targets.add(target);
-    }
-  }
-  return targets;
 }
 
 function hasOwn(record: Record<string, unknown>, key: string): boolean {

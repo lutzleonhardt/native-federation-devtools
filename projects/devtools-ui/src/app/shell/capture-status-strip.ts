@@ -25,10 +25,9 @@ export class CaptureStatusStrip {
       return { status: state.status };
     }
     const model = this.store.model();
-    const derived = this.store.derived();
-    // model/derived are non-null whenever a snapshot is captured; the
-    // fallback only satisfies the type system.
-    if (model === null || derived === null) {
+    // The model is non-null whenever a snapshot is captured; the fallback
+    // only satisfies the type system.
+    if (model === null) {
       return { status: 'capturing' };
     }
     return {
@@ -36,7 +35,8 @@ export class CaptureStatusStrip {
       channels: model.channels,
       mapMode: model.mapMode,
       effectiveMap: model.effectiveMap,
-      generation: derived.generationBadge.generation,
+      // The generation badge is mapper-recorded provenance, surfaced verbatim.
+      generation: model.provenance.generation,
     };
   });
 

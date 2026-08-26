@@ -1,11 +1,10 @@
 import { ChannelsV1, FIXTURES, FixtureId } from 'devtools-bridge';
 
-import { deriveFederation } from '../shared/store/derivations';
 import { EffectiveMap, MapMode } from '../shared/store/federation-model';
 import { ingestSnapshot } from '../shared/store/ingest';
 import { CaptureStatusSource, buildCaptureStatus } from './capture-status';
 
-/** Captured source built through the real ingest → derive chain. */
+/** Captured source built through the real ingest. */
 function capturedSource(fixtureId: FixtureId): CaptureStatusSource {
   const model = ingestSnapshot(FIXTURES[fixtureId]);
   return {
@@ -13,7 +12,7 @@ function capturedSource(fixtureId: FixtureId): CaptureStatusSource {
     channels: model.channels,
     mapMode: model.mapMode,
     effectiveMap: model.effectiveMap,
-    generation: deriveFederation(model).generationBadge.generation,
+    generation: model.provenance.generation,
   };
 }
 
@@ -164,8 +163,7 @@ describe('buildCaptureStatus', () => {
     // joined verbatim in the tooltip).
     expect(emptyPage).toEqual({
       noFederation: {
-        tooltip:
-          'window.__NATIVE_FEDERATION__ is not defined; no import-map script tags observed',
+        tooltip: 'window.__NATIVE_FEDERATION__ is not defined; no import-map script tags observed',
       },
       entries: [],
       generation: null,

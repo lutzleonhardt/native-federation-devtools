@@ -32,12 +32,11 @@ function setup() {
 }
 
 describe('FederationStore', () => {
-  // T8-AC-02: model/derived are null while capturing.
-  it('starts capturing with null model and derived', () => {
+  // T8-AC-02: the model is null while capturing.
+  it('starts capturing with a null model', () => {
     const { store } = setup();
     expect(store.state().status).toBe('capturing');
     expect(store.model()).toBeNull();
-    expect(store.derived()).toBeNull();
   });
 
   // T8-AC-02: the capture-sequence guard — an older in-flight capture
@@ -72,30 +71,28 @@ describe('FederationStore', () => {
     expect(store.state().status).toBe('captured');
   });
 
-  // T8-AC-02: memoized computeds — repeated reads return the same object,
+  // T8-AC-02: memoized computed — repeated reads return the same object,
   // a new capture produces a new one.
-  it('memoizes model and derived per captured snapshot', async () => {
+  it('memoizes the model per captured snapshot', async () => {
     const { provider, store } = setup();
     provider.pending[0].resolve(structuredClone(FIXTURES['frankenstein-live']));
     await flush();
 
     const model = store.model();
-    const derived = store.derived();
     expect(model).not.toBeNull();
     expect(store.model()).toBe(model);
-    expect(store.derived()).toBe(derived);
-    expect(derived?.generationBadge.generation).toBe('v4');
+    expect(model?.provenance.generation).toBe('v4');
 
     void store.refresh();
     expect(store.model()).toBeNull();
     provider.pending[1].resolve(structuredClone(FIXTURES['clean-skip']));
     await flush();
     expect(store.model()).not.toBe(model);
-    expect(store.derived()?.generationBadge.generation).toBe('v4.5');
+    expect(store.model()?.provenance.generation).toBe('v4.5');
   });
 
-  // T8-AC-02: on capture error model and derived are null.
-  it('nulls model and derived on capture error', async () => {
+  // T8-AC-02: on capture error the model is null.
+  it('nulls the model on capture error', async () => {
     const { provider, store } = setup();
     provider.pending[0].reject(new Error('capture failed'));
     await flush();
@@ -104,6 +101,5 @@ describe('FederationStore', () => {
     expect(state.status).toBe('error');
     expect(state.status === 'error' && state.message).toBe('capture failed');
     expect(store.model()).toBeNull();
-    expect(store.derived()).toBeNull();
   });
 });

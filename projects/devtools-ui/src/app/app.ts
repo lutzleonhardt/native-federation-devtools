@@ -23,18 +23,19 @@ export class App {
   protected readonly capturing = computed(() => this.store.state().status === 'capturing');
 
   /**
-   * Capture identity of the current snapshot. Read from the store directly,
-   * not through a view-model builder: the shell is channel-agnostic — which
-   * page was captured when is evidence even when nothing was detected.
-   * `capturedDate` is the UTC date part of the verbatim ISO stamp; the
-   * full stamp stays available as the tooltip.
+   * Capture identity of the current snapshot, read from the model's
+   * provenance (never the raw snapshot), not through a view-model builder:
+   * the shell is channel-agnostic — which page was captured when is
+   * evidence even when nothing was detected. `capturedDate` is the UTC
+   * date part of the verbatim ISO stamp; the full stamp stays available as
+   * the tooltip. The model is null exactly while capturing or on error.
    */
   protected readonly capture = computed(() => {
-    const state = this.store.state();
-    if (state.status !== 'captured') {
+    const model = this.store.model();
+    if (model === null) {
       return null;
     }
-    const { pageUrl, capturedAt } = state.snapshot.capture;
+    const { pageUrl, capturedAt } = model.provenance;
     return { pageUrl, capturedAt, capturedDate: capturedAt.slice(0, 10) };
   });
 

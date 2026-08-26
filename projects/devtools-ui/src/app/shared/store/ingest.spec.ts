@@ -2,19 +2,24 @@
  * ingestSnapshot specs — fixture-driven acceptance plus seeded cases for
  * what no capture can show (each tagged SEEDED: they prove the store
  * reads a shape, not that the runtime produces it):
- *  - T6-AC-01: clean-skip skip-row participants intact; strict-split's
- *    same tag yields distinct skip/scope rows with their own participants.
+ *  - T6-AC-01: clean-skip skip registration and its participant intact;
+ *    strict-split's same tag yields distinct skip/scope registrations with
+ *    their own participants, in raw registry order.
  *  - T6-AC-02: frankenstein-live — 20 packages, one participant each,
- *    every row joined to an integrity-covered map target.
+ *    every consumer resolution mapped to an integrity-covered target.
  *  - T6-AC-04: chunk union — scoped pseudo-externals (non-dense) and
- *    shared-chunks (frankenstein-live, host only); true scoped packages
- *    stay; chunks never count as packages.
- *  - T6-AC-05: version rows sort (semver desc, action) regardless of
- *    input order; absent and `{}` repository keys are equivalent.
+ *    shared-chunks (frankenstein-live, host only) become canonical chunk
+ *    groups; true scoped packages are private registrations; chunks never
+ *    count as packages.
+ *  - T6-AC-05: absent and `{}` repository keys are equivalent (the legacy
+ *    store-side row sort died with the Task-11 cutover — canonical
+ *    registrations retain raw order, views sort).
  *  - T6-AC-06: SEEDED mixed-generation participants and the
- *    neither-spelling row; the `/./` expose join (corpus-backed).
+ *    neither-spelling declaration; the `/./` expose join (corpus-backed).
  *  - T3-AC-02/03: consumer-scoped import-map outcomes, including missing
  *    consumer scopes and alias de-duplication.
+ * Every pin reads the canonical evidence, resolutions, and projection —
+ * the model carries no legacy participant rows.
  */
 import { FIXTURES } from 'devtools-bridge';
 import type {
@@ -78,7 +83,7 @@ function seededParticipant(
 }
 
 describe('ingestSnapshot — canonical registry evidence (T1-AC-06)', () => {
-  it('wires canonical records into the model and projects legacy shared rows one way', () => {
+  it('wires canonical records into the model', () => {
     const model = ingestSnapshot(FIXTURES['co-declared-share']);
     const evidence = model.registryEvidence;
 
@@ -88,7 +93,10 @@ describe('ingestSnapshot — canonical registry evidence (T1-AC-06)', () => {
     expect(evidence.versionRegistrations[0].participantDeclarationIds).toEqual(
       evidence.participantDeclarations.map((declaration) => declaration.id),
     );
-    expect(model.sharedRows.map((row) => row.participant)).toEqual(['mfe1', 'mfe2']);
+    expect(evidence.participantDeclarations.map((declaration) => declaration.participant)).toEqual([
+      'mfe1',
+      'mfe2',
+    ]);
   });
 });
 
@@ -186,7 +194,7 @@ describe('ingestSnapshot — effective consumer resolutions (T3-AC-02, T3-AC-03)
     });
   });
 
-  it('SEEDED: retains a top-level blocking entry and projects no legacy resolution', () => {
+  it('SEEDED: retains a top-level blocking entry', () => {
     const snapshot = seededSnapshot({
       remotes: {
         consumer: { scopeUrl: './consumer/', exposes: [], integrity: {} },
@@ -233,7 +241,6 @@ describe('ingestSnapshot — effective consumer resolutions (T3-AC-02, T3-AC-03)
         match: 'exact',
       },
     });
-    expect(model.sharedRows[0].resolution).toBeNull();
   });
 
   it('SEEDED: keeps a missing consumer scope unknown despite a top-level mapping', () => {
@@ -283,7 +290,6 @@ describe('ingestSnapshot — effective consumer resolutions (T3-AC-02, T3-AC-03)
       mapEntry: null,
       unknownReasons: ['missing-consumer-scope'],
     });
-    expect(model.sharedRows[0].resolution).toBeNull();
   });
 
   it('SEEDED: keeps shim-only evidence unknown when document-map collection is unavailable', () => {
@@ -327,7 +333,6 @@ describe('ingestSnapshot — effective consumer resolutions (T3-AC-02, T3-AC-03)
       mapEntry: null,
       unknownReasons: ['missing-map-channel'],
     });
-    expect(model.sharedRows[0].resolution).toBeNull();
   });
 
   it('uses native document maps when the captured shim effective map is empty', () => {
@@ -427,9 +432,7 @@ describe('ingestSnapshot — SPA-navigated capture (resolution base recovery)', 
 
     const host = model.remotes.find((remote) => remote.isHost)!;
     expect(host.resolvedScopeUrl).toBe('https://seeded.example/playground/');
-    expect(model.effectiveMap.imports['pkg']).toBe(
-      'https://seeded.example/playground/pkg.hash.js',
-    );
+    expect(model.effectiveMap.imports['pkg']).toBe('https://seeded.example/playground/pkg.hash.js');
 
     const projection = model.resolutionProjection;
     expect(projection.copies).toHaveLength(1);
@@ -486,64 +489,70 @@ describe('ingestSnapshot — SPA-navigated capture (resolution base recovery)', 
 });
 
 describe('ingestSnapshot — core relation (T6-AC-01)', () => {
-  it('keeps the clean-skip skip row and its participant intact', () => {
+  it('keeps the clean-skip skip registration and its participant intact', () => {
     const model = ingestSnapshot(FIXTURES['clean-skip']);
+    const { sharedExternals, versionRegistrations, participantDeclarations } =
+      model.registryEvidence;
 
-    expect(model.sharedRows).toEqual([
-      {
-        scope: '__GLOBAL__',
-        packageName: '@nf-lab/conflict-lib',
-        tag: '2.0.0',
-        action: 'share',
-        dirty: false,
-        host: false,
-        participant: 'mfe2',
-        requiredVersion: '>=1.0.0 <3.0.0',
-        strictVersion: false,
-        bundle: 'browser-shared',
-        cached: true,
-        servedFiles: [
-          { entry: '@nf-lab/conflict-lib', file: '_nf_lab_conflict_lib.jvcc6K1csg.js' },
-        ],
-        generation: 'v4.5',
-        resolution: {
-          targetUrl: 'http://localhost:4300/mfe2/_nf_lab_conflict_lib.jvcc6K1csg.js',
-          hasIntegrity: false,
-        },
-      },
-      {
-        scope: '__GLOBAL__',
-        packageName: '@nf-lab/conflict-lib',
-        tag: '1.0.0',
-        action: 'skip',
-        dirty: false,
-        host: false,
-        participant: 'mfe1',
-        requiredVersion: '>=1.0.0 <3.0.0',
-        strictVersion: false,
-        bundle: 'browser-shared',
-        cached: false,
-        servedFiles: [
-          { entry: '@nf-lab/conflict-lib', file: '_nf_lab_conflict_lib.JF7uEdSVsN.js' },
-        ],
-        generation: 'v4.5',
-        // The map serves the winning 2.0.0 copy to every scope context — the
-        // skip participant's own file has no map entry.
-        resolution: {
-          targetUrl: 'http://localhost:4300/mfe2/_nf_lab_conflict_lib.jvcc6K1csg.js',
-          hasIntegrity: false,
-        },
-      },
+    expect(sharedExternals.map((external) => [external.shareScope, external.packageName])).toEqual([
+      ['__GLOBAL__', '@nf-lab/conflict-lib'],
+    ]);
+    expect(
+      versionRegistrations.map((registration) => [
+        registration.tag,
+        registration.action,
+        registration.host,
+        registration.participantDeclarationIds.length,
+      ]),
+    ).toEqual([
+      ['2.0.0', 'share', false, 1],
+      ['1.0.0', 'skip', false, 1],
+    ]);
+    expect(
+      participantDeclarations.map((declaration) => [
+        declaration.participant,
+        declaration.requiredVersion,
+        declaration.strictVersion,
+        declaration.bundle,
+        declaration.cached,
+        declaration.generation,
+      ]),
+    ).toEqual([
+      ['mfe2', '>=1.0.0 <3.0.0', false, 'browser-shared', true, 'v4.5'],
+      ['mfe1', '>=1.0.0 <3.0.0', false, 'browser-shared', false, 'v4.5'],
+    ]);
+    // The map serves the winning 2.0.0 copy to every consumer scope context —
+    // the skip participant's own file has no map entry.
+    expect(
+      model.effectiveConsumerResolutions.map((resolution) => [
+        resolution.consumerRemotes,
+        resolution.status,
+        resolution.targetUrl,
+      ]),
+    ).toEqual([
+      [['mfe1'], 'mapped', 'http://localhost:4300/mfe2/_nf_lab_conflict_lib.jvcc6K1csg.js'],
+      [['mfe2'], 'mapped', 'http://localhost:4300/mfe2/_nf_lab_conflict_lib.jvcc6K1csg.js'],
     ]);
   });
 
-  it('splits the strict-split 1.0.0 tag into distinct skip and scope rows with their own participants', () => {
+  it('splits the strict-split 1.0.0 tag into distinct skip and scope registrations with their own participants', () => {
     const model = ingestSnapshot(FIXTURES['strict-split']);
+    const { versionRegistrations, participantDeclarations } = model.registryEvidence;
+    const declarationById = new Map(
+      participantDeclarations.map((declaration) => [declaration.id, declaration]),
+    );
 
-    expect(model.sharedRows.map((row) => [row.tag, row.action, row.participant])).toEqual([
-      ['2.0.0', 'share', '__NF-HOST__'],
-      ['1.0.0', 'scope', 'mfe3'],
-      ['1.0.0', 'skip', 'mfe1'],
+    // Raw registry order retained — canonical evidence never re-sorts.
+    expect(
+      versionRegistrations.map((registration) => [
+        registration.tag,
+        registration.action,
+        registration.participantDeclarationIds.map((id) => declarationById.get(id)?.participant),
+      ]),
+    ).toEqual([
+      ['2.0.0', 'share', ['__NF-HOST__']],
+      ['1.0.0', 'skip', ['mfe1']],
+      ['1.0.0', 'scope', ['mfe3']],
     ]);
   });
 });
@@ -551,17 +560,21 @@ describe('ingestSnapshot — core relation (T6-AC-01)', () => {
 describe('ingestSnapshot — frankenstein-live (T6-AC-02)', () => {
   const model = ingestSnapshot(FIXTURES['frankenstein-live']);
 
-  it('yields 20 packages with one participant each', () => {
-    expect(model.sharedRows).toHaveLength(20);
-    const packageNames = new Set(model.sharedRows.map((row) => row.packageName));
-    expect(packageNames.size).toBe(20);
+  it('yields 20 packages with one registration and one participant each', () => {
+    const { sharedExternals, versionRegistrations, participantDeclarations } =
+      model.registryEvidence;
+    expect(sharedExternals).toHaveLength(20);
+    expect(new Set(sharedExternals.map((external) => external.packageName)).size).toBe(20);
+    expect(versionRegistrations).toHaveLength(20);
+    expect(participantDeclarations).toHaveLength(20);
   });
 
-  it('joins every row to an integrity-covered absolute map target', () => {
-    for (const row of model.sharedRows) {
-      expect(row.resolution).not.toBeNull();
-      expect(row.resolution!.targetUrl).toMatch(/^https:\/\/lutzleonhardt\.de\//);
-      expect(row.resolution!.hasIntegrity).toBe(true);
+  it('maps every consumer resolution to an integrity-covered absolute target', () => {
+    expect(model.effectiveConsumerResolutions).toHaveLength(20);
+    for (const resolution of model.effectiveConsumerResolutions) {
+      expect(resolution.status).toBe('mapped');
+      expect(resolution.targetUrl).toMatch(/^https:\/\/lutzleonhardt\.de\//);
+      expect(resolution.status === 'mapped' && resolution.hasIntegrity).toBe(true);
     }
   });
 
@@ -573,60 +586,75 @@ describe('ingestSnapshot — frankenstein-live (T6-AC-02)', () => {
 });
 
 describe('ingestSnapshot — chunk union (T6-AC-04)', () => {
-  it('reclassifies non-dense @nf-internal scoped externals into mapped chunk groups', () => {
+  it('reclassifies non-dense @nf-internal scoped externals into chunk groups', () => {
     const model = ingestSnapshot(FIXTURES['non-dense']);
+    const groups = model.resolutionProjection.chunkGroups;
 
-    expect(model.chunkGroups).toHaveLength(7);
-    for (const group of model.chunkGroups) {
+    expect(groups).toHaveLength(7);
+    for (const group of groups) {
       expect(group.origin).toBe('scoped-pseudo-external');
-      expect(group.owningRemote).toBe('mfe3');
+      expect(group.emitterRemote).toBe('mfe3');
       expect(group.pseudoPackage).toMatch(/^@nf-internal\//);
       expect(group.bundleName).toBeNull();
       expect(group.files).toHaveLength(1);
-      expect(group.mapped).toBe(true);
     }
-    // Chunks never count as packages — in either package entity.
-    expect(model.scopedPackages).toEqual([]);
-    expect(model.sharedRows.some((row) => row.packageName.startsWith('@nf-internal/'))).toBe(false);
-    expect(new Set(model.sharedRows.map((row) => row.packageName)).size).toBe(14);
+    // The registry records the pseudo-externals as private registrations
+    // (raw evidence is retained, never dropped); they never become shared
+    // externals — the views keep them out of the package surfaces via the
+    // chunk groups.
+    const { sharedExternals, privateRegistrations } = model.registryEvidence;
+    expect(privateRegistrations).toHaveLength(7);
+    for (const registration of privateRegistrations) {
+      expect(registration.packageName).toMatch(/^@nf-internal\//);
+    }
+    const isChunkPseudoPackage = (packageName: string) => packageName.startsWith('@nf-internal/');
+    expect(sharedExternals.some((external) => isChunkPseudoPackage(external.packageName))).toBe(
+      false,
+    );
+    expect(new Set(sharedExternals.map((external) => external.packageName)).size).toBe(14);
+    // Every pseudo-external became a canonical chunk group of its emitter.
+    expect(groups.map((group) => group.pseudoPackage).sort()).toEqual(
+      privateRegistrations.map((registration) => registration.packageName).sort(),
+    );
   });
 
   it('collects frankenstein-live chunks from shared-chunks bundle lists (host only)', () => {
     const model = ingestSnapshot(FIXTURES['frankenstein-live']);
+    const groups = model.resolutionProjection.chunkGroups;
 
     expect(
-      model.chunkGroups.map((group) => [
-        group.owningRemote,
-        group.bundleName,
-        group.files.length,
-        group.origin,
-        group.mapped,
-      ]),
+      groups
+        .map((group) => [group.emitterRemote, group.bundleName, group.files.length, group.origin])
+        .sort((a, b) => String(a[1]).localeCompare(String(b[1]))),
     ).toEqual([
-      ['__NF-HOST__', 'browser-angular_common', 1, 'shared-chunks', true],
-      ['__NF-HOST__', 'browser-rxjs', 1, 'shared-chunks', true],
-      ['__NF-HOST__', 'browser-angular_core', 5, 'shared-chunks', true],
+      ['__NF-HOST__', 'browser-angular_common', 1, 'shared-chunks'],
+      ['__NF-HOST__', 'browser-angular_core', 5, 'shared-chunks'],
+      ['__NF-HOST__', 'browser-rxjs', 1, 'shared-chunks'],
     ]);
     // The structural zero-entry 'mapping-or-exposed' list contributes no group.
-    expect(model.chunkGroups.some((group) => group.bundleName === 'mapping-or-exposed')).toBe(
-      false,
-    );
+    expect(groups.some((group) => group.bundleName === 'mapping-or-exposed')).toBe(false);
   });
 
-  it('keeps true scoped packages as scoped externals', () => {
+  it('keeps true scoped packages as private registrations', () => {
     const model = ingestSnapshot(FIXTURES['scoped']);
 
-    expect(model.chunkGroups).toEqual([]);
-    expect(model.sharedRows).toEqual([]);
-    expect(model.scopedPackages.map((row) => [row.scope, row.packageName, row.tag])).toEqual([
+    expect(model.resolutionProjection.chunkGroups).toEqual([]);
+    expect(model.registryEvidence.sharedExternals).toEqual([]);
+    expect(
+      model.registryEvidence.privateRegistrations.map((registration) => [
+        registration.ownerRemote,
+        registration.packageName,
+        registration.tag,
+      ]),
+    ).toEqual([
       ['mfe1', '@nf-lab/conflict-lib', '1.0.0'],
       ['mfe2', '@nf-lab/conflict-lib', '2.0.0'],
     ]);
   });
 });
 
-describe('ingestSnapshot — ordering and lazy repositories (T6-AC-05)', () => {
-  it('SEEDED: sorts version rows (semver desc, action) regardless of input order', () => {
+describe('ingestSnapshot — lazy repositories (T6-AC-05)', () => {
+  it('SEEDED: retains raw registration order — the canonical evidence never re-sorts', () => {
     const snapshot = seededSnapshot({
       sharedExternals: {
         __GLOBAL__: {
@@ -649,29 +677,37 @@ describe('ingestSnapshot — ordering and lazy repositories (T6-AC-05)', () => {
       },
     });
 
-    expect(ingestSnapshot(snapshot).sharedRows.map((row) => [row.tag, row.action])).toEqual([
-      ['10.0.0', 'share'],
-      ['2.0.0', 'share'],
-      ['2.0.0', 'skip'],
-      ['2.0.0-rc.1', 'share'],
+    expect(
+      ingestSnapshot(snapshot).registryEvidence.versionRegistrations.map((registration) => [
+        registration.tag,
+        registration.action,
+      ]),
+    ).toEqual([
       ['1.0.0', 'share'],
+      ['10.0.0', 'share'],
+      ['2.0.0-rc.1', 'share'],
+      ['2.0.0', 'skip'],
+      ['2.0.0', 'share'],
     ]);
   });
 
   it('treats the absent and the empty repository key alike', () => {
     // scoped: shared-externals ABSENT in the capture; frankenstein-live:
-    // scoped-externals present as {} — both ingest to zero rows.
-    expect(ingestSnapshot(FIXTURES['scoped']).sharedRows).toEqual([]);
-    expect(ingestSnapshot(FIXTURES['frankenstein-live']).scopedPackages).toEqual([]);
+    // scoped-externals present as {} — both ingest to zero records.
+    expect(ingestSnapshot(FIXTURES['scoped']).registryEvidence.sharedExternals).toEqual([]);
+    expect(
+      ingestSnapshot(FIXTURES['frankenstein-live']).registryEvidence.privateRegistrations,
+    ).toEqual([]);
   });
 
   it('ingests a runtime-less snapshot to empty entities with unknown generation', () => {
     const model = ingestSnapshot(FIXTURES['synthetic-missing-channel']);
 
-    expect(model.sharedRows).toEqual([]);
-    expect(model.scopedPackages).toEqual([]);
+    expect(model.registryEvidence.sharedExternals).toEqual([]);
+    expect(model.registryEvidence.privateRegistrations).toEqual([]);
     expect(model.remotes).toEqual([]);
-    expect(model.chunkGroups).toEqual([]);
+    expect(model.resolutionProjection.chunkGroups).toEqual([]);
+    expect(model.resolutionProjection.copies).toEqual([]);
     expect(model.provenance.generation).toBe('unknown');
     expect(model.mapMode).toBe('native');
   });
@@ -705,14 +741,16 @@ describe('ingestSnapshot — seeded shapes and joins (T6-AC-06)', () => {
       },
     });
 
-    const rows = ingestSnapshot(snapshot).sharedRows;
-    expect(rows.map((row) => [row.participant, row.generation])).toEqual([
+    const declarations = ingestSnapshot(snapshot).registryEvidence.participantDeclarations;
+    expect(
+      declarations.map((declaration) => [declaration.participant, declaration.generation]),
+    ).toEqual([
       ['released', 'v4'],
       ['v45', 'v4.5'],
     ]);
   });
 
-  it('SEEDED: reads a row carrying neither spelling without inventing served files', () => {
+  it('SEEDED: reads a declaration carrying neither spelling without inventing entrypoints', () => {
     // The mapper never emits this shape (it drops the row with an error);
     // the store must still read it.
     const snapshot = seededSnapshot({
@@ -735,10 +773,13 @@ describe('ingestSnapshot — seeded shapes and joins (T6-AC-06)', () => {
       },
     });
 
-    const rows = ingestSnapshot(snapshot).sharedRows;
-    expect(rows).toHaveLength(1);
-    expect(rows[0].servedFiles).toEqual([]);
-    expect(rows[0].resolution).toBeNull();
+    const model = ingestSnapshot(snapshot);
+    const { participantDeclarations, entrypointCandidates } = model.registryEvidence;
+    expect(participantDeclarations).toHaveLength(1);
+    expect(participantDeclarations[0].participant).toBe('spellingless');
+    expect(participantDeclarations[0].entrypointCandidateIds).toEqual([]);
+    expect(entrypointCandidates).toEqual([]);
+    expect(model.effectiveConsumerResolutions[0].status).not.toBe('mapped');
   });
 
   it('joins an expose through the literal /./ specifier infix (corpus-backed)', () => {

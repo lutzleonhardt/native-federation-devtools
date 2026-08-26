@@ -1,8 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { SNAPSHOT_PROVIDER, SnapshotV1 } from 'devtools-bridge';
 
-import { DerivedFederation } from './derived-model';
-import { deriveFederation } from './derivations';
 import { FederationModel } from './federation-model';
 import { ingestSnapshot } from './ingest';
 
@@ -12,27 +10,25 @@ export type SnapshotState =
   | { status: 'error'; message: string };
 
 /**
- * The single V2 store — wiring for the four-layer data path. Each layer
+ * The single store — wiring for the three-layer data path. Each layer
  * answers a different question, and the boundaries are deliberate:
  *
  *   state   — what was captured: the capture lifecycle plus the raw
  *             `SnapshotV1` exactly as collected. Evidence, never
  *             interpreted; export serializes this and nothing else.
- *   model   — what is there: `FederationModel` via `ingestSnapshot` —
- *             normalized entities and joins (rows, remotes, chunk
- *             groups, merged tag map), no judgement beyond
- *             normalization.
- *   derived — what it means: `DerivedFederation` via
- *             `deriveFederation` — interpreted knowledge (providers,
- *             resolution arrows, chunk attribution, badges), every
- *             field tagged with the rule that produced it.
+ *   model   — what is there and what it means: `FederationModel` via
+ *             `ingestSnapshot` — normalized entities (remotes, merged
+ *             tag map) plus the canonical resolution pipeline: registry
+ *             evidence, consumer resolutions, and the raw-free
+ *             `resolutionProjection`, every canonical record carrying
+ *             the provenance that produced it.
  *   vm      — how it is shown: per-view pure builders (e.g.
- *             `buildCaptureStatus`) translate model/derived into
+ *             `buildCaptureStatus`) translate the model into
  *             render-ready structures; templates consume only vm
  *             types, never store types.
  *
- * Ingest and derivations are pure modules; this service is wiring
- * only. `model`/`derived` are memoized per captured snapshot.
+ * Ingest is a pure module; this service is wiring only. `model` is
+ * memoized per captured snapshot.
  */
 @Injectable({ providedIn: 'root' })
 export class FederationStore {
@@ -47,12 +43,6 @@ export class FederationStore {
   readonly model = computed<FederationModel | null>(() => {
     const state = this.current();
     return state.status === 'captured' ? ingestSnapshot(state.snapshot) : null;
-  });
-
-  /** Derived federation knowledge; null while capturing and on capture error. */
-  readonly derived = computed<DerivedFederation | null>(() => {
-    const model = this.model();
-    return model === null ? null : deriveFederation(model);
   });
 
   constructor() {

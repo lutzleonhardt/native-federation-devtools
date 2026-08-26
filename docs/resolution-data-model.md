@@ -113,7 +113,6 @@ fourth, and the published canonical projection fifth.
 | Chunk groups           | `runtime.sharedChunks` and `@nf-internal/...` records   | `ChunkGroupProjection[]`        |
 | Bundle claims          | Resolved copies plus chunk groups                       | `BundleClaim[]`                 |
 | Canonical projection   | Every canonical layer above                             | `CanonicalResolutionProjection` |
-| Existing view contract | Registry evidence plus canonical results                | `SharedParticipantRow[]`        |
 
 ### 1. Registry evidence
 
@@ -205,7 +204,6 @@ classDiagram
     +EffectiveMap effectiveMap
     +RemoteEntity[] remotes
     +EffectiveConsumerResolution[] effectiveConsumerResolutions
-    +SharedParticipantRow[] sharedRows
   }
   class CanonicalRegistryEvidence {
     +SharedExternalRecord[] sharedExternals
@@ -245,12 +243,6 @@ classDiagram
     +string target
     +MatchKind match
   }
-  class SharedParticipantRow {
-    <<compatibility projection>>
-    +string participant
-    +string packageName
-    +EffectiveResolution? resolution
-  }
 
   FederationModel "1" *-- "1" CanonicalRegistryEvidence : registryEvidence
   FederationModel "1" *-- "0..*" EffectiveConsumerResolution : canonical results
@@ -262,9 +254,6 @@ classDiagram
   RemoteEntity --> EffectiveConsumerResolution : consumer scope context
   EffectiveMap --> EffectiveConsumerResolution : scoped exact / prefix lookup
   EffectiveConsumerResolution "1" o-- "0..1" EffectiveMapEntryProvenance : mapped or blocked
-
-  ParticipantDeclaration "1" ..> "1" SharedParticipantRow : registry context
-  EffectiveConsumerResolution "1" ..> "1..*" SharedParticipantRow : resolution projection
 ```
 
 Read the first two views from evidence to result: `normalizeRegistryEvidence`
@@ -285,8 +274,9 @@ scope can resolve differently:
   retained.
 - `unknown` means the map channel or consumer scope evidence is missing.
 
-`SharedParticipantRow` is only a one-way projection for existing views. It is
-never input to canonical resolution. A mapped result describes what the
+The model carries no compatibility row projection (the Task-11 cutover removed
+the last one); views read the canonical results and the projection directly.
+A mapped result describes what the
 captured map would bind — not the browser's complete URL fallback behavior, nor
 what it requested, downloaded, or executed. In particular, a URL-like
 specifier without a matching map entry remains `unmapped` here even though the
@@ -523,7 +513,7 @@ the complete canonical pipeline — claims, copies with attached `copyId`
 links, chunk groups, bundle claims, package measures — and publishes one
 raw-free `CanonicalResolutionProjection` on the store model
 (`buildCanonicalProjection`). The projection never exposes `SnapshotV1`, the
-raw repositories, or the compatibility `sharedRows`; its
+raw repositories, or any legacy row surface; its
 `effectiveResolutionId` references resolve against the canonical
 `effectiveConsumerResolutions` collection of view 2.
 

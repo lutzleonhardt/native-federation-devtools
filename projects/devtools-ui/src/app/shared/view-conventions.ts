@@ -41,7 +41,7 @@ import type {
   VersionRegistrationId,
 } from './store/resolution';
 
-/** The registry's strict share scope name (spec-pinned, matches derivations). */
+/** The registry's strict share scope name (spec-pinned). */
 export const STRICT_SCOPE = 'strict';
 export const GLOBAL_SCOPE = '__GLOBAL__';
 

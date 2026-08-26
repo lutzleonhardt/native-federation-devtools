@@ -4,8 +4,7 @@
  * (`ids`, `derive-registry-serving-slots`, `attribute-observed-target-providers`,
  * `compare-sources`). The exports follow the pipeline order: registry
  * evidence, consumer bindings, declaration claims, resolved copies, package
- * measures, chunk groups, bundle claims, the canonical projection, and the
- * outbound legacy-row compatibility projection.
+ * measures, chunk groups, bundle claims, and the canonical projection.
  */
 export type * from './model';
 export type * from './claims-model';
@@ -34,4 +33,3 @@ export {
   buildCanonicalProjection,
   type CanonicalProjectionInputs,
 } from './build-canonical-projection';
-export { projectSharedRows, type SharedRowsCompatibilityContext } from './shared-rows-compat';
