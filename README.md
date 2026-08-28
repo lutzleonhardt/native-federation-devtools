@@ -6,11 +6,13 @@
 
 **See what your micro frontends actually negotiated.**
 
-A read-only Chrome DevTools panel for [Native Federation](https://native-federation.com) applications.
+A read-only Chrome DevTools panel for [Native Federation](https://native-federation.com) applications running the **v4 Orchestrator**.
 
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue)
+[![Latest release](https://img.shields.io/github/v/release/native-federation/devtools?include_prereleases&label=release)](https://github.com/native-federation/devtools/releases)
 ![Chrome Web Store](https://img.shields.io/badge/Chrome_Web_Store-coming_soon-orange)
 ![Manifest V3](https://img.shields.io/badge/manifest-v3-informational)
+![Requires Orchestrator v4](https://img.shields.io/badge/requires-orchestrator_v4-important)
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/readme/hero-graph-dark.png">
@@ -79,28 +81,50 @@ selected, and every mapped file is accounted for, SRI included.
 Exposes, provided packages, and — line by line — which dependency this remote
 consumes from whom, and which own version lost the negotiation.
 
+## Requirements
+
+> **Requires the v4 Orchestrator.** The panel reads the registry that
+> [`@softarc/native-federation-orchestrator`](https://github.com/native-federation/orchestrator)
+> keeps in the page (`window.__NATIVE_FEDERATION__`). Applications on the
+> classic **v3 runtime** (`@softarc/native-federation-runtime`) do not expose
+> this registry and are **not supported** — on such pages the panel shows
+> *No Native Federation detected*.
+
 ## Install
 
 🛒 **Chrome Web Store: coming soon** — the extension will be published under
-the official Native Federation presence.
+the official Native Federation presence. Until then, install it from a GitHub
+release. No build toolchain needed — it takes about a minute.
 
-Until then, load a development build:
+### From a release
 
-```bash
-npm install
-npm run build:extension
-```
+1. Download `native-federation-devtools-<version>.zip` from the
+   [releases page](https://github.com/native-federation/devtools/releases)
+   and unzip it into a folder of its own (the zip has no top-level folder).
+   Keep that folder — Chrome loads the extension from it.
+2. Open `chrome://extensions` in Chrome — type it into the address bar.
+3. Turn on **Developer mode** (toggle in the top-right corner).
+4. Click **Load unpacked** and select the unzipped folder.
+5. Open Chrome DevTools (`F12`, or `Ctrl+Shift+I` / `⌥⌘I`) on an application
+   that runs the v4 Orchestrator. The panel appears as a new
+   **Native Federation** tab — if DevTools was already open, close and reopen
+   it once.
 
-Then in Chrome: `chrome://extensions` → enable **Developer mode** → **Load
-unpacked** → select the built extension directory. Open DevTools on any
-Native Federation application — the panel appears as a new tab.
+Unpacked extensions do not update themselves. To upgrade, unzip the new
+release into the same folder and click the ↻ reload icon on the extension's
+card in `chrome://extensions`. Automatic updates come with the Web Store.
+
+### From source
+
+Contributors can build the extension themselves — see
+[Development & Architecture](docs/DEVELOPMENT.md#install-development-build).
 
 ## Native Federation ecosystem
 
 | Project | What it is |
 | --- | --- |
 | [native-federation.com](https://native-federation.com) | Project home — docs, guides, team, resources |
-| [orchestrator](https://github.com/native-federation/orchestrator) | Runtime micro frontend orchestrator |
+| [orchestrator](https://github.com/native-federation/orchestrator) | Runtime micro frontend orchestrator (v4) — the runtime this panel reads |
 | **devtools** (this repo) | Chrome DevTools panel for inspecting running federations |
 
 ## Documentation
