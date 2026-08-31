@@ -21,6 +21,7 @@ for (const file of ['manifest.json', 'devtools.html', 'devtools.js']) {
   cpSync(join(root, 'extension', file), join(extensionOut, file));
 }
 
+cpSync(join(root, 'extension/icons'), join(extensionOut, 'icons'), { recursive: true });
 cpSync(browserOut, join(extensionOut, 'panel'), { recursive: true });
 
 execSync(`node ${JSON.stringify(join(root, 'scripts/check-panel-bundle.mjs'))}`, {
