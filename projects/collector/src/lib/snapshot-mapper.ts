@@ -28,6 +28,8 @@ import type {
   ImportMapsV1,
   RemoteV1,
   RuntimeRepositoriesV1,
+  RuntimeSourceV1,
+  RuntimeStorageV1,
   ScopedExternalsV1,
   ScopedPackageV1,
   SnapshotGenerationV1,
@@ -78,7 +80,7 @@ export function mapProbeResult(
   const limits = DEFAULT_LIMITS;
   const errors: CollectionError[] = [];
 
-  if (!isObjectLike(rawProbe) || dataValue(rawProbe, 'schemaVersion') !== 'passive-probe/3') {
+  if (!isObjectLike(rawProbe) || dataValue(rawProbe, 'schemaVersion') !== 'passive-probe/4') {
     appendError(errors, limits, 'mapper', 'probe-result-invalid');
     const reason = 'probe result unavailable';
     return {
@@ -100,7 +102,7 @@ export function mapProbeResult(
   const pageUrl = mapPageUrl(dataValue(rawProbe, 'page'), errors, limits);
   const globals = dataValue(rawProbe, 'globals');
 
-  const { nfChannel, runtime } = mapRuntime(dataValue(globals, 'nativeFederation'), errors, limits);
+  const { nfChannel, runtime, runtimeSource } = mapRuntime(globals, errors, limits);
   const { domChannel, documentMaps } = mapDocumentMaps(
     dataValue(rawProbe, 'importMaps'),
     errors,
@@ -131,6 +133,7 @@ export function mapProbeResult(
       domImportMaps: domChannel,
       importShim: shimChannel,
     },
+    ...(runtimeSource ? { runtimeSource } : {}),
     runtime,
     importMaps,
     errors,
@@ -178,14 +181,114 @@ function boundedReasonToken(value: unknown): string {
 
 // --- runtime repositories -------------------------------------------------
 
+type RuntimeResult = {
+  nfChannel: ChannelStateV1;
+  runtime: RuntimeRepositoriesV1 | null;
+  runtimeSource?: RuntimeSourceV1;
+};
+
+interface ProbeSource {
+  type: unknown;
+  namespace: string;
+  discovery: 'descriptor' | 'default';
+}
+
+interface DescriptorEntry {
+  namespace: string;
+  type: unknown;
+  version: string | null;
+}
+
+const DEFAULT_NAMESPACE = '__NATIVE_FEDERATION__';
+
+function readDescriptorEntries(orchestrator: unknown): DescriptorEntry[] {
+  const entries = dataValue(orchestrator, 'entries');
+  if (!Array.isArray(entries)) {
+    return [];
+  }
+  const output: DescriptorEntry[] = [];
+  for (const entry of entries) {
+    const namespace = dataValue(entry, 'namespace');
+    const version = dataValue(entry, 'version');
+    if (typeof namespace === 'string') {
+      output.push({
+        namespace,
+        type: dataValue(entry, 'type'),
+        version: typeof version === 'string' ? version : null,
+      });
+    }
+  }
+  return output;
+}
+
+function readProbeSource(summary: unknown): ProbeSource {
+  const source = dataValue(summary, 'source');
+  const namespace = dataValue(source, 'namespace');
+  const discovery = dataValue(source, 'discovery');
+  if (typeof namespace !== 'string' || (discovery !== 'descriptor' && discovery !== 'default')) {
+    return { type: 'globalThis', namespace: DEFAULT_NAMESPACE, discovery: 'default' };
+  }
+  return { type: dataValue(source, 'type'), namespace, discovery };
+}
+
 function mapRuntime(
-  summary: unknown,
+  globals: unknown,
   errors: CollectionError[],
   limits: CollectorLimits,
-): { nfChannel: ChannelStateV1; runtime: RuntimeRepositoriesV1 | null } {
+): RuntimeResult {
+  const summary = dataValue(globals, 'nativeFederation');
+  const source = readProbeSource(summary);
+  const entries = readDescriptorEntries(dataValue(globals, 'orchestrator'));
+  const describe = (storage: RuntimeStorageV1): RuntimeSourceV1 => ({
+    storage,
+    namespace: source.namespace,
+    discovery: source.discovery,
+    orchestratorVersion:
+      entries.find((entry) => entry.namespace === source.namespace)?.version ?? null,
+    otherNamespaces: entries
+      .map((entry) => entry.namespace)
+      .filter((namespace) => namespace !== source.namespace),
+  });
+
+  if (source.type === 'globalThis') {
+    const result = mapGlobalRuntime(summary, source.namespace, errors, limits);
+    if (result.nfChannel.state === 'available' || source.discovery === 'descriptor') {
+      result.runtimeSource = describe('globalThis');
+    }
+    return result;
+  }
+  if (source.type === 'custom') {
+    appendError(errors, limits, 'mapper', 'custom-storage-unsupported');
+    return {
+      nfChannel: {
+        state: 'unavailable',
+        reason: `custom storage adapters are not supported (namespace '${boundedReasonToken(source.namespace)}')`,
+      },
+      runtime: null,
+      runtimeSource: describe('custom'),
+    };
+  }
+  return {
+    nfChannel: {
+      state: 'not-recognized',
+      reason: `orchestrator reports unknown storage type '${boundedReasonToken(source.type)}'`,
+    },
+    runtime: null,
+  };
+}
+
+function mapGlobalRuntime(
+  summary: unknown,
+  namespace: string,
+  errors: CollectionError[],
+  limits: CollectorLimits,
+): RuntimeResult {
   if (!isObjectLike(summary) || dataValue(summary, 'present') !== true) {
     return {
-      nfChannel: { state: 'unavailable', reason: 'window.__NATIVE_FEDERATION__ is not defined' },
+      nfChannel: {
+        state: 'unavailable',
+        reason: `window.${boundedReasonToken(namespace)} is not defined`,
+      },
       runtime: null,
     };
   }
@@ -208,8 +311,19 @@ function mapRuntime(
       runtime: null,
     };
   }
+  return mapRepositories(dataValue(summary, 'repositories'), 'global', errors, limits);
+}
 
-  const repositories = dataValue(summary, 'repositories');
+/**
+ * `repositories` maps each key to `{ present, descriptor, value }`, the
+ * shape the passive probe emits and the storage mapping rebuilds.
+ */
+function mapRepositories(
+  repositories: unknown,
+  holder: string,
+  errors: CollectionError[],
+  limits: CollectorLimits,
+): RuntimeResult {
   const projected: Partial<Record<RepositoryKey, unknown>> = {};
   const unreadable: string[] = [];
   let presentKeys = 0;
@@ -246,7 +360,7 @@ function mapRuntime(
     return {
       nfChannel: {
         state: 'not-recognized',
-        reason: `global present but repositories unreadable: ${unreadable.join(', ')}`,
+        reason: `${holder} present but repositories unreadable: ${unreadable.join(', ')}`,
       },
       runtime: null,
     };
@@ -255,7 +369,7 @@ function mapRuntime(
     return {
       nfChannel: {
         state: 'not-recognized',
-        reason: 'global present but carries none of the four repository keys',
+        reason: `${holder} present but carries none of the four repository keys`,
       },
       runtime: null,
     };
