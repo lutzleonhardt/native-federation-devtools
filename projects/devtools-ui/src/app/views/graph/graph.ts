@@ -6,7 +6,8 @@ import {
   linkedSignal,
   signal,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { PARTICIPANT_COLOR_LOOKUP } from '../../shared/kit/participant-colors';
 import { FederationStore } from '../../shared/store/federation-store';
@@ -53,9 +54,38 @@ export class GraphView {
     source: this.store.model,
     computation: (): ReadonlySet<string> => new Set(),
   });
+  private readonly route = inject(ActivatedRoute);
+
   // A preference, not capture state: it names no capture value, so it survives capture replacement.
   protected readonly groupBy = signal<GroupBy>('provider');
   protected readonly groupByOptions = GROUP_BY_OPTIONS;
+  /**
+   * Pool emphasised by a `/graph?group=pool&select=<poolId>` cross-link. A
+   * plain signal so it outlives the store's first model emission; an ID the
+   * capture does not know simply matches no cluster.
+   */
+  protected readonly focusedPoolId = signal<string | null>(null);
+
+  constructor() {
+    this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
+      const group = params.get('group');
+      const option = GROUP_BY_OPTIONS.find((candidate) => candidate.value === group);
+      if (option !== undefined) {
+        this.groupBy.set(option.value);
+      }
+      this.focusedPoolId.set(params.get('select'));
+    });
+  }
+
+  /** Render keys of the focused pool's cluster; null without a (known) focus. */
+  private readonly focusedKeys = computed<ReadonlySet<string> | null>(() => {
+    const focused = this.focusedPoolId();
+    const cluster =
+      focused === null || this.groupBy() !== 'pool'
+        ? undefined
+        : this.vm()?.clusters.find((candidate) => candidate.poolId === focused);
+    return cluster === undefined ? null : new Set(cluster.nodeKeys);
+  });
 
   /** Render key of the hovered node; null without a hover. */
   protected readonly hovered = linkedSignal({
@@ -103,7 +133,15 @@ export class GraphView {
 
   protected nodeDimmed(key: string): boolean {
     const traced = this.traced();
-    return traced !== null && !traced.has(key);
+    if (traced !== null) {
+      return !traced.has(key);
+    }
+    const focused = this.focusedKeys();
+    return focused !== null && key.startsWith('dependency:') && !focused.has(key);
+  }
+
+  protected clusterFocused(poolId: string | null): boolean {
+    return poolId !== null && this.focusedKeys() !== null && poolId === this.focusedPoolId();
   }
 
   protected edgeDimmed(edge: GraphEdge): boolean {
@@ -117,6 +155,12 @@ export class GraphView {
 
   protected setGroupBy(groupBy: GroupBy): void {
     this.groupBy.set(groupBy);
+  }
+
+  protected focusLine(): string | null {
+    const focused = this.focusedPoolId();
+    const cluster = this.vm()?.clusters.find((candidate) => candidate.poolId === focused);
+    return this.focusedKeys() === null || cluster === undefined ? null : `showing ${cluster.label}`;
   }
 
   protected setHovered(key: string | null): void {
@@ -133,6 +177,7 @@ export class GraphView {
 
   protected clearSelection(): void {
     this.selectedRemotes.set(new Set());
+    this.focusedPoolId.set(null);
   }
 
   protected filterLine(count: number): string {

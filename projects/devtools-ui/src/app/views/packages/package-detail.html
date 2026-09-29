@@ -147,12 +147,18 @@
                   >{{ consumer.declared.text }}</span
                 >
                 @if (consumer.pool; as pool) {
-                  <span
-                    class="pool-chip tip"
-                    [class.pool-chip-orphan]="pool.orphan"
-                    [title]="pool.note"
-                    >pool: {{ pool.tag }}</span
-                  >
+                  @if (pool.poolSelect !== null || pool.orphan) {
+                    <a
+                      class="pool-chip tip"
+                      [class.pool-chip-orphan]="pool.orphan"
+                      [title]="pool.note"
+                      [routerLink]="['/pools']"
+                      [queryParams]="pool.poolSelect === null ? {} : { select: pool.poolSelect }"
+                      >pool: {{ pool.tag }}</a
+                    >
+                  } @else {
+                    <span class="pool-chip tip" [title]="pool.note">pool: {{ pool.tag }}</span>
+                  }
                 }
                 @if (consumer.strict) {
                   <span
@@ -240,9 +246,18 @@
             >{{ row.declared.text }}</span
           >
           @if (row.pool; as pool) {
-            <span class="pool-chip tip" [class.pool-chip-orphan]="pool.orphan" [title]="pool.note"
-              >pool: {{ pool.tag }}</span
-            >
+            @if (pool.poolSelect !== null || pool.orphan) {
+              <a
+                class="pool-chip tip"
+                [class.pool-chip-orphan]="pool.orphan"
+                [title]="pool.note"
+                [routerLink]="['/pools']"
+                [queryParams]="pool.poolSelect === null ? {} : { select: pool.poolSelect }"
+                >pool: {{ pool.tag }}</a
+              >
+            } @else {
+              <span class="pool-chip tip" [title]="pool.note">pool: {{ pool.tag }}</span>
+            }
           }
           @if (row.strict) {
             <span

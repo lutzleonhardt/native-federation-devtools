@@ -1,4 +1,6 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { ParticipantChip } from '../../shared/kit/participant-chip';
 import { FederationStore } from '../../shared/store/federation-store';
@@ -12,12 +14,21 @@ import { POOLING_DOCS_URL, POOLS_DEFINITION, PoolsVm, buildPoolsVm } from './poo
 @Component({
   selector: 'nf-pools-view',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ParticipantChip],
+  imports: [ParticipantChip, RouterLink],
   templateUrl: './pools.html',
   styleUrl: './pools.css',
 })
 export class PoolsView {
   private readonly store = inject(FederationStore);
+
+  // `/pools?select=<pool ID>` from a chip or a graph cluster; an unknown ID highlights nothing.
+  protected readonly selectedId = signal<string | null>(null);
+
+  constructor() {
+    inject(ActivatedRoute)
+      .queryParamMap.pipe(takeUntilDestroyed())
+      .subscribe((params) => this.selectedId.set(params.get('select')));
+  }
 
   protected readonly definition = POOLS_DEFINITION;
   protected readonly docsUrl = POOLING_DOCS_URL;

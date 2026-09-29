@@ -11,6 +11,18 @@
   color: var(--nf-color-text-muted);
 }
 
+.graph-cluster.focused rect {
+  stroke: var(--nf-color-accent);
+  stroke-width: 2;
+}
+
+.graph-cluster-link text {
+  font-size: 11px;
+  fill: var(--nf-color-accent);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 .graph-group-by {
   display: inline-flex;
   align-items: center;

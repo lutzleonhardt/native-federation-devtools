@@ -311,8 +311,10 @@ Why tag pools are derivable: the orchestrator does not persist pools — it reco
 ### Instructions
 
 - Graph reads `?group=<provider|shareScope|pool|bundle>` and
-  `?select=<id>` on entry; under `group=pool`, `select=<scope>|<poolId>`
-  applies the existing click-to-filter to that pool's cluster. The
+  `?select=<id>` on entry; under `group=pool`, `select=<poolId>` (the
+  pool ID is already scope-qualified) emphasises that pool's cluster and
+  dims the other dependency nodes. (Amended in Task 7: the existing
+  click-to-filter filters by consumer remotes, which is not a pool.) The
   query param seeds the enum preference; it does not overwrite it
   afterwards.
 - Pools: each pool header links "show in Graph" →

@@ -12,6 +12,7 @@ export interface DependencyGroup<Entry> {
   key: string;
   label: string;
   tooltip: string | null;
+  poolId: string | null;
   entries: Entry[];
 }
 
@@ -19,6 +20,7 @@ interface GroupKey {
   key: string;
   label: string;
   tooltip: string | null;
+  poolId?: string;
   /** Sort rank first, then label: named keys 1, pinned-first 0, pinned-last 2, buckets 3. */
   rank: number;
 }
@@ -61,10 +63,11 @@ export function groupDependencies<Entry extends { copy: ResolvedDependencyCopy }
     .sort(
       (a, b) => a.rank - b.rank || compareStrings(a.label, b.label) || compareStrings(a.key, b.key),
     )
-    .map(({ key, label, tooltip, entries: grouped }) => ({
+    .map(({ key, label, tooltip, poolId, entries: grouped }) => ({
       key,
       label,
       tooltip,
+      poolId: poolId ?? null,
       entries: grouped,
     }));
 }
@@ -127,6 +130,7 @@ function poolKey(pool: TagPool): GroupKey {
         ? `pool ${pool.name}`
         : `pool ${pool.name} · ${pool.shareScope}`,
     tooltip: lines.join('\n'),
+    poolId: pool.id,
     rank: 1,
   };
 }

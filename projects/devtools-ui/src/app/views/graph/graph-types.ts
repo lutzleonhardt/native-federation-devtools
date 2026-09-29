@@ -153,6 +153,10 @@ export interface GraphCluster {
   label: string;
   /** Native tooltip explaining the cluster key; null when the label says it all. */
   tooltip: string | null;
+  /** Tag pool of a Pool-grouping cluster (the /pools cross-link target); null otherwise. */
+  poolId: string | null;
+  /** Render keys of the enclosed nodes. */
+  nodeKeys: string[];
   /** Number of enclosed nodes. */
   count: number;
   /**

@@ -9,7 +9,11 @@
       <p class="view-observation">{{ vm.emptyNote }}</p>
     }
     @for (pool of vm.pools; track pool.id) {
-      <article class="pool-card" [attr.data-pool-id]="pool.id">
+      <article
+        class="pool-card"
+        [class.selected]="selectedId() === pool.id"
+        [attr.data-pool-id]="pool.id"
+      >
         <header class="pool-head">
           <h2 class="pool-name mono">pool {{ pool.name }}</h2>
           @if (pool.scopeLabel) {
@@ -20,6 +24,12 @@
             >
           }
           <span class="pool-meta">{{ pool.counts }} · formed by: {{ pool.formedBy }}</span>
+          <a
+            class="pool-graph-link"
+            [routerLink]="['/graph']"
+            [queryParams]="{ group: 'pool', select: pool.id }"
+            >show in Graph</a
+          >
         </header>
         <table class="pool-matrix">
           <thead>

@@ -20,7 +20,12 @@
             </button>
           }
         </div>
-        @if (selectedRemotes().size > 0) {
+        @if (focusLine(); as line) {
+          <span class="graph-toolbar-line">{{ line }}</span>
+          <button type="button" class="nf-button graph-toolbar-clear" (click)="clearSelection()">
+            Clear
+          </button>
+        } @else if (selectedRemotes().size > 0) {
           <span class="graph-toolbar-line">{{ filterLine(selectedRemotes().size) }}</span>
           <button type="button" class="nf-button graph-toolbar-clear" (click)="clearSelection()">
             Clear
@@ -54,6 +59,7 @@
             <g
               class="graph-cluster"
               [class]="cluster.colorIndex !== null ? 'hue-' + cluster.colorIndex : ''"
+              [class.focused]="clusterFocused(cluster.poolId)"
             >
               @if (cluster.tooltip) {
                 <title>{{ cluster.tooltip }}</title>
@@ -68,6 +74,21 @@
               <text class="graph-cluster-label" [attr.x]="cluster.labelX" [attr.y]="cluster.labelY">
                 {{ cluster.label }} ({{ cluster.count }})
               </text>
+              @if (cluster.poolId) {
+                <a
+                  class="graph-cluster-link"
+                  [routerLink]="['/pools']"
+                  [queryParams]="{ select: cluster.poolId }"
+                >
+                  <text
+                    [attr.x]="cluster.x + cluster.width - 8"
+                    [attr.y]="cluster.labelY"
+                    text-anchor="end"
+                  >
+                    explain
+                  </text>
+                </a>
+              }
             </g>
           }
           @for (edge of vm.edges; track edge.id) {

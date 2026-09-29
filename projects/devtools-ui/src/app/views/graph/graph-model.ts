@@ -66,6 +66,7 @@ interface ClusterSeed {
   key: string;
   label: string;
   tooltip: string | null;
+  poolId?: string | null;
   /** Hue owner; null renders neutral (host, honest buckets, no emitter). */
   hueRemote: string | null;
 }
@@ -167,6 +168,8 @@ export function buildGraphModel(
       column: 'dependencies',
       label: seed.label,
       tooltip: seed.tooltip,
+      poolId: seed.poolId ?? null,
+      nodeKeys: entries.map((entry) => nodeKeyOf('dependency', entry.copy.id)),
       count: entries.length,
       colorIndex,
       x: boxX,
@@ -339,6 +342,8 @@ export function buildGraphModel(
       column: 'chunks',
       label,
       tooltip: null,
+      poolId: null,
+      nodeKeys: collector.seeds.map((seed) => nodeKeyOf('chunk', seed.id)),
       count: collector.seeds.length,
       colorIndex: clusterHueOf(collector.emitter),
       x: boxX,
