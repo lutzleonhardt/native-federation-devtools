@@ -306,33 +306,38 @@ const UNKNOWN_TAG_NOTE = 'no uniquely evidenced source tag for this copy';
 const PINNED_TAG_NOTE =
   'exact tag — pinned by the strict share scope; the configured requiredVersion range is not stored';
 
-/**
- * Capability meta line, grounded canonically with the source-verified
- * config provenance (T8.5 amendment, verbatim): dense chunking from the
- * projection's `shared-chunks` groups of this emitter, dense externals from
- * canonical participant declarations carrying a bundle, SRI from the
- * remote's recorded integrity map. Both dense facets cite the SAME flag on
- * purpose — `features.denseChunking` is one build feature with two
- * observable facets; `features.denseExternals` is NOT the producer.
- */
+// Chunk lists and `bundle` are both written only under `features.denseChunking`; a multi-entry map
+// can come from `features.denseExternals` or host-side `convertFlatSharedInfo`, so that note claims
+// neither (see docs/work/grouping-and-pooling/plan.md, persisted-evidence table).
 function capabilitiesOf(remote: RemoteEntity, model: FederationModel): CapabilityVm[] {
   const capabilities: CapabilityVm[] = [];
-  const denseChunking = model.resolutionProjection.chunkGroups.some(
-    (group) => group.emitterRemote === remote.name && group.origin === 'shared-chunks',
-  );
-  if (denseChunking) {
+  const evidence = model.registryEvidence;
+  const ownRegistrations = [
+    ...evidence.participantDeclarations.filter((d) => d.participant === remote.name),
+    ...evidence.privateRegistrations.filter((r) => r.ownerRemote === remote.name),
+  ];
+
+  const chunkFacets: string[] = [];
+  if (
+    model.resolutionProjection.chunkGroups.some(
+      (group) => group.emitterRemote === remote.name && group.origin === 'shared-chunks',
+    )
+  ) {
+    chunkFacets.push('the registry records per-bundle chunk lists for this remote');
+  }
+  if (ownRegistrations.some((registration) => registration.bundle !== null)) {
+    chunkFacets.push("this remote's registrations carry their serving bundle");
+  }
+  if (chunkFacets.length > 0) {
     capabilities.push({
       label: 'dense chunking',
-      note: 'the registry records per-bundle chunk lists for this remote (config: features.denseChunking: true, default false, since core v4.0.0)',
+      note: `${chunkFacets.join('; ')} (config: features.denseChunking: true, default false, since core v4.0.0)`,
     });
   }
-  const denseExternals = model.registryEvidence.participantDeclarations.some(
-    (declaration) => declaration.participant === remote.name && declaration.bundle !== null,
-  );
-  if (denseExternals) {
+  if (ownRegistrations.some((registration) => registration.entrypointCandidateIds.length > 1)) {
     capabilities.push({
-      label: 'dense externals',
-      note: 'shared participants carry their serving bundle (config: features.denseChunking: true, default false, since core v4.0.0)',
+      label: 'multi-entry registrations',
+      note: 'a registration of this remote maps several entrypoints in one entries map (config: features.denseExternals: true at build, default false, since core v4.3.0 — or feature.convertFlatSharedInfo: true on the host, default false; the registry does not record which)',
     });
   }
   if (Object.keys(remote.integrity).length > 0) {
