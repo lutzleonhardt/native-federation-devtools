@@ -49,6 +49,31 @@ export const QUALIFIER_BASELINE = 32;
 export const HONEST_BUCKETS = ['ambiguous source', 'target only', 'unknown'] as const;
 export type HonestBucket = (typeof HONEST_BUCKETS)[number];
 
+/** Axis the dependency column clusters by; `provider` is the evidenced-source clustering. */
+export const GROUP_BY_OPTIONS = [
+  {
+    value: 'provider',
+    label: 'Provider',
+    hint: 'cluster copies by the remote whose registration they resolve to',
+  },
+  {
+    value: 'shareScope',
+    label: 'Share scope',
+    hint: 'cluster copies by the share scope of their source registration',
+  },
+  {
+    value: 'pool',
+    label: 'Pool',
+    hint: 'cluster copies by the explicit pool tag pool of their package',
+  },
+  {
+    value: 'bundle',
+    label: 'Bundle',
+    hint: "cluster copies by the bundle of their source's bundle claim",
+  },
+] as const;
+export type GroupBy = (typeof GROUP_BY_OPTIONS)[number]['value'];
+
 export type GraphColumnKey = 'remotes' | 'dependencies' | 'chunks';
 
 export interface GraphColumn {
@@ -124,8 +149,10 @@ export interface GraphCluster {
   /** Kind-qualified render key — cluster names are arbitrary capture strings. */
   key: string;
   column: 'dependencies' | 'chunks';
-  /** `host`, source-remote display, honest bucket, or `emitter · bundle`. */
+  /** `host`, source-remote display, honest bucket, group-by key, or `emitter · bundle`. */
   label: string;
+  /** Native tooltip explaining the cluster key; null when the label says it all. */
+  tooltip: string | null;
   /** Number of enclosed nodes. */
   count: number;
   /**
@@ -227,4 +254,6 @@ export interface GraphBuildOptions {
    * filter is filtered, never "dropped".
    */
   selectedRemotes?: ReadonlySet<string>;
+  /** Dependency-column clustering; defaults to `provider`. The node and edge set never depends on it. */
+  groupBy?: GroupBy;
 }

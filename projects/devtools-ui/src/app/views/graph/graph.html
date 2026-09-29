@@ -5,6 +5,21 @@
       <p class="view-observation">Nothing to graph.</p>
     } @else {
       <div class="graph-toolbar">
+        <div class="graph-group-by" role="group" aria-label="group dependencies by">
+          <span class="graph-group-by-label">group by</span>
+          @for (option of groupByOptions; track option.value) {
+            <button
+              type="button"
+              class="nf-button graph-group-by-button"
+              [class.active]="groupBy() === option.value"
+              [attr.aria-pressed]="groupBy() === option.value"
+              [title]="option.hint"
+              (click)="setGroupBy(option.value)"
+            >
+              {{ option.label }}
+            </button>
+          }
+        </div>
         @if (selectedRemotes().size > 0) {
           <span class="graph-toolbar-line">{{ filterLine(selectedRemotes().size) }}</span>
           <button type="button" class="nf-button graph-toolbar-clear" (click)="clearSelection()">
@@ -40,6 +55,9 @@
               class="graph-cluster"
               [class]="cluster.colorIndex !== null ? 'hue-' + cluster.colorIndex : ''"
             >
+              @if (cluster.tooltip) {
+                <title>{{ cluster.tooltip }}</title>
+              }
               <rect
                 [attr.x]="cluster.x"
                 [attr.y]="cluster.y"

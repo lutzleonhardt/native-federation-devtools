@@ -921,3 +921,76 @@ describe('graphAdjacencyOf', () => {
     expect(adjacency.get('remote:__NF-HOST__')).toBeUndefined();
   });
 });
+
+// grouping-and-pooling Task 4: the group-by switch re-clusters the dependency
+// column from the projection's `copyGroupingFacets`; nothing else may move.
+describe('buildGraphModel — group-by (grouping-and-pooling T4)', () => {
+  const GROUPINGS = ['provider', 'shareScope', 'pool', 'bundle'] as const;
+  const dependencyClusterLabels = (model: GraphModel) =>
+    model.clusters
+      .filter((cluster) => cluster.column === 'dependencies')
+      .map((cluster) => `${cluster.label} (${cluster.count})`);
+  const groupedModel = (id: FixtureId, groupBy: (typeof GROUPINGS)[number]) =>
+    buildGraphModel(projectionOf(id), { groupBy });
+
+  it('T4-AC-01: clusters by share scope, pool, and bundle', () => {
+    expect(dependencyClusterLabels(groupedModel('frankenstein-live', 'shareScope'))).toEqual([
+      `default share scope (${dependencyNodesOf(modelOf('frankenstein-live')).length})`,
+    ]);
+    expect(dependencyClusterLabels(groupedModel('scoped', 'shareScope'))).toEqual([
+      `(private) (${dependencyNodesOf(modelOf('scoped')).length})`,
+    ]);
+    expect(dependencyClusterLabels(groupedModel('strict-scope', 'shareScope'))).toEqual([
+      `strict (${dependencyNodesOf(modelOf('strict-scope')).length})`,
+    ]);
+    expect(dependencyClusterLabels(groupedModel('pool-tag-coherent', 'pool'))).toEqual([
+      'pool @nf-lab/ui-core (2)',
+      '(not pooled) (1)',
+    ]);
+    // Host-provided utils carries no bundle; mfe1's dense-lib entrypoints do.
+    expect(dependencyClusterLabels(groupedModel('dense-chunking-only', 'bundle'))).toEqual([
+      'browser-shared (2)',
+      '(no bundle) (1)',
+    ]);
+  });
+
+  it('T4-AC-01: pool clusters explain themselves; non-provider clusters stay neutral', () => {
+    const model = groupedModel('pool-tag-anchored', 'pool');
+    const pool = model.clusters.find((cluster) => cluster.label === 'pool @nf-lab/ui-core')!;
+    expect(pool.tooltip).toBe('formed by: mfe1 "ui", mfe2 "ui"');
+    for (const groupBy of ['shareScope', 'pool', 'bundle'] as const) {
+      const clusters = buildGraphModel(projectionOf('frankenstein-live'), {
+        groupBy,
+        participantColors: new Map([['whiteboard', 1]]),
+      }).clusters.filter((cluster) => cluster.column === 'dependencies');
+      expect(clusters.every((cluster) => cluster.colorIndex === null)).toBe(true);
+    }
+  });
+
+  it('T4-AC-02: every grouping keeps the node and edge set', () => {
+    const identity = (model: GraphModel) => ({
+      nodes: model.nodes.map((node) => node.key).sort(),
+      edges: model.edges.map((edge) => edge.id).sort(),
+      refs: model.bundleEdgeRefs.map((ref) => ref.key).sort(),
+    });
+    for (const id of [
+      'frankenstein-live',
+      'scoped',
+      'pool-tag-coherent',
+      'dense-chunking-only',
+    ] as const) {
+      const provider = identity(groupedModel(id, 'provider'));
+      for (const groupBy of GROUPINGS)
+        expect(identity(groupedModel(id, groupBy))).toEqual(provider);
+    }
+  });
+
+  it('T4-AC-01: deterministic per grouping; provider equals the default', () => {
+    for (const groupBy of GROUPINGS) {
+      expect(groupedModel('pool-tag-anchored', groupBy)).toEqual(
+        groupedModel('pool-tag-anchored', groupBy),
+      );
+    }
+    expect(groupedModel('frankenstein-live', 'provider')).toEqual(modelOf('frankenstein-live'));
+  });
+});

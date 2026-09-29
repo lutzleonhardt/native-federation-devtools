@@ -18,6 +18,7 @@ import {
   remoteOrder,
   stubQualifierOf,
 } from './graph-element-factories';
+import { groupDependencies } from './graph-grouping';
 import {
   BundleEdgeRef,
   CLUSTER_HEADER,
@@ -64,6 +65,7 @@ import {
 interface ClusterSeed {
   key: string;
   label: string;
+  tooltip: string | null;
   /** Hue owner; null renders neutral (host, honest buckets, no emitter). */
   hueRemote: string | null;
 }
@@ -164,6 +166,7 @@ export function buildGraphModel(
       key: seed.key,
       column: 'dependencies',
       label: seed.label,
+      tooltip: seed.tooltip,
       count: entries.length,
       colorIndex,
       x: boxX,
@@ -176,19 +179,31 @@ export function buildGraphModel(
     dependencyCursor = boxY + boxHeight + CLUSTER_VGAP;
   };
 
-  for (const name of sourceClusterNames) {
-    layoutDependencyCluster(
-      { key: `dependencies:source:${name}`, label: remoteClusterDisplay(name), hueRemote: name },
-      sourceClusterEntries.get(name)!,
-    );
-  }
-  for (const bucket of HONEST_BUCKETS) {
-    const entries = bucketClusterEntries.get(bucket);
-    if (entries !== undefined) {
+  const groupBy = options.groupBy ?? 'provider';
+  if (groupBy === 'provider') {
+    for (const name of sourceClusterNames) {
       layoutDependencyCluster(
-        { key: `dependencies:bucket:${bucket}`, label: bucket, hueRemote: null },
-        entries,
+        {
+          key: `dependencies:source:${name}`,
+          label: remoteClusterDisplay(name),
+          tooltip: null,
+          hueRemote: name,
+        },
+        sourceClusterEntries.get(name)!,
       );
+    }
+    for (const bucket of HONEST_BUCKETS) {
+      const entries = bucketClusterEntries.get(bucket);
+      if (entries !== undefined) {
+        layoutDependencyCluster(
+          { key: `dependencies:bucket:${bucket}`, label: bucket, tooltip: null, hueRemote: null },
+          entries,
+        );
+      }
+    }
+  } else {
+    for (const group of groupDependencies(groupBy, sortedCopies, projection)) {
+      layoutDependencyCluster({ ...group, hueRemote: null }, group.entries);
     }
   }
 
@@ -323,6 +338,7 @@ export function buildGraphModel(
       key: clusterKey,
       column: 'chunks',
       label,
+      tooltip: null,
       count: collector.seeds.length,
       colorIndex: clusterHueOf(collector.emitter),
       x: boxX,

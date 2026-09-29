@@ -301,6 +301,43 @@ describe('GraphView', () => {
     }
   });
 
+  // grouping-and-pooling T4: the switch re-clusters in place and keeps the
+  // forbidden vocabulary out of every grouping's labels and tooltips.
+  it('switches the dependency grouping from the toolbar', async () => {
+    const forbidden = /\b(loaded|downloaded|fetched|executed|wire cost|byte size|cache hit)\b/i;
+    const { fixture, el } = await createViewFixture('pool-tag-coherent');
+    const buttons = Array.from(el.querySelectorAll<HTMLButtonElement>('.graph-group-by-button'));
+    expect(buttons.map((button) => textOf(button))).toEqual([
+      'Provider',
+      'Share scope',
+      'Pool',
+      'Bundle',
+    ]);
+    expect(buttons[0].getAttribute('aria-pressed')).toBe('true');
+    const nodeKeys = () =>
+      Array.from(el.querySelectorAll('.graph-node .graph-node-label'))
+        .map((label) => textOf(label))
+        .sort();
+    const before = nodeKeys();
+
+    buttons[2].click();
+    await settle(fixture);
+    expect(buttons[2].getAttribute('aria-pressed')).toBe('true');
+    expect(
+      Array.from(el.querySelectorAll('.graph-cluster-label')).map((label) => textOf(label)),
+    ).toEqual(['pool @nf-lab/ui-core (2)', '(not pooled) (1)']);
+    expect(el.querySelector('.graph-cluster title')?.textContent?.trim()).toBe(
+      'formed by: mfe1 "ui", mfe2 "ui"',
+    );
+    expect(nodeKeys()).toEqual(before);
+
+    for (const button of buttons) {
+      button.click();
+      await settle(fixture);
+      expect(el.textContent).not.toMatch(forbidden);
+    }
+  });
+
   // T1-AC-06: a capture producing no nodes says so; a missing snapshot
   // reuses the panel's existing empty wording.
   it('renders the two empty states honestly', async () => {

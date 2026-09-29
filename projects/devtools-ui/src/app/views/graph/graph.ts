@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, inject, linkedSignal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  linkedSignal,
+  signal,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 import { PARTICIPANT_COLOR_LOOKUP } from '../../shared/kit/participant-colors';
@@ -6,7 +13,7 @@ import { FederationStore } from '../../shared/store/federation-store';
 import { countClaim } from '../../shared/view-conventions';
 import { nodeKeyOf } from './graph-element-factories';
 import { buildGraphModel, graphAdjacencyOf } from './graph-model';
-import { BundleEdgeRef, GraphEdge, GraphModel } from './graph-types';
+import { BundleEdgeRef, GROUP_BY_OPTIONS, GraphEdge, GraphModel, GroupBy } from './graph-types';
 
 /**
  * Graph tab — the resolution graph over the canonical projection:
@@ -19,8 +26,8 @@ import { BundleEdgeRef, GraphEdge, GraphModel } from './graph-types';
  * chip dots. All wording stays resolution-honest: an edge shows what the
  * captured map resolves, never what was requested or executed.
  *
- * Interaction state is exactly `{ selectedRemotes, hovered }` — everything
- * else derives per change. Clicking a remote toggles the consumer filter
+ * Interaction state is `{ selectedRemotes, hovered }` plus the `groupBy`
+ * preference — everything else derives per change. Clicking a remote toggles the consumer filter
  * (OR semantics, applied inside the builder); hovering traces a node by
  * emphasis only — classes flip and the hovered node's precomputed bundle
  * edges are revealed, but the model itself never changes on hover.
@@ -46,6 +53,10 @@ export class GraphView {
     source: this.store.model,
     computation: (): ReadonlySet<string> => new Set(),
   });
+  // A preference, not capture state: it names no capture value, so it survives capture replacement.
+  protected readonly groupBy = signal<GroupBy>('provider');
+  protected readonly groupByOptions = GROUP_BY_OPTIONS;
+
   /** Render key of the hovered node; null without a hover. */
   protected readonly hovered = linkedSignal({
     source: this.store.model,
@@ -59,6 +70,7 @@ export class GraphView {
       : buildGraphModel(model.resolutionProjection, {
           participantColors: this.participantColors(),
           selectedRemotes: this.selectedRemotes(),
+          groupBy: this.groupBy(),
         });
   });
 
@@ -101,6 +113,10 @@ export class GraphView {
       nodeKeyOf('remote', edge.sourceId) !== hovered &&
       nodeKeyOf('dependency', edge.targetId) !== hovered
     );
+  }
+
+  protected setGroupBy(groupBy: GroupBy): void {
+    this.groupBy.set(groupBy);
   }
 
   protected setHovered(key: string | null): void {
