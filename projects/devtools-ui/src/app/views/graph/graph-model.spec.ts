@@ -371,7 +371,7 @@ describe('buildGraphModel', () => {
     ).toEqual(['alpha-pkg', 'https://cdn.test/alpha.js', 'named-source']);
   });
 
-  // T1-AC-04: labels above 36 chars truncate to 35 + `…`, full text as tooltip.
+  // T1-AC-04: labels above LABEL_MAX (44) chars truncate to 43 + `…`, full text as tooltip.
   it('truncates long labels and keeps the full text as tooltip', () => {
     const long = '@nf-lab/a-very-long-package-name-that-overflows';
     const short = 'fits-within-the-limit';
@@ -385,8 +385,8 @@ describe('buildGraphModel', () => {
     );
     // Codepoint label sort puts `@nf-lab/…` before `fits-…`.
     const [truncated, fits] = model.nodes;
-    expect(truncated.label).toBe(`${long.slice(0, 35)}…`);
-    expect(truncated.label.length).toBe(36);
+    expect(truncated.label).toBe(`${long.slice(0, LABEL_MAX - 1)}…`);
+    expect(truncated.label.length).toBe(LABEL_MAX);
     expect(truncated.labelTooltip).toBe(long);
     expect(fits.label).toBe(short);
     expect(fits.labelTooltip).toBeNull();
@@ -403,9 +403,9 @@ describe('buildGraphModel', () => {
       }),
     );
     const [node] = dependencyNodesOf(model);
-    // Budget = LABEL_MAX - 7 (tag) - 2 (gap) = 27 → 26 chars + `…`.
-    expect(node.label).toBe(`${long.slice(0, 26)}…`);
-    expect(node.label.length).toBe(27);
+    // Budget = LABEL_MAX - 7 (tag) - 2 (gap) = 35 → 34 chars + `…`.
+    expect(node.label).toBe(`${long.slice(0, 34)}…`);
+    expect(node.label.length).toBe(35);
     expect(node.labelTooltip).toBe(long);
     expect(node.subLabel).toBe('21.2.12');
     expect(node.subLabelTooltip).toBeNull();
@@ -431,8 +431,8 @@ describe('buildGraphModel', () => {
     expect(node.subLabel).toBe(`${tag.slice(0, SUB_LABEL_MAX - 1)}…`);
     expect(node.subLabel!.length).toBe(SUB_LABEL_MAX);
     expect(node.subLabelTooltip).toBe(tag);
-    // Label budget from the displayed tag: 36 - 16 - 2 = 18 chars.
-    expect(node.label.length).toBe(18);
+    // Label budget from the displayed tag: 44 - 16 - 2 = 26 chars.
+    expect(node.label.length).toBe(26);
     expect(node.label.length + 2 + node.subLabel!.length).toBeLessThanOrEqual(LABEL_MAX);
   });
 
@@ -479,9 +479,9 @@ describe('buildGraphModel', () => {
     expect(model.droppedRelationIds).toEqual([]);
     expect(model.edges.length).toBe(1);
     // The edge must anchor at the remote node (column 0), not the same-ID
-    // copy: right-mid (304, 67) → left-mid inside the `unknown` cluster
-    // (454, 54 + CLUSTER_HEADER + CLUSTER_PAD + 13 = 99), dx = max(24, 75).
-    expect(model.edges[0].path).toBe('M 304,67 C 379,67 379,99 454,99');
+    // copy: right-mid (364, 67) → left-mid inside the `unknown` cluster
+    // (514, 54 + CLUSTER_HEADER + CLUSTER_PAD + 13 = 99), dx = max(24, 75).
+    expect(model.edges[0].path).toBe('M 364,67 C 439,67 439,99 514,99');
   });
 
   // Review regression: a relation without a rendered endpoint is never a
@@ -537,9 +537,9 @@ describe('buildGraphModel', () => {
     expect(model.height).toBe(MARGIN + HEADER_H + 3 * (NODE_H + NODE_VGAP) - NODE_VGAP + MARGIN);
 
     // mfe1 (row 1, column 0) → the single copy (cluster row 0, column 1):
-    // right-mid (304, 99) → left-mid (454, 86 + 13 = 99), dx = max(24, 75).
+    // right-mid (364, 99) → left-mid (514, 86 + 13 = 99), dx = max(24, 75).
     const mfe1Edge = model.edges.find((e) => e.sourceId === 'mfe1');
-    expect(mfe1Edge?.path).toBe('M 304,99 C 379,99 379,99 454,99');
+    expect(mfe1Edge?.path).toBe('M 364,99 C 439,99 439,99 514,99');
   });
 
   // T1-AC-06 (model level): a projection with no nodes flags empty.
@@ -1058,24 +1058,33 @@ describe('buildGraphModel — accordion', () => {
   it('collapses build groups to summary rows; one open group shows its files', () => {
     const projection = projectionOf('frankenstein-live');
     const collapsed = buildGraphModel(projection, { expandedBuildKey: null });
-    expect(chunkNodesOf(collapsed).every((node) => node.summary)).toBe(true);
-    expect(chunkNodesOf(collapsed).map((node) => node.label)).toEqual([
+    // Single-file builds show their file directly and cannot collapse.
+    expect(chunkNodesOf(collapsed).map((node) => (node.summary ? node.label : 'file'))).toEqual([
       '3 files',
       '11 files',
-      '1 file',
+      'file',
       '3 files',
-      '1 file',
-      '1 file',
+      'file',
+      'file',
       '7 files',
     ]);
-    // One summary reference per (copy, build): 20 copies, one build each.
+    expect(collapsed.clusters.filter((c) => c.column === 'chunks').map((c) => c.expanded)).toEqual([
+      false,
+      false,
+      null,
+      false,
+      null,
+      null,
+      false,
+    ]);
+    // One reference per (copy, build): 20 copies, one build each.
     expect(collapsed.bundleEdgeRefs.length).toBe(20);
 
     const core = collapsed.clusters.find((c) => c.label === 'host · browser-angular_core')!;
     const open = buildGraphModel(projection, { expandedBuildKey: core.key });
     expect(open.clusters.find((c) => c.key === core.key)!.expanded).toBe(true);
-    expect(chunkNodesOf(open).filter((node) => !node.summary).length).toBe(11);
-    expect(chunkNodesOf(open).filter((node) => node.summary).length).toBe(6);
+    expect(chunkNodesOf(open).filter((node) => !node.summary).length).toBe(14);
+    expect(chunkNodesOf(open).filter((node) => node.summary).length).toBe(3);
     // Grouping and filtering never change the accordion's node identity rule.
     expect(buildGraphModel(projection, { expandedBuildKey: core.key })).toEqual(open);
   });

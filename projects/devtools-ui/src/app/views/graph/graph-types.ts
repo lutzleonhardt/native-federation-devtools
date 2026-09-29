@@ -7,13 +7,13 @@ import type { CompletenessCounts } from '../../shared/store/resolution';
  * ID, relation ID, bundle-claim ID, chunk-group ID + recorded file).
  */
 
-export const NODE_W = 280;
+export const NODE_W = 340;
 export const NODE_H = 26;
 export const NODE_VGAP = 6;
 export const COL_GAP = 150;
 export const MARGIN = 24;
 export const HEADER_H = 30;
-export const LABEL_MAX = 36;
+export const LABEL_MAX = 44;
 /** Display budget of the right-aligned tag sub-label; overflow gets a tooltip. */
 export const SUB_LABEL_MAX = 16;
 
@@ -180,7 +180,7 @@ export interface GraphCluster {
   poolId: string | null;
   /** Render keys of the enclosed nodes. */
   nodeKeys: string[];
-  /** Build-files clusters collapse to one summary node; null on dependency clusters. */
+  /** Open state of a collapsible build-files cluster; null when it cannot collapse (dependency or single-file cluster). */
   expanded: boolean | null;
   /** Number of enclosed nodes. */
   count: number;

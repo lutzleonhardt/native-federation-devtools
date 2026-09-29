@@ -373,12 +373,13 @@ describe('GraphView', () => {
     click(nodeByLabel(el, 'dependency', 'rxjs'));
     expect(el.querySelectorAll('.graph-list-item').length).toBe(0);
 
+    // Three single-file builds always show their file.
     openBuild(el, 'host · browser-rxjs');
     fixture.detectChanges();
-    expect(el.querySelectorAll('.graph-node.chunk:not(.summary)').length).toBe(3);
+    expect(el.querySelectorAll('.graph-node.chunk:not(.summary)').length).toBe(3 + 3);
     openBuild(el, 'whiteboard');
     fixture.detectChanges();
-    expect(el.querySelectorAll('.graph-node.chunk:not(.summary)').length).toBe(7);
+    expect(el.querySelectorAll('.graph-node.chunk:not(.summary)').length).toBe(3 + 7);
     const toggleOf = (label: string) =>
       Array.from(el.querySelectorAll('g.graph-cluster.toggle'))
         .find((group) => textOf(group.querySelector('.graph-cluster-label')).startsWith(label))!
@@ -387,7 +388,7 @@ describe('GraphView', () => {
     expect(textOf(toggleOf('host · browser-rxjs'))).toBe('▸');
     // A summary row toggles its group too.
     click(el.querySelector('.graph-node.chunk.summary')!);
-    expect(el.querySelectorAll('.graph-node.chunk:not(.summary)').length).toBe(3);
+    expect(el.querySelectorAll('.graph-node.chunk:not(.summary)').length).toBe(3 + 3);
   });
 
   // T1-AC-06: a capture producing no nodes says so; a missing snapshot
@@ -428,10 +429,12 @@ describe('GraphView', () => {
       'mermaid (1)',
       'whiteboard (7)',
     ]);
-    // The build-files column starts collapsed: one summary row per build.
+    // The build-files column starts collapsed: one summary row per
+    // multi-file build; single-file builds show their file directly.
     expect(el.querySelectorAll('.graph-node.chunk').length).toBe(7);
-    expect(el.querySelectorAll('.graph-node.chunk.summary').length).toBe(7);
-    expect(el.querySelectorAll('a.graph-chunk-link[href]').length).toBe(0);
+    expect(el.querySelectorAll('.graph-node.chunk.summary').length).toBe(4);
+    expect(el.querySelectorAll('a.graph-chunk-link[href]').length).toBe(3);
+    expect(el.querySelectorAll('.graph-cluster.toggle').length).toBe(4);
   });
 
   // T2-AC-02 + T2-AC-03: the emitting source remote carries the copy's
@@ -439,12 +442,12 @@ describe('GraphView', () => {
   // chunk file is fabricated; bundle references stay unrendered (Task 3).
   it('renders the clean-skip entry file under the emitting remote without fabricated chunks', async () => {
     const projection = ingestSnapshot(structuredClone(FIXTURES['clean-skip'])).resolutionProjection;
-    const { fixture, el } = await createViewFixture('clean-skip');
+    const el = await createView('clean-skip');
 
     expect(clusterLabels(el)).toEqual(['mfe2 (1)', 'mfe2 · browser-shared (1)']);
-    expect(textOf(el.querySelector('.graph-node.chunk.summary .graph-node-label'))).toBe('1 file');
-    openBuild(el, 'mfe2 · browser-shared');
-    fixture.detectChanges();
+    // One file: shown directly, no summary row and no toggle.
+    expect(el.querySelector('.graph-node.chunk.summary')).toBeNull();
+    expect(el.querySelector('.graph-cluster.toggle')).toBeNull();
     expect(el.querySelectorAll('.graph-node.chunk').length).toBe(1);
     expect(el.querySelector('.graph-node.chunk.stub')).toBeNull();
     const link = el.querySelector('a.graph-chunk-link');

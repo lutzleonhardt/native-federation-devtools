@@ -144,3 +144,6 @@ errors.
   `linkedSignal`-reset per capture like the other interaction state.
 - New specs: flat and dense secondary rows, row push-down geometry,
   collapsed summaries and merged references, one-open-per-column DOM.
+- Follow-ups: a single-file build group shows its file directly (no
+  summary row, no toggle — `expanded: null`); columns widened
+  (`NODE_W` 280 → 340, `LABEL_MAX` 36 → 44), geometry pins updated.

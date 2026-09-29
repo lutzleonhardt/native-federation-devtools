@@ -400,7 +400,9 @@ export function buildGraphModel(
     const boxY = chunkCursor;
     let nodeY = boxY + CLUSTER_HEADER + CLUSTER_PAD;
     const x = columnX(2);
-    const expanded = expandedBuildKey === 'all' || expandedBuildKey === clusterKey;
+    // A single-file group shows its file directly: there is nothing to expand.
+    const collapsible = collector.seeds.length > 1;
+    const expanded = !collapsible || expandedBuildKey === 'all' || expandedBuildKey === clusterKey;
     if (!expanded) {
       const id = `summary\n${clusterKey}`;
       const node: ChunkGraphNode = {
@@ -459,7 +461,7 @@ export function buildGraphModel(
           collector.seeds.map((seed) => nodeKeyOf('chunk', renderedChunkId.get(seed.id)!)),
         ),
       ],
-      expanded,
+      expanded: collapsible ? expanded : null,
       count: collector.seeds.length,
       colorIndex: clusterHueOf(collector.emitter),
       x: boxX,
