@@ -613,8 +613,14 @@ describe('GraphView', () => {
 
   // T3-AC-04: the cap message renders with the honest overflow count when
   // the reference budget is exceeded (seeded — no fixture reaches the cap).
+  // References are (copy, chunk file) pairs, so 41 copies sharing one
+  // 100-file group reach 4100 refs while rendering ~140 nodes; one file per
+  // ref (4100 chunk nodes) made jsdom take 8–10s and time out.
   it('shows the cap message when bundle references were capped', async () => {
-    const files = Array.from({ length: MAX_BUNDLE_EDGES + 100 }, (_, i) => `chunk-${i}.js`);
+    const copyCount = 41;
+    const files = Array.from({ length: 100 }, (_, i) => `chunk-${i}.js`);
+    const copyIds = Array.from({ length: copyCount }, (_, i) => `copy-${i}`);
+    expect(copyCount * files.length).toBe(MAX_BUNDLE_EDGES + 100);
     const el = await createSeededView(
       seededProjection({
         remotes: [
@@ -625,9 +631,10 @@ describe('GraphView', () => {
             resolvedScopeUrl: 'https://page.test/host/',
           },
         ],
-        copies: [seededCopy('copy-1', ['claim-1'])],
-        consumerRelations: [seededRelation('host', 'copy-1')],
-        bundleClaims: [seededClaim('claim-1', 'copy-1', ['group-1'])],
+        copies: copyIds.map((id) => seededCopy(id, [`claim-${id}`])),
+        // One consume edge raises the cap to 1 + MAX_BUNDLE_EDGES → 99 over.
+        consumerRelations: [seededRelation('host', 'copy-0')],
+        bundleClaims: copyIds.map((id) => seededClaim(`claim-${id}`, id, ['group-1'])),
         chunkGroups: [seededChunkGroup('group-1', files)],
       }),
     );
