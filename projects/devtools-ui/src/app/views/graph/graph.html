@@ -20,6 +20,25 @@
             </button>
           }
         </div>
+        <div
+          class="graph-group-by graph-filter-mode"
+          role="group"
+          aria-label="remote selection mode"
+        >
+          <span class="graph-group-by-label">selection</span>
+          @for (option of filterModeOptions; track option.value) {
+            <button
+              type="button"
+              class="nf-button graph-filter-mode-button"
+              [class.active]="filterMode() === option.value"
+              [attr.aria-pressed]="filterMode() === option.value"
+              [title]="option.hint"
+              (click)="setFilterMode(option.value)"
+            >
+              {{ option.label }}
+            </button>
+          }
+        </div>
         @if (focusLine(); as line) {
           <span class="graph-toolbar-line">{{ line }}</span>
           <button type="button" class="nf-button graph-toolbar-clear" (click)="clearSelection()">
@@ -32,8 +51,8 @@
           </button>
         } @else {
           <span class="graph-toolbar-line graph-toolbar-hint">
-            click remotes to filter · click a dependency or build to expand · hover to trace ·
-            dashed node = isolated copy · dotted edge = borrowed
+            click remotes to {{ filterMode() }} · click a dependency or build to expand · hover to
+            trace · dashed node = isolated copy · dotted edge = borrowed
           </span>
         }
         @if (vm.cappedEdges > 0) {
@@ -131,9 +150,21 @@
               @if (item.tooltip) {
                 <title>{{ item.tooltip }}</title>
               }
-              <text class="graph-list-text" [attr.x]="item.x" [attr.y]="item.y">
-                {{ item.text }}
-              </text>
+              @if (item.packageSelect; as select) {
+                <a
+                  class="graph-list-link"
+                  [routerLink]="['/packages']"
+                  [queryParams]="{ select: select }"
+                >
+                  <text class="graph-list-text" [attr.x]="item.x" [attr.y]="item.y">
+                    {{ item.text }}
+                  </text>
+                </a>
+              } @else {
+                <text class="graph-list-text" [attr.x]="item.x" [attr.y]="item.y">
+                  {{ item.text }}
+                </text>
+              }
             </g>
           }
           @for (node of vm.nodes; track node.key) {
@@ -142,7 +173,10 @@
                 <g
                   class="graph-node remote"
                   [class.host]="node.isHost"
-                  [class.selected]="selectedRemotes().has(node.id)"
+                  [class.selected]="filterMode() === 'include' && selectedRemotes().has(node.id)"
+                  [class.excluded]="filterMode() === 'exclude' && selectedRemotes().has(node.id)"
+                  role="checkbox"
+                  [attr.aria-checked]="remoteChecked(node.id)"
                   [class.dim]="nodeDimmed(node.key)"
                   (mouseenter)="setHovered(node.key)"
                   (mouseleave)="setHovered(null)"
@@ -158,6 +192,23 @@
                     [attr.height]="node.height"
                     rx="4"
                   />
+                  <rect
+                    class="graph-remote-check"
+                    [class.checked]="remoteChecked(node.id)"
+                    [attr.x]="node.checkX"
+                    [attr.y]="node.checkY"
+                    width="10"
+                    height="10"
+                    rx="2"
+                  />
+                  @if (remoteChecked(node.id)) {
+                    <path
+                      class="graph-remote-check-mark"
+                      [attr.d]="
+                        'M' + (node.checkX + 2) + ' ' + (node.checkY + 5) + ' l2.5 2.5 l4 -5'
+                      "
+                    />
+                  }
                   <text class="graph-node-label" [attr.x]="node.labelX" [attr.y]="node.labelY">
                     {{ node.label }}
                   </text>

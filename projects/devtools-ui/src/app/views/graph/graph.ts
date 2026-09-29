@@ -14,7 +14,15 @@ import { FederationStore } from '../../shared/store/federation-store';
 import { countClaim } from '../../shared/view-conventions';
 import { nodeKeyOf } from './graph-element-factories';
 import { buildGraphModel, graphAdjacencyOf } from './graph-model';
-import { BundleEdgeRef, GROUP_BY_OPTIONS, GraphEdge, GraphModel, GroupBy } from './graph-types';
+import {
+  BundleEdgeRef,
+  FILTER_MODE_OPTIONS,
+  FilterMode,
+  GROUP_BY_OPTIONS,
+  GraphEdge,
+  GraphModel,
+  GroupBy,
+} from './graph-types';
 
 /**
  * Graph tab — the resolution graph over the canonical projection:
@@ -28,8 +36,8 @@ import { BundleEdgeRef, GROUP_BY_OPTIONS, GraphEdge, GraphModel, GroupBy } from 
  * captured map resolves, never what was requested or executed.
  *
  * Interaction state is `{ selectedRemotes, hovered }` plus the `groupBy`
- * preference — everything else derives per change. Clicking a remote toggles the consumer filter
- * (OR semantics, applied inside the builder); hovering traces a node by
+ * and `filterMode` preferences — everything else derives per change. Clicking a remote toggles the
+ * consumer filter (OR semantics, inverted in exclude mode, applied inside the builder); hovering traces a node by
  * emphasis only — classes flip and the hovered node's precomputed bundle
  * edges are revealed, but the model itself never changes on hover.
  */
@@ -59,6 +67,9 @@ export class GraphView {
   // A preference, not capture state: it names no capture value, so it survives capture replacement.
   protected readonly groupBy = signal<GroupBy>('provider');
   protected readonly groupByOptions = GROUP_BY_OPTIONS;
+  // A preference like groupBy; switching it keeps the selection and inverts its meaning.
+  protected readonly filterMode = signal<FilterMode>('include');
+  protected readonly filterModeOptions = FILTER_MODE_OPTIONS;
   /**
    * Pool emphasised by a `/graph?group=pool&select=<poolId>` cross-link. A
    * plain signal so it outlives the store's first model emission; an ID the
@@ -110,6 +121,7 @@ export class GraphView {
       : buildGraphModel(model.resolutionProjection, {
           participantColors: this.participantColors(),
           selectedRemotes: this.selectedRemotes(),
+          filterMode: this.filterMode(),
           groupBy: this.groupBy(),
           expandedCopyId: this.expandedCopyId(),
           expandedBuildKey: this.expandedBuildKey(),
@@ -201,13 +213,24 @@ export class GraphView {
     this.selectedRemotes.set(next);
   }
 
+  // Ticked = the remote's consumers are shown; in exclude mode nothing selected means all ticked.
+  protected remoteChecked(name: string): boolean {
+    return this.selectedRemotes().has(name) !== (this.filterMode() === 'exclude');
+  }
+
+  protected setFilterMode(mode: FilterMode): void {
+    this.filterMode.set(mode);
+  }
+
   protected clearSelection(): void {
     this.selectedRemotes.set(new Set());
     this.focusedPoolId.set(null);
   }
 
   protected filterLine(count: number): string {
-    return `filtering by ${countClaim(count, 'remote')}`;
+    return this.filterMode() === 'exclude'
+      ? `excluding ${countClaim(count, 'remote')}`
+      : `filtering by ${countClaim(count, 'remote')}`;
   }
 
   protected cappedLine(count: number): string {

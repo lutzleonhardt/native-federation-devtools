@@ -41,6 +41,9 @@ export const LABEL_BASELINE = 17;
 export const LABEL_PAD = 8;
 /** Width reserved at a dependency node's right edge for its expand arrow. */
 export const TOGGLE_W = 14;
+/** Side of a remote node's filter checkbox, and the gap before its label. */
+export const CHECKBOX_SIZE = 10;
+export const CHECKBOX_GAP = 6;
 /** Cluster label baseline inside the cluster header band. */
 export const CLUSTER_LABEL_BASELINE = 15;
 /** Second-line baseline of a chunk stub's qualifier text. */
@@ -78,6 +81,12 @@ export const GROUP_BY_OPTIONS = [
   },
 ] as const;
 export type GroupBy = (typeof GROUP_BY_OPTIONS)[number]['value'];
+
+export const FILTER_MODE_OPTIONS = [
+  { value: 'include', label: 'Include', hint: 'show only the consumers of the selected remotes' },
+  { value: 'exclude', label: 'Exclude', hint: 'hide the consumers of the selected remotes' },
+] as const;
+export type FilterMode = (typeof FILTER_MODE_OPTIONS)[number]['value'];
 
 export type GraphColumnKey = 'remotes' | 'dependencies' | 'chunks';
 
@@ -117,6 +126,9 @@ export interface RemoteGraphNode extends GraphNodeBase {
   kind: 'remote';
   /** The capture's host. */
   isHost: boolean;
+  /** Top-left corner of the filter checkbox. */
+  checkX: number;
+  checkY: number;
 }
 
 export interface DependencyGraphNode extends GraphNodeBase {
@@ -162,9 +174,11 @@ export interface GraphListItem {
   key: string;
   /** Render key of the dependency node it belongs to. */
   ownerKey: string;
-  /** The import name (specifier). */
+  /** The import name (specifier), or the link text of a Packages link row. */
   text: string;
   tooltip: string | null;
+  /** Packages `select` id when the row links to the Packages view; null on an entrypoint row. */
+  packageSelect: string | null;
   x: number;
   y: number;
 }
@@ -288,6 +302,8 @@ export interface GraphBuildOptions {
    * filter is filtered, never "dropped".
    */
   selectedRemotes?: ReadonlySet<string>;
+  /** `exclude` inverts the selection: every remote except the selected ones counts. Defaults to `include`. */
+  filterMode?: FilterMode;
   /** Dependency-column clustering; defaults to `provider`. The node and edge set never depends on it. */
   groupBy?: GroupBy;
   /** Copy whose secondary entrypoints list below it (accordion: at most one). */

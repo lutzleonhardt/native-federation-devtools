@@ -54,6 +54,16 @@
   text-decoration: underline;
 }
 
+.graph-list-link .graph-list-text {
+  font-family: inherit;
+  fill: var(--nf-color-accent);
+  cursor: pointer;
+}
+
+.graph-list-link:hover .graph-list-text {
+  text-decoration: underline;
+}
+
 .graph-chunk-link .graph-node-label {
   fill: var(--nf-color-accent);
   cursor: pointer;
@@ -74,12 +84,14 @@
   color: var(--nf-color-text-muted);
 }
 
-.graph-group-by-button {
+.graph-group-by-button,
+.graph-filter-mode-button {
   font-size: 12px;
   padding: 1px 8px;
 }
 
-.graph-group-by-button.active {
+.graph-group-by-button.active,
+.graph-filter-mode-button.active {
   border-color: var(--nf-color-accent);
   color: var(--nf-color-accent);
 }
@@ -247,6 +259,32 @@
 
 .graph-node.remote {
   cursor: pointer;
+}
+
+/* Remote filter checkbox; ticked = the remote's consumers are shown. */
+.graph-node.remote .graph-remote-check {
+  fill: var(--nf-color-surface);
+  stroke: var(--nf-color-text-muted);
+  stroke-width: 1;
+}
+
+.graph-node.remote .graph-remote-check.checked {
+  fill: var(--nf-color-accent);
+  stroke: var(--nf-color-accent);
+}
+
+.graph-remote-check-mark {
+  fill: none;
+  stroke: var(--nf-color-surface);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.graph-node.remote.excluded .graph-node-label {
+  fill: var(--nf-color-text-muted);
+  text-decoration: line-through;
 }
 
 /* Selected consumer filter: distinct fill plus a heavier stroke. */

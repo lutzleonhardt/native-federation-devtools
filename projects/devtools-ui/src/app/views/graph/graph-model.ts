@@ -2,9 +2,15 @@ import type {
   BundleClaim,
   CanonicalResolutionProjection,
   ChunkGroupProjection,
+  CopyGroupingFacets,
   ResolvedDependencyCopy,
 } from '../../shared/store/resolution';
-import { copySourceRemote, countClaim, participantDisplay } from '../../shared/view-conventions';
+import {
+  copySourceRemote,
+  countClaim,
+  packageId,
+  participantDisplay,
+} from '../../shared/view-conventions';
 import {
   columnX,
   compareStrings,
@@ -103,6 +109,9 @@ export function buildGraphModel(
   // (`droppedRelationIds`, `completeness`) stay selection-independent.
   const selectedRemotes = options.selectedRemotes ?? new Set<string>();
   const filtering = selectedRemotes.size > 0;
+  const excluding = options.filterMode === 'exclude';
+  const consumerShown = (name: string): boolean =>
+    !filtering || selectedRemotes.has(name) !== excluding;
   const consumersByCopyId = new Map<string, Set<string>>();
   for (const relation of projection.consumerRelations) {
     const consumers = consumersByCopyId.get(relation.copyId) ?? new Set<string>();
@@ -110,8 +119,7 @@ export function buildGraphModel(
     consumersByCopyId.set(relation.copyId, consumers);
   }
   const copyKept = (copyId: string): boolean =>
-    !filtering ||
-    [...(consumersByCopyId.get(copyId) ?? [])].some((name) => selectedRemotes.has(name));
+    !filtering || [...(consumersByCopyId.get(copyId) ?? [])].some(consumerShown);
 
   // --- Dependency clustering by evidenced source -------------------------
   const sortedCopies = projection.copies
@@ -156,6 +164,7 @@ export function buildGraphModel(
   let dependencyCursor = MARGIN + HEADER_H;
 
   const listItems: GraphListItem[] = [];
+  const facetsByCopyId = new Map(projection.copyGroupingFacets.map((f) => [f.copyId, f]));
   const expandedCopyId = options.expandedCopyId ?? null;
   const layoutDependencyCluster = (seed: ClusterSeed, entries: typeof sortedCopies): void => {
     const colorIndex = clusterHueOf(seed.hueRemote);
@@ -170,6 +179,10 @@ export function buildGraphModel(
       nodeY += NODE_H + NODE_VGAP;
       if (expanded) {
         const rows = secondaryEntrypointsOf(entry.copy, entry.fullLabel, projection.copies);
+        const packageSelect = packageSelectOf(entry.copy, facetsByCopyId.get(entry.copy.id));
+        if (packageSelect !== null) {
+          rows.push({ text: 'see usage details', tooltip: 'open in Packages', packageSelect });
+        }
         rows.forEach((row, index) => {
           const y = nodeY + index * LIST_ROW_H + LIST_ROW_H - 4;
           listItems.push({
@@ -490,7 +503,7 @@ export function buildGraphModel(
       droppedRelationIds.push(relation.id);
       continue;
     }
-    if (filtering && !selectedRemotes.has(relation.consumerRemote)) {
+    if (!consumerShown(relation.consumerRemote)) {
       continue;
     }
     // A selected (or unfiltered) consumer's relation is exactly what keeps
@@ -629,13 +642,14 @@ function secondaryEntrypointsOf(
   copy: ResolvedDependencyCopy,
   label: string,
   copies: readonly ResolvedDependencyCopy[],
-): Pick<GraphListItem, 'text' | 'tooltip'>[] {
-  const rows = new Map<string, Pick<GraphListItem, 'text' | 'tooltip'>>();
+): Pick<GraphListItem, 'text' | 'tooltip' | 'packageSelect'>[] {
+  const rows = new Map<string, Pick<GraphListItem, 'text' | 'tooltip' | 'packageSelect'>>();
   for (const specifier of Object.keys(copy.entrypoints).sort(compareStrings)) {
     if (specifier !== label) {
       rows.set(specifier, {
         text: specifier,
         tooltip: "secondary entrypoint in this copy's entries map",
+        packageSelect: null,
       });
     }
   }
@@ -652,10 +666,33 @@ function secondaryEntrypointsOf(
       rows.set(name, {
         text: name,
         tooltip: 'secondary entrypoint registered as its own copy (name-derived parent)',
+        packageSelect: null,
       });
     }
   }
   return rows.size > 0
     ? [...rows.values()].sort((a, b) => compareStrings(a.text, b.text))
-    : [{ text: 'no secondary entrypoints', tooltip: null }];
+    : [{ text: 'no secondary entrypoints', tooltip: null, packageSelect: null }];
+}
+
+// Mirrors the Packages view's copyGroupIds: private sources have no Packages row.
+function packageSelectOf(
+  copy: ResolvedDependencyCopy,
+  facets: CopyGroupingFacets | undefined,
+): string | null {
+  if (copy.source.kind === 'private-registration') {
+    return null;
+  }
+  if (copy.source.kind === 'shared-declaration') {
+    const scope = facets?.shareScope ?? null;
+    return scope === null || copy.sourcePackage === null
+      ? null
+      : packageId(scope, copy.sourcePackage);
+  }
+  for (const { resolutionDomain, consumerRegistryPackage } of copy.resolutionContexts) {
+    if (resolutionDomain.kind === 'share-scope') {
+      return packageId(resolutionDomain.name, consumerRegistryPackage);
+    }
+  }
+  return null;
 }

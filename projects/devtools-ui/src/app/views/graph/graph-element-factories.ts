@@ -10,6 +10,8 @@ import {
   participantDisplay,
 } from '../../shared/view-conventions';
 import {
+  CHECKBOX_GAP,
+  CHECKBOX_SIZE,
   COL_GAP,
   DependencyGraphNode,
   GraphEdge,
@@ -130,12 +132,17 @@ export function remoteNodeAt(remote: RemoteProjection, rowIndex: number): Remote
   // Chip convention: the `__NF-HOST__` sentinel reads as `host`; the
   // verbatim name stays reachable as tooltip, and `id` stays canonical.
   const display = participantDisplay(remote.name);
-  const base = nodeBaseAt('remote', remote.name, display, columnX(0), y);
+  const x = columnX(0);
+  // The checkbox takes about two characters of the label budget.
+  const base = nodeBaseAt('remote', remote.name, display, x, y, LABEL_MAX - 2);
   return {
     ...base,
     labelTooltip: display === remote.name ? base.labelTooltip : remote.name,
+    labelX: x + LABEL_PAD + CHECKBOX_SIZE + CHECKBOX_GAP,
     kind: 'remote',
     isHost: remote.isHost,
+    checkX: x + LABEL_PAD,
+    checkY: y + (NODE_H - CHECKBOX_SIZE) / 2,
   };
 }
 

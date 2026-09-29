@@ -231,7 +231,7 @@ function nodeByLabel(el: HTMLElement, kind: 'remote' | 'dependency', label: stri
 }
 
 const TOOLBAR_HINT =
-  'click remotes to filter · click a dependency or build to expand · hover to trace · dashed node = isolated copy · dotted edge = borrowed';
+  'click remotes to include · click a dependency or build to expand · hover to trace · dashed node = isolated copy · dotted edge = borrowed';
 
 describe('GraphView', () => {
   // T1-AC-01: one dependency node with a solid and a dotted consume edge;
@@ -364,11 +364,18 @@ describe('GraphView', () => {
     click(nodeByLabel(el, 'dependency', '@angular/common'));
     expect(Array.from(el.querySelectorAll('.graph-list-text')).map((t) => textOf(t))).toEqual([
       '@angular/common/http',
+      'see usage details',
     ]);
     click(nodeByLabel(el, 'dependency', 'rxjs'));
     expect(Array.from(el.querySelectorAll('.graph-list-text')).map((t) => textOf(t))).toEqual([
       'rxjs/operators',
+      'see usage details',
     ]);
+    const usage = el.querySelector('a.graph-list-link');
+    expect(textOf(usage)).toBe('see usage details');
+    expect(usage?.getAttribute('href')).toBe(
+      `/packages?select=${encodeURIComponent('__GLOBAL__|rxjs')}`,
+    );
     expect(el.querySelectorAll('.graph-node.dependency.expanded').length).toBe(1);
     expect(textOf(nodeByLabel(el, 'dependency', 'rxjs').querySelector('.graph-node-toggle'))).toBe(
       '▾',
@@ -691,6 +698,41 @@ describe('GraphView', () => {
     expect(el.querySelectorAll('.graph-node.dependency').length).toBe(20);
     expect(el.querySelectorAll('.graph-node.remote').length).toBe(3);
     expect(textOf(el.querySelector('.graph-toolbar-hint'))).toBe(TOOLBAR_HINT);
+  });
+
+  // Exclude mode: checkboxes start all ticked, clicking a remote unticks it
+  // and hides its consumers; switching back keeps the selection as an include.
+  it('inverts the remote selection in exclude mode with checkbox feedback', async () => {
+    const { fixture, el } = await createViewFixture('frankenstein-live');
+    const checked = () =>
+      Array.from(el.querySelectorAll('g.graph-node.remote'))
+        .filter((node) => node.getAttribute('aria-checked') === 'true')
+        .map((node) => textOf(node.querySelector('.graph-node-label')));
+    const modeButton = (label: string) =>
+      Array.from(el.querySelectorAll<HTMLButtonElement>('.graph-filter-mode-button')).find(
+        (button) => textOf(button) === label,
+      )!;
+    expect(checked()).toEqual([]);
+
+    modeButton('Exclude').click();
+    fixture.detectChanges();
+    expect(modeButton('Exclude').getAttribute('aria-pressed')).toBe('true');
+    expect(checked()).toEqual(['host', 'mermaid', 'whiteboard']);
+    expect(el.querySelectorAll('.graph-remote-check-mark').length).toBe(3);
+    expect(textOf(el.querySelector('.graph-toolbar-hint'))).toContain('click remotes to exclude');
+
+    nodeByLabel(el, 'remote', 'whiteboard').dispatchEvent(new MouseEvent('click'));
+    fixture.detectChanges();
+    expect(checked()).toEqual(['host', 'mermaid']);
+    expect(nodeByLabel(el, 'remote', 'whiteboard').classList.contains('excluded')).toBe(true);
+    expect(nodeByLabel(el, 'remote', 'whiteboard').classList.contains('selected')).toBe(false);
+    expect(textOf(el.querySelector('.graph-toolbar'))).toContain('excluding 1 remote');
+    expect(el.querySelectorAll('.graph-node.dependency').length).toBeLessThan(20);
+
+    modeButton('Include').click();
+    fixture.detectChanges();
+    expect(checked()).toEqual(['whiteboard']);
+    expect(el.querySelectorAll('.graph-node.dependency').length).toBe(7);
   });
 
   // T3-AC-04: the toolbar switches hint line ↔ filter state; the cap

@@ -28,6 +28,7 @@ import type {
   ResolvedDependencyCopy,
   ResolvedDependencyCopyId,
 } from '../../shared/store/resolution';
+import { buildPackagesVm } from '../packages/packages-view-model';
 import { buildGraphModel, graphAdjacencyOf } from './graph-model';
 import {
   CLUSTER_HEADER,
@@ -792,6 +793,36 @@ describe('buildGraphModel', () => {
     ]);
   });
 
+  // Exclude mode inverts the selection: excluding one remote renders exactly
+  // what including every other remote renders.
+  it('excludes the selected remotes as the complement of including the rest', () => {
+    const projection = projectionOf('frankenstein-live');
+    const all = remoteNodesOf(buildGraphModel(projection)).map((n) => n.id);
+    const excluded = buildGraphModel(projection, {
+      selectedRemotes: new Set(['whiteboard']),
+      filterMode: 'exclude',
+    });
+    expect(excluded).toEqual(
+      buildGraphModel(projection, {
+        selectedRemotes: new Set(all.filter((name) => name !== 'whiteboard')),
+      }),
+    );
+    expect(excluded.edges.some((e) => e.sourceId === 'whiteboard')).toBe(false);
+    expect(dependencyNodesOf(excluded).length).toBeLessThan(20);
+  });
+
+  // Unlike an empty include selection, excluding every remote leaves no consumer.
+  it('renders no dependencies when every remote is excluded', () => {
+    const projection = projectionOf('co-declared-share');
+    const model = buildGraphModel(projection, {
+      selectedRemotes: new Set(['__NF-HOST__', 'mfe1', 'mfe2']),
+      filterMode: 'exclude',
+    });
+    expect(remoteNodesOf(model).length).toBe(3);
+    expect(dependencyNodesOf(model)).toEqual([]);
+    expect(model.edges).toEqual([]);
+  });
+
   // T3-AC-02 (model level): chunk attribution ignores the selection — with
   // only the borrowing consumer (mfe1) selected, the mfe2-sourced copy and
   // its qualified chunk stub stay although the emitter is unselected.
@@ -1031,29 +1062,35 @@ describe('buildGraphModel — accordion', () => {
     const projection = projectionOf('frankenstein-live');
     const common = copyIdOf('frankenstein-live', '@angular/common');
     const model = buildGraphModel(projection, { expandedCopyId: common });
-    expect(model.listItems.map((item) => item.text)).toEqual(['@angular/common/http']);
+    expect(model.listItems.map((item) => [item.text, item.packageSelect])).toEqual([
+      ['@angular/common/http', null],
+      ['see usage details', '__GLOBAL__|@angular/common'],
+    ]);
     expect(
       dependencyNodesOf(model)
         .filter((node) => node.expanded)
         .map((n) => n.label),
     ).toEqual(['@angular/common']);
-    // Rows push the following node down by their height.
+    // Rows (entrypoint + usage link) push the following node down by their height.
     const before = dependencyNodesOf(modelOf('frankenstein-live'));
     const after = dependencyNodesOf(model);
     const index = before.findIndex((node) => node.id === common);
-    expect(after[index + 1].y - before[index + 1].y).toBe(LIST_ROW_H + NODE_VGAP);
+    expect(after[index + 1].y - before[index + 1].y).toBe(2 * LIST_ROW_H + NODE_VGAP);
   });
 
   it('lists a dense build’s own entries-map secondaries', () => {
     const lib = copyIdOf('dense-both', '@nf-lab/dense-lib');
     const model = buildGraphModel(projectionOf('dense-both'), { expandedCopyId: lib });
-    expect(model.listItems.map((item) => item.text)).toEqual(['@nf-lab/dense-lib/extra']);
+    expect(model.listItems.map((item) => [item.text, item.packageSelect])).toEqual([
+      ['@nf-lab/dense-lib/extra', null],
+      ['see usage details', '__GLOBAL__|@nf-lab/dense-lib'],
+    ]);
     const utils = copyIdOf('dense-both', '@nf-lab/utils');
     expect(
       buildGraphModel(projectionOf('dense-both'), { expandedCopyId: utils }).listItems.map(
         (item) => item.text,
       ),
-    ).toEqual(['no secondary entrypoints']);
+    ).toEqual(['no secondary entrypoints', 'see usage details']);
   });
 
   it('collapses build groups to summary rows; one open group shows its files', () => {
@@ -1088,5 +1125,34 @@ describe('buildGraphModel — accordion', () => {
     expect(chunkNodesOf(open).filter((node) => node.summary).length).toBe(3);
     // Grouping and filtering never change the accordion's node identity rule.
     expect(buildGraphModel(projection, { expandedBuildKey: core.key })).toEqual(open);
+  });
+
+  // The "see usage details" link must land on a Packages entry whose detail
+  // lists this very copy — checked against the real Packages VM for every
+  // copy of every fixture, so the two grouping rules cannot drift apart.
+  it('links every expandable copy to the Packages entry that lists it', () => {
+    let linked = 0;
+    for (const fixtureId of Object.keys(FIXTURES) as FixtureId[]) {
+      const model = ingestSnapshot(structuredClone(FIXTURES[fixtureId]));
+      for (const copy of model.resolutionProjection.copies) {
+        const link = buildGraphModel(model.resolutionProjection, {
+          expandedCopyId: copy.id,
+        }).listItems.find((item) => item.packageSelect !== null);
+        if (link === undefined) {
+          continue;
+        }
+        linked += 1;
+        const detail = buildPackagesVm(model, {
+          filter: 'all',
+          selectedParticipant: null,
+          selectedId: link.packageSelect,
+        }).detail;
+        expect(
+          detail?.blocks.map((block) => block.copyId),
+          `${fixtureId}: ${copy.id} -> ${link.packageSelect}`,
+        ).toContain(copy.id);
+      }
+    }
+    expect(linked).toBeGreaterThan(0);
   });
 });
