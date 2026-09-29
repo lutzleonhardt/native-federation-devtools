@@ -177,6 +177,15 @@ describe('buildRemoteDetail — dense capabilities (grouping-and-pooling T1)', (
     expect(labelsOf('synthetic-dense-entries', 'mfe-dense')).not.toContain('dense chunking');
   });
 
+  // Real witnesses from the nf-lab corpus (grouping-and-pooling T2): each build flag alone, and both.
+  it.each([
+    ['dense-chunking-only', ['dense chunking']],
+    ['dense-externals-only', ['multi-entry registrations']],
+    ['dense-both', ['dense chunking', 'multi-entry registrations']],
+  ] as const)('%s: mfe1 shows exactly its dense capabilities', (fixture, expected) => {
+    expect(labelsOf(fixture, 'mfe1').filter((label) => label !== 'SRI')).toEqual(expected);
+  });
+
   it('T1-AC-03: a flat, bundle-less build shows neither dense capability', () => {
     for (const remote of modelOf('non-dense').remotes.map((entity) => entity.name)) {
       const labels = labelsOf('non-dense', remote);

@@ -73,12 +73,16 @@ Why tag pools are derivable: the orchestrator does not persist pools — it reco
 
 ### Instructions
 
-- Add lab scenarios (playground `nf/playground`, `lab/v2-scenarios`)
-  and capture them with `scripts/lab-capture-dump.js`:
+- Add lab scenarios and capture them headlessly. The V2 runner
+  (`nf/playground`, `lab/v2-scenarios`) is not available, so the lab is
+  rebuilt in `native-federation/playground` (checkout
+  `../angular-examples`), branch `lab/grouping-and-pooling`, directory
+  `lab/`; its captures form a second corpus with its own manifest
+  (`captures/manifest-nf-lab.json`, table in `scripts/lab-corpora.mjs`):
   - `dense-chunking-only`, `dense-externals-only`, `dense-both`;
-  - `pool-tag-coherent` — two remotes tag `react`/`react-dom` with
-    `pool: "react"`, compatible versions, one build serves both;
-  - `pool-tag-islanded` — same tags, one remote's `react-dom` resolves
+  - `pool-tag-coherent` — two remotes tag `@nf-lab/ui-core`/`ui-dom`
+    with `pool: "ui"`, compatible versions, one build serves both;
+  - `pool-tag-islanded` — same tags, one remote's `ui-dom` resolves
     `scope` (gate 1), so its whole family stays scoped;
   - `pool-tag-anchored` — three remotes, tags on one family, where
     the global mapping would tear one consumer, so pooling writes a
@@ -137,8 +141,9 @@ Why tag pools are derivable: the orchestrator does not persist pools — it reco
 
 - **T3-AC-01** — `scoped` / `strict-scope` / `scope-isolation` publish
   the expected scope per copy; private copies publish `null`.
-- **T3-AC-02** — `pool-tag-coherent` publishes one pool `react`
-  (members `react`, `react-dom`); both family copies carry its ID;
+- **T3-AC-02** — `pool-tag-coherent` publishes one pool
+  `@nf-lab/ui-core` (members `@nf-lab/ui-core`, `@nf-lab/ui-dom`,
+  formed by `ui`); both family copies carry its ID;
   `pool-tag-orphan` publishes no pool and one orphan tag; `strict-scope`
   publishes none.
 - **T3-AC-03** — projection determinism spec still holds.
