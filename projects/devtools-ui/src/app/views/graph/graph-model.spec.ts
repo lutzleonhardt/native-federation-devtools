@@ -363,11 +363,11 @@ describe('buildGraphModel', () => {
         ],
       }),
     );
-    expect(model.nodes.map((n) => n.label).sort()).toEqual([
-      'alpha-pkg',
-      'https://cdn.test/alpha.js',
-      'named-source',
-    ]);
+    expect(
+      dependencyNodesOf(model)
+        .map((n) => n.label)
+        .sort(),
+    ).toEqual(['alpha-pkg', 'https://cdn.test/alpha.js', 'named-source']);
   });
 
   // T1-AC-04: labels above 36 chars truncate to 35 + `…`, full text as tooltip.
@@ -579,25 +579,28 @@ describe('buildGraphModel', () => {
     }
   });
 
-  // T2-AC-01 (model level): the chunk column renders the host's chunk
-  // groups under `emitter · bundle` heads; claims without registered files
-  // stay qualified stubs.
-  it('derives frankenstein-live chunk clusters as emitter · bundle', () => {
+  // T2-AC-01 (model level): the build-files column renders every build
+  // under `emitter · bundle` heads — each copy's entry files plus its
+  // bundle's chunk files; builds without bundle info head by remote only.
+  it('derives frankenstein-live build-file clusters as emitter · bundle', () => {
     const model = modelOf('frankenstein-live');
     expect(clusterLabelsOf(model, 'chunks')).toEqual([
-      ['host · browser-angular_common', 1],
-      ['host · browser-angular_core', 5],
+      ['host · browser-angular_common', 3],
+      ['host · browser-angular_core', 11],
       ['host · browser-angular_platform_browser', 1],
-      ['host · browser-rxjs', 1],
+      ['host · browser-rxjs', 3],
       ['host · browser-tslib', 1],
+      ['mermaid', 1],
+      ['whiteboard', 7],
     ]);
-    const chunks = chunkNodesOf(model);
-    expect(chunks.length).toBe(9);
-    expect(chunks.filter((n) => n.qualifier === null).length).toBe(7);
+    const files = chunkNodesOf(model);
+    expect(files.length).toBe(27);
+    // The two former source-only stubs are covered by their entry files.
+    expect(files.every((n) => n.qualifier === null && n.href !== null)).toBe(true);
 
-    // 2 copies × browser-angular_common (1 file) + 6 × browser-angular_core
-    // (5 files) + 2 × browser-rxjs (1 file) + 2 stub references = 36.
-    expect(model.bundleEdgeRefs.length).toBe(36);
+    // The 36 chunk references minus the 2 replaced stubs, plus one entry
+    // reference per entrypoint of the 20 copies = 54.
+    expect(model.bundleEdgeRefs.length).toBe(54);
     expect(model.cappedEdges).toBe(0);
     const nodeKeys = new Set(model.nodes.map((n) => n.key));
     for (const ref of model.bundleEdgeRefs) {
@@ -615,10 +618,14 @@ describe('buildGraphModel', () => {
     expect(clusterLabelsOf(model, 'chunks')).toEqual([['mfe2 · browser-shared', 1]]);
     // Every consumer still relates to the copy through consume edges …
     expect(model.edges.length).toBe(projection.consumerRelations.length);
-    // … but the chunk column holds only the emitter's qualified claim.
-    const chunks = chunkNodesOf(model);
-    expect(chunks.map((n) => [n.label, n.qualifier])).toEqual([
-      ['browser-shared', 'source-only — no registered chunk list'],
+    // … but the build-files column holds only the emitter's file: the
+    // source-only bundle needs no stub once its entry file is listed.
+    expect(chunkNodesOf(model).map((n) => [n.label, n.qualifier, n.href])).toEqual([
+      [
+        '_nf_lab_conflict_lib.jvcc6K1csg.js',
+        null,
+        'http://localhost:4300/mfe2/_nf_lab_conflict_lib.jvcc6K1csg.js',
+      ],
     ]);
   });
 
@@ -793,7 +800,7 @@ describe('buildGraphModel', () => {
     expect(clusterLabelsOf(model, 'dependencies')).toEqual([['mfe2', 1]]);
     expect(clusterLabelsOf(model, 'chunks')).toEqual([['mfe2 · browser-shared', 1]]);
     expect(chunkNodesOf(model).map((n) => [n.label, n.qualifier])).toEqual([
-      ['browser-shared', 'source-only — no registered chunk list'],
+      ['_nf_lab_conflict_lib.jvcc6K1csg.js', null],
     ]);
     expect(model.bundleEdgeRefs.length).toBe(1);
     expect(model.edges.map((e) => e.sourceId)).toEqual(['mfe1']);
@@ -821,9 +828,13 @@ describe('buildGraphModel', () => {
     expect(dependencyNodesOf(model).length).toBe(8);
     expect(model.edges.length).toBe(8);
     expect(remoteNodesOf(model).map((n) => n.id)).toEqual(['__NF-HOST__', 'mermaid', 'whiteboard']);
-    // The mermaid/whiteboard copies carry no bundle claims — the chunk
-    // column honestly empties instead of borrowing the host's evidence.
-    expect(chunkNodesOf(model)).toEqual([]);
+    // The mermaid/whiteboard copies carry no bundle claims — the column
+    // lists only their own entry files, never the host's chunk evidence.
+    expect(clusterLabelsOf(model, 'chunks')).toEqual([
+      ['mermaid', 1],
+      ['whiteboard', 7],
+    ]);
+    expect(chunkNodesOf(model).every((n) => n.qualifier === null)).toBe(true);
     const byLabel = new Map(model.clusters.map((c) => [c.label, c.colorIndex]));
     expect(byLabel.get('mermaid')).toBe(1);
     expect(byLabel.get('whiteboard')).toBe(2);

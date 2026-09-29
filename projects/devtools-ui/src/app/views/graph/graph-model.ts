@@ -3,7 +3,7 @@ import type {
   CanonicalResolutionProjection,
   ChunkGroupProjection,
 } from '../../shared/store/resolution';
-import { participantDisplay } from '../../shared/view-conventions';
+import { copySourceRemote, participantDisplay } from '../../shared/view-conventions';
 import {
   columnX,
   compareStrings,
@@ -17,6 +17,7 @@ import {
   remoteNodeAt,
   remoteOrder,
   stubQualifierOf,
+  stubTooltipOf,
 } from './graph-element-factories';
 import { groupDependencies } from './graph-grouping';
 import {
@@ -73,8 +74,8 @@ interface ClusterSeed {
 
 /** Node blueprint of the chunks column before geometry is assigned. */
 type ChunkNodeSeed =
-  | { kind: 'file'; id: string; label: string }
-  | { kind: 'stub'; id: string; label: string; qualifier: string };
+  | { kind: 'file'; id: string; label: string; href: string | null; tooltip: string | null }
+  | { kind: 'stub'; id: string; label: string; qualifier: string; tooltip: string };
 
 export function buildGraphModel(
   projection: CanonicalResolutionProjection,
@@ -219,12 +220,26 @@ export function buildGraphModel(
     dependencyNodes.map((node) => [node.id, node]),
   );
 
-  // --- Chunk column from the copies' bundle claims -----------------------
-  // The chunk column derives exclusively from copies' attached claims (the
-  // selected source path), so pseudo/`mapping-or-exposed` groups are
-  // excluded structurally, not by filter. Claims without registered files
-  // render a qualified stub — uncertainty stays visible, files are never
-  // invented.
+  // --- Build-files column: each copy's entry files and its bundle's chunks
+  // Entry files are the copy's mapped entrypoint targets; chunk files come
+  // only from the copy's attached bundle claims (the selected source path),
+  // so pseudo/`mapping-or-exposed` groups are excluded structurally. Both
+  // share the `remote · bundle` cluster of the build that emitted them.
+  // Chunk files are recorded relative to the emitter's scope, as the orchestrator resolves them.
+  const scopeUrlByRemote = new Map(
+    projection.remotes.map((remote) => [remote.name, remote.resolvedScopeUrl]),
+  );
+  const fileHref = (emitter: string, file: string): string | null => {
+    const scope = scopeUrlByRemote.get(emitter);
+    if (scope === undefined) {
+      return null;
+    }
+    try {
+      return new URL(file, scope).href;
+    } catch {
+      return null;
+    }
+  };
   const claimById = new Map<string, BundleClaim>(
     projection.bundleClaims.map((claim) => [claim.id, claim]),
   );
@@ -234,7 +249,7 @@ export function buildGraphModel(
 
   interface ChunkClusterCollector {
     emitter: string | null;
-    bundle: string;
+    bundle: string | null;
     seeds: ChunkNodeSeed[];
   }
   const chunkClusterByKey = new Map<string, ChunkClusterCollector>();
@@ -244,7 +259,7 @@ export function buildGraphModel(
 
   const collectChunkNode = (
     emitter: string | null,
-    bundle: string,
+    bundle: string | null,
     seed: ChunkNodeSeed,
     copyId: string,
   ): void => {
@@ -263,11 +278,32 @@ export function buildGraphModel(
   };
 
   for (const { copy } of orderedDependencyEntries) {
-    for (const claimId of copy.bundleClaimIds) {
-      const claim = claimById.get(claimId);
-      if (claim === undefined) {
-        continue;
-      }
+    const claims = copy.bundleClaimIds
+      .map((claimId) => claimById.get(claimId))
+      .filter((claim): claim is BundleClaim => claim !== undefined);
+    const bundles = [
+      ...new Set(claims.filter((c) => c.status !== 'ambiguous').map((c) => c.bundle)),
+    ];
+    const entryBuild = {
+      emitter: copySourceRemote(copy),
+      bundle: bundles.length === 1 ? bundles[0] : null,
+    };
+    for (const specifier of Object.keys(copy.entrypoints).sort(compareStrings)) {
+      const target = copy.entrypoints[specifier];
+      collectChunkNode(
+        entryBuild.emitter,
+        entryBuild.bundle,
+        {
+          kind: 'file',
+          id: `entry\n${target}`,
+          label: fileNameOf(target),
+          href: target,
+          tooltip: `entry file of ${specifier}`,
+        },
+        copy.id,
+      );
+    }
+    for (const claim of claims) {
       if (claim.status === 'mapped-source') {
         for (const groupId of claim.chunkGroupIds) {
           const group = groupById.get(groupId);
@@ -280,16 +316,34 @@ export function buildGraphModel(
               group.bundleName ?? claim.bundle,
               // The pair (chunk group, recorded file) is the node identity;
               // equal filenames from different emitters stay distinct.
-              { kind: 'file', id: `${group.id}\n${file}`, label: file },
+              {
+                kind: 'file',
+                id: `${group.id}\n${file}`,
+                label: file,
+                href: fileHref(group.emitterRemote, file),
+                tooltip: null,
+              },
               copy.id,
             );
           }
         }
-      } else {
+      } else if (
+        claim.status === 'ambiguous' ||
+        Object.keys(copy.entrypoints).length === 0 ||
+        claim.sourceRemote !== entryBuild.emitter ||
+        claim.bundle !== entryBuild.bundle
+      ) {
+        // A source-only bundle whose entry file already sits in its cluster needs no stub.
         collectChunkNode(
           claim.sourceRemote,
           claim.bundle,
-          { kind: 'stub', id: claim.id, label: claim.bundle, qualifier: stubQualifierOf(claim) },
+          {
+            kind: 'stub',
+            id: claim.id,
+            label: claim.bundle,
+            qualifier: stubQualifierOf(claim),
+            tooltip: stubTooltipOf(claim),
+          },
           copy.id,
         );
       }
@@ -307,7 +361,10 @@ export function buildGraphModel(
     if ((a.emitter === null) !== (b.emitter === null)) {
       return a.emitter === null ? 1 : -1;
     }
-    return compareStrings(a.emitter ?? '', b.emitter ?? '') || compareStrings(a.bundle, b.bundle);
+    return (
+      compareStrings(a.emitter ?? '', b.emitter ?? '') ||
+      compareStrings(a.bundle ?? '', b.bundle ?? '')
+    );
   });
 
   const chunkNodes: ChunkGraphNode[] = [];
@@ -319,10 +376,13 @@ export function buildGraphModel(
     const x = columnX(2);
     for (const seed of collector.seeds) {
       const height = seed.kind === 'stub' ? STUB_NODE_H : NODE_H;
+      const base = nodeBaseAt('chunk', seed.id, seed.label, x, nodeY);
       const node: ChunkGraphNode = {
-        ...nodeBaseAt('chunk', seed.id, seed.label, x, nodeY),
+        ...base,
+        labelTooltip: seed.tooltip ?? base.labelTooltip,
         kind: 'chunk',
         height,
+        href: seed.kind === 'file' ? seed.href : null,
         qualifier: seed.kind === 'stub' ? seed.qualifier : null,
         qualifierX: x + LABEL_PAD,
         qualifierY: nodeY + QUALIFIER_BASELINE,
@@ -333,10 +393,13 @@ export function buildGraphModel(
     }
     const boxHeight = nodeY - NODE_VGAP - boxY + CLUSTER_PAD;
     const boxX = x - CLUSTER_PAD;
+    const emitter = collector.emitter === null ? null : remoteClusterDisplay(collector.emitter);
     const label =
-      collector.emitter === null
-        ? collector.bundle
-        : `${remoteClusterDisplay(collector.emitter)} · ${collector.bundle}`;
+      emitter === null
+        ? (collector.bundle ?? '(no evidenced source)')
+        : collector.bundle === null
+          ? emitter
+          : `${emitter} · ${collector.bundle}`;
     clusters.push({
       key: clusterKey,
       column: 'chunks',
@@ -430,7 +493,7 @@ export function buildGraphModel(
       },
       {
         key: 'chunks',
-        label: 'Chunks',
+        label: 'Build files',
         x: columnX(2),
         headerX: columnX(2),
         headerY: MARGIN + HEADER_BASELINE,
@@ -483,4 +546,10 @@ export function graphAdjacencyOf(model: GraphModel): ReadonlyMap<string, Readonl
     link(ref.dependencyKey, ref.chunkKey);
   }
   return adjacency;
+}
+
+/** Last path segment of a target URL — the file name a build emitted. */
+function fileNameOf(url: string): string {
+  const path = url.split(/[?#]/)[0];
+  return path.slice(path.lastIndexOf('/') + 1) || url;
 }

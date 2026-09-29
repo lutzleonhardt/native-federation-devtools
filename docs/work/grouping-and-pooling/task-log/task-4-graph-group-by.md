@@ -110,3 +110,19 @@ errors.
   neutral. Bucket renamed `(no build info)`.
 - Specs: `dense-chunking-only` → `mfe1 · browser-shared (2)`;
   `frankenstein-live` → `host · browser-angular_core (6)`; hue pin.
+
+### Amendment: Build files column
+
+- The third column is **Build files**: per build (`remote · bundle`, or
+  the remote alone without bundle info) each copy's entry files (its
+  mapped entrypoint targets) plus the bundle's recorded chunk files.
+  Every file links to its URL (entry files: the mapped target; chunk
+  files: resolved against the emitter's scope URL, as the orchestrator
+  resolves them).
+- A source-only bundle claim no longer renders a "source-only" stub when
+  the copy's entry file already sits in that build's cluster; ambiguous
+  claims keep their stub. Stub wording: "no chunk files recorded for this
+  bundle", with a tooltip explaining it.
+- Spec expectations updated: `frankenstein-live` 27 files in 7 builds
+  (54 hover references), `clean-skip` shows mfe2's entry file instead of
+  the stub, hovering `@angular/core` lights its entry file + 5 chunks.

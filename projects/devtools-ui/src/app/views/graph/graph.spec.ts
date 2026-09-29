@@ -326,7 +326,7 @@ describe('GraphView', () => {
     expect(buttons[2].getAttribute('aria-pressed')).toBe('true');
     expect(
       Array.from(el.querySelectorAll('.graph-cluster-label')).map((label) => textOf(label)),
-    ).toEqual(['pool @nf-lab/ui-core (2)', '(not pooled) (1)']);
+    ).toEqual(['pool @nf-lab/ui-core (2)', '(not pooled) (1)', 'host (1)', 'mfe1 (2)']);
     expect(el.querySelector('.graph-cluster title')?.textContent?.trim()).toBe(
       'formed by: mfe1 "ui", mfe2 "ui"',
     );
@@ -364,35 +364,42 @@ describe('GraphView', () => {
     const el = await createView('frankenstein-live');
 
     const headers = Array.from(el.querySelectorAll('.graph-column-header')).map((h) => textOf(h));
-    expect(headers).toEqual(['Remotes', 'Dependencies', 'Chunks']);
+    expect(headers).toEqual(['Remotes', 'Dependencies', 'Build files']);
     expect(clusterLabels(el)).toEqual([
       'host (12)',
       'mermaid (1)',
       'whiteboard (7)',
-      'host · browser-angular_common (1)',
-      'host · browser-angular_core (5)',
+      'host · browser-angular_common (3)',
+      'host · browser-angular_core (11)',
       'host · browser-angular_platform_browser (1)',
-      'host · browser-rxjs (1)',
+      'host · browser-rxjs (3)',
       'host · browser-tslib (1)',
+      'mermaid (1)',
+      'whiteboard (7)',
     ]);
-    expect(el.querySelectorAll('.graph-node.chunk').length).toBe(9);
-    expect(el.querySelectorAll('.graph-node.chunk.stub').length).toBe(2);
+    expect(el.querySelectorAll('.graph-node.chunk').length).toBe(27);
+    expect(el.querySelectorAll('.graph-node.chunk.stub').length).toBe(0);
+    expect(el.querySelectorAll('a.graph-chunk-link[href]').length).toBe(27);
   });
 
-  // T2-AC-02 + T2-AC-03: the emitting source remote carries the chunk
-  // column's qualified stub, the borrowing consumer contributes nothing,
-  // and no file is fabricated; bundle references stay unrendered (Task 3).
-  it('renders the clean-skip stub under the emitting remote without fabricated files', async () => {
+  // T2-AC-02 + T2-AC-03: the emitting source remote carries the copy's
+  // entry file (linked), the borrowing consumer contributes nothing, and no
+  // chunk file is fabricated; bundle references stay unrendered (Task 3).
+  it('renders the clean-skip entry file under the emitting remote without fabricated chunks', async () => {
     const projection = ingestSnapshot(structuredClone(FIXTURES['clean-skip'])).resolutionProjection;
     const el = await createView('clean-skip');
 
     expect(clusterLabels(el)).toEqual(['mfe2 (1)', 'mfe2 · browser-shared (1)']);
     expect(el.querySelectorAll('.graph-node.chunk').length).toBe(1);
-    const stub = el.querySelector('.graph-node.chunk.stub');
-    expect(textOf(stub?.querySelector('.graph-node-label') ?? null)).toBe('browser-shared');
-    expect(textOf(stub?.querySelector('.graph-node-qualifier') ?? null)).toBe(
-      'source-only — no registered chunk list',
+    expect(el.querySelector('.graph-node.chunk.stub')).toBeNull();
+    const link = el.querySelector('a.graph-chunk-link');
+    expect(textOf(link?.querySelector('.graph-node-label') ?? null)).toBe(
+      '_nf_lab_conflict_lib.jvcc6K1csg.js',
     );
+    expect(link?.getAttribute('href')).toBe(
+      'http://localhost:4300/mfe2/_nf_lab_conflict_lib.jvcc6K1csg.js',
+    );
+    expect(link?.getAttribute('target')).toBe('_blank');
     // Rendered paths are exactly the consume edges (hit + visible per
     // relation) — bundle-edge references wait for the hover trace.
     expect(el.querySelectorAll('path').length).toBe(2 * projection.consumerRelations.length);
@@ -497,11 +504,12 @@ describe('GraphView', () => {
       textOf(group.querySelector('.graph-cluster-label')).startsWith('mermaid'),
     );
     expect(mermaid?.classList.contains('hue-8')).toBe(true);
-    // No other cluster is colored under this lookup.
+    // Only mermaid's clusters are colored under this lookup: its dependency
+    // cluster and its build-files cluster.
     expect(
       clusters.filter((group) => Array.from(group.classList).some((c) => c.startsWith('hue-')))
         .length,
-    ).toBe(1);
+    ).toBe(2);
   });
 
   // ---- Task 3: hover trace and click-to-filter ----
@@ -515,17 +523,18 @@ describe('GraphView', () => {
     core.dispatchEvent(new MouseEvent('mouseenter'));
     fixture.detectChanges();
 
-    // Exactly the hovered copy's 5 references to the browser-angular_core
-    // files appear as bundle edges — nothing else is revealed.
-    expect(el.querySelectorAll('path.graph-bundle-edge').length).toBe(5);
+    // Exactly the hovered copy's entry file plus its 5 browser-angular_core
+    // chunk files appear as bundle edges — nothing else is revealed.
+    expect(el.querySelectorAll('path.graph-bundle-edge').length).toBe(6);
     expect(core.classList.contains('dim')).toBe(false);
     expect(nodeByLabel(el, 'remote', 'host').classList.contains('dim')).toBe(false);
     expect(nodeByLabel(el, 'remote', 'mermaid').classList.contains('dim')).toBe(true);
     expect(nodeByLabel(el, 'remote', 'whiteboard').classList.contains('dim')).toBe(true);
 
     const chunks = Array.from(el.querySelectorAll('g.graph-node.chunk'));
-    expect(chunks.length).toBe(9);
-    expect(chunks.filter((chunk) => !chunk.classList.contains('dim')).length).toBe(5);
+    expect(chunks.length).toBe(27);
+    // Lit: @angular/core's entry file and its 5 chunk files.
+    expect(chunks.filter((chunk) => !chunk.classList.contains('dim')).length).toBe(6);
     const dependencies = Array.from(el.querySelectorAll('g.graph-node.dependency'));
     expect(dependencies.filter((node) => !node.classList.contains('dim')).length).toBe(1);
     const edgeGroups = Array.from(el.querySelectorAll('g.graph-edge-group'));

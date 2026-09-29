@@ -44,7 +44,7 @@
         <svg
           class="graph-canvas"
           role="img"
-          aria-label="Resolution graph: remotes, the dependency copies they resolve to, and the chunk files claimed by the copies' bundles"
+          aria-label="Resolution graph: remotes, the dependency copies they resolve to, and the files of the builds those copies come from"
           [attr.width]="vm.width"
           [attr.height]="vm.height"
           [attr.viewBox]="'0 0 ' + vm.width + ' ' + vm.height"
@@ -177,36 +177,43 @@
                 </g>
               }
               @case ('chunk') {
-                <g
-                  class="graph-node chunk"
-                  [class.stub]="node.qualifier !== null"
-                  [class.dim]="nodeDimmed(node.key)"
-                  (mouseenter)="setHovered(node.key)"
-                  (mouseleave)="setHovered(null)"
+                <a
+                  class="graph-chunk-link"
+                  [attr.href]="node.href"
+                  [attr.target]="node.href ? '_blank' : null"
+                  [attr.rel]="node.href ? 'noopener noreferrer' : null"
                 >
-                  @if (node.labelTooltip) {
-                    <title>{{ node.labelTooltip }}</title>
-                  }
-                  <rect
-                    [attr.x]="node.x"
-                    [attr.y]="node.y"
-                    [attr.width]="node.width"
-                    [attr.height]="node.height"
-                    rx="4"
-                  />
-                  <text class="graph-node-label" [attr.x]="node.labelX" [attr.y]="node.labelY">
-                    {{ node.label }}
-                  </text>
-                  @if (node.qualifier !== null) {
-                    <text
-                      class="graph-node-qualifier"
-                      [attr.x]="node.qualifierX"
-                      [attr.y]="node.qualifierY"
-                    >
-                      {{ node.qualifier }}
+                  <g
+                    class="graph-node chunk"
+                    [class.stub]="node.qualifier !== null"
+                    [class.dim]="nodeDimmed(node.key)"
+                    (mouseenter)="setHovered(node.key)"
+                    (mouseleave)="setHovered(null)"
+                  >
+                    @if (node.labelTooltip) {
+                      <title>{{ node.labelTooltip }}</title>
+                    }
+                    <rect
+                      [attr.x]="node.x"
+                      [attr.y]="node.y"
+                      [attr.width]="node.width"
+                      [attr.height]="node.height"
+                      rx="4"
+                    />
+                    <text class="graph-node-label" [attr.x]="node.labelX" [attr.y]="node.labelY">
+                      {{ node.label }}
                     </text>
-                  }
-                </g>
+                    @if (node.qualifier !== null) {
+                      <text
+                        class="graph-node-qualifier"
+                        [attr.x]="node.qualifierX"
+                        [attr.y]="node.qualifierY"
+                      >
+                        {{ node.qualifier }}
+                      </text>
+                    }
+                  </g>
+                </a>
               }
             }
           }

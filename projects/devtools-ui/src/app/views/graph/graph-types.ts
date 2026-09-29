@@ -140,6 +140,8 @@ export interface ChunkGraphNode extends GraphNodeBase {
   qualifier: string | null;
   qualifierX: number;
   qualifierY: number;
+  /** Recorded file resolved against its emitter's scope URL; null on a stub or an unknown emitter. */
+  href: string | null;
 }
 
 export type GraphNode = RemoteGraphNode | DependencyGraphNode | ChunkGraphNode;

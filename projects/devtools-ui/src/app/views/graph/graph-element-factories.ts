@@ -219,9 +219,16 @@ export function dependencyClusterOf(
   }
 }
 
+/** Tooltip of a chunk stub: why no file is listed. */
+export function stubTooltipOf(claim: BundleClaim): string {
+  return claim.status === 'ambiguous'
+    ? `${claim.bundle} — several source registrations name a bundle; none is chosen, so no chunk files are attributed`
+    : `${claim.bundle} — the copy's source names this bundle, but its remote recorded no split chunk files for it: the copy's own file is the whole output`;
+}
+
 /** Qualifier line of a chunk stub; only `mapped-source` claims list files. */
 export function stubQualifierOf(claim: BundleClaim): string {
   return claim.status === 'ambiguous'
     ? 'ambiguous — no unique source'
-    : 'source-only — no registered chunk list';
+    : 'no chunk files recorded for this bundle';
 }
