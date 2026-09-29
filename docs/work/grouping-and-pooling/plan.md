@@ -129,13 +129,16 @@ Why tag pools are derivable: the orchestrator does not persist pools — it reco
     identical tag strings join only through a shared member;
   - edge `entrypoint → owning package` when both are declared
     (`owningPackage`: `@a/b/c` → `@a/b`, `rxjs/operators` → `rxjs`);
-  - a component is a pool when it holds ≥2 members across ≥2 remotes;
-    pool ID = alphabetically smallest member (the orchestrator's name);
+  - a component is a pool when it holds ≥2 members (`buildPools`); its
+    `remotes` are listed so Task 6 can say a single-remote pool has
+    nothing to coordinate (the orchestrator skips it in `poolFamily`);
+    pool name = smallest member by `localeCompare` (the orchestrator's);
   - the `strict` scope is never pooled;
   - a tagged member whose component stays singleton is published as an
     orphan tag (the orchestrator's typo warning).
-  Publish `tagPools: { id, shareScope, members, tags: {remote, tag}[] }[]`
-  and `orphanTags` on the projection.
+  Published as `tagPools`, `orphanPoolTags` and `copyGroupingFacets`
+  (sibling list in `copies` order, so copies stay unchanged) on the
+  projection; types in `resolution/grouping-model.ts`.
 
 ### Acceptance
 
@@ -148,8 +151,8 @@ Why tag pools are derivable: the orchestrator does not persist pools — it reco
   publishes none.
 - **T3-AC-03** — projection determinism spec still holds.
 - **T3-AC-04** — membership spec pins the union rules on hand-built
-  records: remote-local tags, entrypoint-follows-package, the 2×2
-  threshold, reload-stable naming.
+  records: remote-local tags, entrypoint-follows-package, the
+  2-member threshold, reload-stable naming.
 
 ### Key Locations
 

@@ -13,6 +13,7 @@ import { mergeDocumentMaps, resolveUrl } from '../merge-document-maps';
 import { buildCanonicalProjection } from './build-canonical-projection';
 import { attachBundleClaimIds, deriveBundleClaims } from './derive-bundle-claims';
 import { deriveChunkGroups } from './derive-chunk-groups';
+import { deriveCopyGroupingFacets, deriveTagPools } from './derive-grouping-facets';
 import { deriveResolutionClaims } from './derive-declaration-claims';
 import * as resolutionBarrel from './index';
 import { attachCopyIds, materializeResolvedCopies } from './materialize-resolved-copies';
@@ -152,6 +153,7 @@ function project(snapshot: SnapshotV1): CanonicalResolutionProjection {
   const chunkGroups = deriveChunkGroups(evidence, snapshot.runtime?.sharedChunks ?? {});
   const bundleClaims = deriveBundleClaims(evidence, claims, copies, chunkGroups);
   const attachedCopies = attachBundleClaimIds(copies, bundleClaims);
+  const tagPools = deriveTagPools(evidence);
   return buildCanonicalProjection({
     remotes: Object.entries(snapshot.runtime?.remotes ?? {}).map(([name, remote]) => ({
       name,
@@ -169,6 +171,13 @@ function project(snapshot: SnapshotV1): CanonicalResolutionProjection {
       declarationResolutionClaims,
       attachedCopies,
     ),
+    tagPools,
+    copyGroupingFacets: deriveCopyGroupingFacets(
+      evidence,
+      attachedCopies,
+      bundleClaims,
+      tagPools.tagPools,
+    ),
   });
 }
 
@@ -182,12 +191,15 @@ describe('buildCanonicalProjection — raw-free surface (T6-AC-04)', () => {
       'completeness',
       'consumerRelations',
       'copies',
+      'copyGroupingFacets',
       'declarationResolutionClaims',
       'observedTargetProviders',
+      'orphanPoolTags',
       'packageMeasures',
       'registryServingSlotClaims',
       'remotes',
       'sourceComparisons',
+      'tagPools',
     ]);
     expect(Object.keys(projection.completeness).sort()).toEqual([
       'byConsumer',
@@ -495,7 +507,9 @@ describe('resolution layer surface (T6-AC-06)', () => {
       'buildCanonicalProjection',
       'deriveBundleClaims',
       'deriveChunkGroups',
+      'deriveCopyGroupingFacets',
       'deriveResolutionClaims',
+      'deriveTagPools',
       'materializeResolvedCopies',
       'normalizeRegistryEvidence',
       'projectSharedRows',

@@ -170,6 +170,9 @@ function seededProjection(
     observedTargetProviders: [],
     sourceComparisons: [],
     packageMeasures: [],
+    tagPools: [],
+    orphanPoolTags: [],
+    copyGroupingFacets: [],
     completeness: {
       total: {
         unknownResolutions: 0,

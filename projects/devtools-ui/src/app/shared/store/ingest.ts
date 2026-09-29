@@ -45,7 +45,9 @@ import {
   buildCanonicalProjection,
   deriveBundleClaims,
   deriveChunkGroups,
+  deriveCopyGroupingFacets,
   deriveResolutionClaims,
+  deriveTagPools,
   materializeResolvedCopies,
   normalizeRegistryEvidence,
   projectSharedRows,
@@ -122,6 +124,7 @@ export function ingestSnapshot(snapshot: SnapshotV1): FederationModel {
     canonicalChunkGroups,
   );
   const resolvedCopies = attachBundleClaimIds(materializedCopies, bundleClaims);
+  const tagPools = deriveTagPools(registryEvidence);
   const resolutionProjection = buildCanonicalProjection({
     remotes: remotes.map(({ name, isHost, scopeUrl, resolvedScopeUrl }) => ({
       name,
@@ -138,6 +141,13 @@ export function ingestSnapshot(snapshot: SnapshotV1): FederationModel {
       registryEvidence,
       declarationResolutionClaims,
       resolvedCopies,
+    ),
+    tagPools,
+    copyGroupingFacets: deriveCopyGroupingFacets(
+      registryEvidence,
+      resolvedCopies,
+      bundleClaims,
+      tagPools.tagPools,
     ),
   });
 

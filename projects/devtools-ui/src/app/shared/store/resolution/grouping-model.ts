@@ -1,0 +1,60 @@
+import type { ResolvedDependencyCopyId } from './copies-model';
+import type { ParticipantDeclarationId, RegistryEvidenceId, SharedExternalId } from './model';
+
+export type TagPoolId = RegistryEvidenceId<'tag-pool'>;
+
+/** One participant's explicit `pool` tag on one shared external. */
+export interface PoolTagDeclaration {
+  remote: string;
+  tag: string;
+  packageName: string;
+  declarationId: ParticipantDeclarationId;
+}
+
+/**
+ * A pool as the orchestrator forms it from explicit tags alone (`pool-graph.ts`
+ * `groupByMembership` without auto-pooling edges): the connected component of
+ * `package — (remote, tag)` edges plus `entrypoint — owning package`, with at
+ * least two members, within one non-strict share scope. Auto-pooling is not
+ * persisted, so a pool the runtime widened by npm scope appears here as its
+ * tagged part only.
+ */
+export interface TagPool {
+  id: TagPoolId;
+  /** The alphabetically smallest member — the orchestrator's pool name, not necessarily a tag. */
+  name: string;
+  shareScope: string;
+  /** Registry package names, sorted; entrypoints that joined through their package included. */
+  members: string[];
+  sharedExternalIds: SharedExternalId[];
+  /** The tags that formed the pool, sorted by remote, tag, package. */
+  tags: PoolTagDeclaration[];
+  /** Every remote declaring any member, sorted. */
+  remotes: string[];
+}
+
+/** A tagged shared external that joined nothing (the orchestrator warns "likely a typo"). */
+export interface OrphanPoolTag {
+  shareScope: string;
+  packageName: string;
+  sharedExternalId: SharedExternalId;
+  tags: PoolTagDeclaration[];
+}
+
+export interface TagPoolDerivation {
+  tagPools: TagPool[];
+  orphanPoolTags: OrphanPoolTag[];
+}
+
+/**
+ * Grouping keys of one resolved copy, read off its evidenced source only. A
+ * copy without a unique shared source (private, target-only, sources across
+ * several externals) has no share scope and no pool.
+ */
+export interface CopyGroupingFacets {
+  copyId: ResolvedDependencyCopyId;
+  shareScope: string | null;
+  tagPoolId: TagPoolId | null;
+  /** Sorted distinct bundle names of the copy's bundle claims. */
+  bundles: string[];
+}
