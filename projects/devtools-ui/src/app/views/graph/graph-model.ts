@@ -2,8 +2,9 @@ import type {
   BundleClaim,
   CanonicalResolutionProjection,
   ChunkGroupProjection,
+  ResolvedDependencyCopy,
 } from '../../shared/store/resolution';
-import { copySourceRemote, participantDisplay } from '../../shared/view-conventions';
+import { copySourceRemote, countClaim, participantDisplay } from '../../shared/view-conventions';
 import {
   columnX,
   compareStrings,
@@ -35,9 +36,11 @@ import {
   GraphNode,
   HEADER_BASELINE,
   HEADER_H,
+  GraphListItem,
   HONEST_BUCKETS,
   HonestBucket,
   LABEL_PAD,
+  LIST_ROW_H,
   MARGIN,
   MAX_BUNDLE_EDGES,
   NODE_H,
@@ -152,15 +155,34 @@ export function buildGraphModel(
   const dependencyHueByCopyId = new Map<string, number | null>();
   let dependencyCursor = MARGIN + HEADER_H;
 
+  const listItems: GraphListItem[] = [];
+  const expandedCopyId = options.expandedCopyId ?? null;
   const layoutDependencyCluster = (seed: ClusterSeed, entries: typeof sortedCopies): void => {
     const colorIndex = clusterHueOf(seed.hueRemote);
     const boxY = dependencyCursor;
     let nodeY = boxY + CLUSTER_HEADER + CLUSTER_PAD;
     for (const entry of entries) {
-      dependencyNodes.push(dependencyNodeAt(entry.copy, entry.fullLabel, nodeY));
+      const expanded = entry.copy.id === expandedCopyId;
+      const node = { ...dependencyNodeAt(entry.copy, entry.fullLabel, nodeY), expanded };
+      dependencyNodes.push(node);
       orderedDependencyEntries.push(entry);
       dependencyHueByCopyId.set(entry.copy.id, colorIndex);
       nodeY += NODE_H + NODE_VGAP;
+      if (expanded) {
+        const rows = secondaryEntrypointsOf(entry.copy, entry.fullLabel, projection.copies);
+        rows.forEach((row, index) => {
+          const y = nodeY + index * LIST_ROW_H + LIST_ROW_H - 4;
+          listItems.push({
+            key: `${node.key}\n${row.text}`,
+            ownerKey: node.key,
+            ...row,
+            x: node.x + 2 * LABEL_PAD,
+            y,
+            detailX: node.x + NODE_W - LABEL_PAD,
+          });
+        });
+        nodeY += rows.length * LIST_ROW_H + NODE_VGAP;
+      }
     }
     const boxHeight = nodeY - NODE_VGAP - boxY + CLUSTER_PAD;
     const boxX = columnX(1) - CLUSTER_PAD;
@@ -171,6 +193,7 @@ export function buildGraphModel(
       tooltip: seed.tooltip,
       poolId: seed.poolId ?? null,
       nodeKeys: entries.map((entry) => nodeKeyOf('dependency', entry.copy.id)),
+      expanded: null,
       count: entries.length,
       colorIndex,
       x: boxX,
@@ -369,12 +392,35 @@ export function buildGraphModel(
 
   const chunkNodes: ChunkGraphNode[] = [];
   const chunkNodeById = new Map<string, ChunkGraphNode>();
+  /** Seed ID → rendered node ID: a collapsed cluster's files resolve to its summary node. */
+  const renderedChunkId = new Map<string, string>();
+  const expandedBuildKey =
+    options.expandedBuildKey === undefined ? 'all' : options.expandedBuildKey;
   let chunkCursor = MARGIN + HEADER_H;
   for (const [clusterKey, collector] of orderedChunkClusters) {
     const boxY = chunkCursor;
     let nodeY = boxY + CLUSTER_HEADER + CLUSTER_PAD;
     const x = columnX(2);
-    for (const seed of collector.seeds) {
+    const expanded = expandedBuildKey === 'all' || expandedBuildKey === clusterKey;
+    if (!expanded) {
+      const id = `summary\n${clusterKey}`;
+      const node: ChunkGraphNode = {
+        ...nodeBaseAt('chunk', id, countClaim(collector.seeds.length, 'file'), x, nodeY),
+        labelTooltip: 'click the group to list its files',
+        kind: 'chunk',
+        href: null,
+        summary: true,
+        clusterKey,
+        qualifier: null,
+        qualifierX: x + LABEL_PAD,
+        qualifierY: nodeY + QUALIFIER_BASELINE,
+      };
+      chunkNodes.push(node);
+      chunkNodeById.set(id, node);
+      for (const seed of collector.seeds) renderedChunkId.set(seed.id, id);
+      nodeY += NODE_H + NODE_VGAP;
+    }
+    for (const seed of expanded ? collector.seeds : []) {
       const height = seed.kind === 'stub' ? STUB_NODE_H : NODE_H;
       const base = nodeBaseAt('chunk', seed.id, seed.label, x, nodeY);
       const node: ChunkGraphNode = {
@@ -383,12 +429,15 @@ export function buildGraphModel(
         kind: 'chunk',
         height,
         href: seed.kind === 'file' ? seed.href : null,
+        summary: false,
+        clusterKey,
         qualifier: seed.kind === 'stub' ? seed.qualifier : null,
         qualifierX: x + LABEL_PAD,
         qualifierY: nodeY + QUALIFIER_BASELINE,
       };
       chunkNodes.push(node);
       chunkNodeById.set(node.id, node);
+      renderedChunkId.set(seed.id, node.id);
       nodeY += height + NODE_VGAP;
     }
     const boxHeight = nodeY - NODE_VGAP - boxY + CLUSTER_PAD;
@@ -406,7 +455,12 @@ export function buildGraphModel(
       label,
       tooltip: null,
       poolId: null,
-      nodeKeys: collector.seeds.map((seed) => nodeKeyOf('chunk', seed.id)),
+      nodeKeys: [
+        ...new Set(
+          collector.seeds.map((seed) => nodeKeyOf('chunk', renderedChunkId.get(seed.id)!)),
+        ),
+      ],
+      expanded,
       count: collector.seeds.length,
       colorIndex: clusterHueOf(collector.emitter),
       x: boxX,
@@ -446,7 +500,16 @@ export function buildGraphModel(
   // --- Bundle-edge references (rendered by the hover trace only) ---------
   const referenceCap = edges.length + MAX_BUNDLE_EDGES;
   const bundleEdgeRefs: BundleEdgeRef[] = [];
-  for (const pair of refPairs.slice(0, referenceCap)) {
+  // A collapsed group's files share one summary node: their references merge.
+  const renderedPairs = [
+    ...new Map(
+      refPairs.map((pair) => {
+        const chunkNodeId = renderedChunkId.get(pair.chunkNodeId)!;
+        return [`${pair.copyId}\n${chunkNodeId}`, { copyId: pair.copyId, chunkNodeId }];
+      }),
+    ).values(),
+  ];
+  for (const pair of renderedPairs.slice(0, referenceCap)) {
     const dependency = dependencyNodeById.get(pair.copyId)!;
     const chunk = chunkNodeById.get(pair.chunkNodeId)!;
     bundleEdgeRefs.push({
@@ -462,7 +525,7 @@ export function buildGraphModel(
       ),
     });
   }
-  const cappedEdges = Math.max(0, refPairs.length - referenceCap);
+  const cappedEdges = Math.max(0, renderedPairs.length - referenceCap);
 
   // --- Canvas ------------------------------------------------------------
   const nodes: GraphNode[] = [...remoteNodes, ...dependencyNodes, ...chunkNodes];
@@ -501,6 +564,7 @@ export function buildGraphModel(
     ],
     clusters,
     nodes,
+    listItems,
     edges,
     bundleEdgeRefs,
     cappedEdges,
@@ -552,4 +616,47 @@ export function graphAdjacencyOf(model: GraphModel): ReadonlyMap<string, Readonl
 function fileNameOf(url: string): string {
   const path = url.split(/[?#]/)[0];
   return path.slice(path.lastIndexOf('/') + 1) || url;
+}
+
+/**
+ * Rows of an expanded dependency: entrypoints of its own `entries` map beyond
+ * the package itself (dense builds), then sibling copies registered under a
+ * secondary name of the package by the same source (flat builds; the
+ * name-derived parent rule of Packages).
+ */
+function secondaryEntrypointsOf(
+  copy: ResolvedDependencyCopy,
+  label: string,
+  copies: readonly ResolvedDependencyCopy[],
+): Pick<GraphListItem, 'text' | 'detail' | 'tooltip'>[] {
+  const rows = new Map<string, Pick<GraphListItem, 'text' | 'detail' | 'tooltip'>>();
+  for (const specifier of Object.keys(copy.entrypoints).sort(compareStrings)) {
+    if (specifier !== label) {
+      rows.set(specifier, {
+        text: specifier,
+        detail: fileNameOf(copy.entrypoints[specifier]),
+        tooltip: "secondary entrypoint in this copy's entries map",
+      });
+    }
+  }
+  const source = copySourceRemote(copy);
+  for (const other of [...copies].sort((a, b) => compareStrings(a.id, b.id))) {
+    const name = other.sourcePackage;
+    if (
+      other.id !== copy.id &&
+      name !== null &&
+      name.startsWith(`${label}/`) &&
+      !rows.has(name) &&
+      copySourceRemote(other) === source
+    ) {
+      rows.set(name, {
+        text: name,
+        detail: other.resolvedTag,
+        tooltip: 'secondary entrypoint registered as its own copy (name-derived parent)',
+      });
+    }
+  }
+  return rows.size > 0
+    ? [...rows.values()].sort((a, b) => compareStrings(a.text, b.text))
+    : [{ text: 'no secondary entrypoints', detail: null, tooltip: null }];
 }

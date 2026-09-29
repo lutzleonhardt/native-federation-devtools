@@ -11,6 +11,41 @@
   color: var(--nf-color-text-muted);
 }
 
+.graph-cluster.toggle,
+.graph-node.dependency,
+.graph-node.chunk.summary {
+  cursor: pointer;
+}
+
+.graph-node.dependency.expanded rect {
+  stroke: var(--nf-color-accent);
+}
+
+.graph-node.chunk.summary .graph-node-label {
+  fill: var(--nf-color-text-muted);
+  font-style: italic;
+}
+
+.graph-cluster-toggle {
+  font-size: 11px;
+  fill: var(--nf-color-text-muted);
+}
+
+.graph-list-text,
+.graph-list-detail {
+  font-family: var(--nf-font-mono);
+  font-size: 10px;
+  fill: var(--nf-color-text-muted);
+}
+
+.graph-list-detail {
+  text-anchor: end;
+}
+
+.graph-list-item.dim {
+  opacity: 0.25;
+}
+
 .graph-cluster.focused rect {
   stroke: var(--nf-color-accent);
   stroke-width: 2;

@@ -156,6 +156,7 @@ export function dependencyNodeAt(
     subLabel: tag === null ? null : tag.label,
     subLabelTooltip: tag === null ? null : tag.labelTooltip,
     isolated: isIsolated(copy),
+    expanded: false,
     subLabelX: x + NODE_W - LABEL_PAD,
     subLabelY: y + LABEL_BASELINE,
   };

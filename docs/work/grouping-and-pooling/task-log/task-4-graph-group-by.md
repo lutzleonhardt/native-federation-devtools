@@ -126,3 +126,21 @@ errors.
 - Spec expectations updated: `frankenstein-live` 27 files in 7 builds
   (54 hover references), `clean-skip` shows mfe2's entry file instead of
   the stub, hovering `@angular/core` lights its entry file + 5 chunks.
+
+### Amendment: accordion
+
+- **Dependencies:** clicking a copy opens a small list below it — its
+  entries-map secondaries (dense builds, with their file) and sibling
+  secondary copies of the same source (flat builds, name-derived parent,
+  with their tag); "no secondary entrypoints" otherwise. One open copy at
+  a time; clicking it again closes it.
+- **Build files:** every build group starts collapsed to one `N files`
+  summary row; clicking the group header (▸/▾ at its right edge) or the
+  summary row opens it and closes the previously open one. A collapsed
+  group's hover references merge onto its summary row, so the trace still
+  works; the reference cap applies to the rendered references.
+- Builder options `expandedCopyId` / `expandedBuildKey` (`'all'` default,
+  so model specs keep seeing every file); component state is
+  `linkedSignal`-reset per capture like the other interaction state.
+- New specs: flat and dense secondary rows, row push-down geometry,
+  collapsed summaries and merged references, one-open-per-column DOM.

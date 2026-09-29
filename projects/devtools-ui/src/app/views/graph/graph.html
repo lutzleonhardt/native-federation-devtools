@@ -32,8 +32,8 @@
           </button>
         } @else {
           <span class="graph-toolbar-line graph-toolbar-hint">
-            click remotes to filter · hover to trace · dashed node = isolated copy · dotted edge =
-            borrowed
+            click remotes to filter · click a dependency or build to expand · hover to trace ·
+            dashed node = isolated copy · dotted edge = borrowed
           </span>
         }
         @if (vm.cappedEdges > 0) {
@@ -60,6 +60,8 @@
               class="graph-cluster"
               [class]="cluster.colorIndex !== null ? 'hue-' + cluster.colorIndex : ''"
               [class.focused]="clusterFocused(cluster.poolId)"
+              [class.toggle]="cluster.expanded !== null"
+              (click)="cluster.expanded !== null && toggleBuild(cluster.key)"
             >
               @if (cluster.tooltip) {
                 <title>{{ cluster.tooltip }}</title>
@@ -74,6 +76,16 @@
               <text class="graph-cluster-label" [attr.x]="cluster.labelX" [attr.y]="cluster.labelY">
                 {{ cluster.label }} ({{ cluster.count }})
               </text>
+              @if (cluster.expanded !== null) {
+                <text
+                  class="graph-cluster-toggle"
+                  [attr.x]="cluster.x + cluster.width - 8"
+                  [attr.y]="cluster.labelY"
+                  text-anchor="end"
+                >
+                  {{ cluster.expanded ? '▾' : '▸' }}
+                </text>
+              }
               @if (cluster.poolId) {
                 <a
                   class="graph-cluster-link"
@@ -114,6 +126,21 @@
               [attr.d]="edge.path"
             />
           }
+          @for (item of vm.listItems; track item.key) {
+            <g class="graph-list-item" [class.dim]="nodeDimmed(item.ownerKey)">
+              @if (item.tooltip) {
+                <title>{{ item.tooltip }}</title>
+              }
+              <text class="graph-list-text" [attr.x]="item.x" [attr.y]="item.y">
+                {{ item.text }}
+              </text>
+              @if (item.detail) {
+                <text class="graph-list-detail" [attr.x]="item.detailX" [attr.y]="item.y">
+                  {{ item.detail }}
+                </text>
+              }
+            </g>
+          }
           @for (node of vm.nodes; track node.key) {
             @switch (node.kind) {
               @case ('remote') {
@@ -144,6 +171,8 @@
               @case ('dependency') {
                 <g
                   class="graph-node dependency"
+                  [class.expanded]="node.expanded"
+                  (click)="toggleDependency(node.id)"
                   [class.isolated]="node.isolated"
                   [class.dim]="nodeDimmed(node.key)"
                   (mouseenter)="setHovered(node.key)"
@@ -185,6 +214,8 @@
                 >
                   <g
                     class="graph-node chunk"
+                    [class.summary]="node.summary"
+                    (click)="node.summary && toggleBuild(node.clusterKey)"
                     [class.stub]="node.qualifier !== null"
                     [class.dim]="nodeDimmed(node.key)"
                     (mouseenter)="setHovered(node.key)"

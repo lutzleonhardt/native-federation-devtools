@@ -38,6 +38,7 @@ import {
   GraphModel,
   HEADER_H,
   LABEL_MAX,
+  LIST_ROW_H,
   MARGIN,
   MAX_BUNDLE_EDGES,
   NODE_H,
@@ -1016,5 +1017,69 @@ describe('buildGraphModel — group-by (grouping-and-pooling T4)', () => {
       );
     }
     expect(groupedModel('frankenstein-live', 'provider')).toEqual(modelOf('frankenstein-live'));
+  });
+});
+
+// Accordion: an open dependency lists its secondary entrypoints; build-files
+// groups collapse to one summary row unless open (at most one per column).
+describe('buildGraphModel — accordion', () => {
+  const copyIdOf = (id: FixtureId, label: string) =>
+    dependencyNodesOf(modelOf(id)).find((node) => node.label === label)!.id;
+
+  it('lists a flat build’s secondary copies under the open dependency', () => {
+    const projection = projectionOf('frankenstein-live');
+    const common = copyIdOf('frankenstein-live', '@angular/common');
+    const model = buildGraphModel(projection, { expandedCopyId: common });
+    expect(model.listItems.map((item) => [item.text, item.detail])).toEqual([
+      ['@angular/common/http', '21.2.12'],
+    ]);
+    expect(
+      dependencyNodesOf(model)
+        .filter((node) => node.expanded)
+        .map((n) => n.label),
+    ).toEqual(['@angular/common']);
+    // Rows push the following node down by their height.
+    const before = dependencyNodesOf(modelOf('frankenstein-live'));
+    const after = dependencyNodesOf(model);
+    const index = before.findIndex((node) => node.id === common);
+    expect(after[index + 1].y - before[index + 1].y).toBe(LIST_ROW_H + NODE_VGAP);
+  });
+
+  it('lists a dense build’s own entries-map secondaries with their files', () => {
+    const lib = copyIdOf('dense-both', '@nf-lab/dense-lib');
+    const model = buildGraphModel(projectionOf('dense-both'), { expandedCopyId: lib });
+    expect(model.listItems.map((item) => item.text)).toEqual(['@nf-lab/dense-lib/extra']);
+    expect(model.listItems[0].detail).toMatch(/^_nf_lab_dense_lib_extra\..*\.js$/);
+    const utils = copyIdOf('dense-both', '@nf-lab/utils');
+    expect(
+      buildGraphModel(projectionOf('dense-both'), { expandedCopyId: utils }).listItems.map(
+        (item) => item.text,
+      ),
+    ).toEqual(['no secondary entrypoints']);
+  });
+
+  it('collapses build groups to summary rows; one open group shows its files', () => {
+    const projection = projectionOf('frankenstein-live');
+    const collapsed = buildGraphModel(projection, { expandedBuildKey: null });
+    expect(chunkNodesOf(collapsed).every((node) => node.summary)).toBe(true);
+    expect(chunkNodesOf(collapsed).map((node) => node.label)).toEqual([
+      '3 files',
+      '11 files',
+      '1 file',
+      '3 files',
+      '1 file',
+      '1 file',
+      '7 files',
+    ]);
+    // One summary reference per (copy, build): 20 copies, one build each.
+    expect(collapsed.bundleEdgeRefs.length).toBe(20);
+
+    const core = collapsed.clusters.find((c) => c.label === 'host · browser-angular_core')!;
+    const open = buildGraphModel(projection, { expandedBuildKey: core.key });
+    expect(open.clusters.find((c) => c.key === core.key)!.expanded).toBe(true);
+    expect(chunkNodesOf(open).filter((node) => !node.summary).length).toBe(11);
+    expect(chunkNodesOf(open).filter((node) => node.summary).length).toBe(6);
+    // Grouping and filtering never change the accordion's node identity rule.
+    expect(buildGraphModel(projection, { expandedBuildKey: core.key })).toEqual(open);
   });
 });

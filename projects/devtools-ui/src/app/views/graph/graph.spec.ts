@@ -79,6 +79,10 @@ async function createView(fixtureId: FixtureId | null, extraProviders: Provider[
  * default here.
  */
 async function createSeededView(projection: CanonicalResolutionProjection): Promise<HTMLElement> {
+  return (await createSeededViewFixture(projection)).el;
+}
+
+async function createSeededViewFixture(projection: CanonicalResolutionProjection) {
   await TestBed.configureTestingModule({
     imports: [GraphView],
     providers: [
@@ -91,7 +95,7 @@ async function createSeededView(projection: CanonicalResolutionProjection): Prom
   }).compileComponents();
   const fixture = TestBed.createComponent(GraphView);
   fixture.detectChanges();
-  return fixture.nativeElement as HTMLElement;
+  return { fixture, el: fixture.nativeElement as HTMLElement };
 }
 
 /** Minimal canonical seeds (branded-ID casts) for the seeded harness. */
@@ -201,6 +205,17 @@ function textOf(node: Element | null): string {
 }
 
 /** Normalized cluster label texts in render order. */
+/** Opens a build-files group (the column starts collapsed) by clicking its header. */
+function openBuild(el: HTMLElement, label: string): void {
+  const group = Array.from(el.querySelectorAll<SVGGElement>('g.graph-cluster.toggle')).find(
+    (candidate) => textOf(candidate.querySelector('.graph-cluster-label')).startsWith(label),
+  );
+  if (group === undefined) {
+    throw new Error(`no build group labelled ${label}`);
+  }
+  group.dispatchEvent(new MouseEvent('click'));
+}
+
 function clusterLabels(el: HTMLElement): string[] {
   return Array.from(el.querySelectorAll('.graph-cluster-label')).map((label) => textOf(label));
 }
@@ -216,7 +231,7 @@ function nodeByLabel(el: HTMLElement, kind: 'remote' | 'dependency', label: stri
 }
 
 const TOOLBAR_HINT =
-  'click remotes to filter · hover to trace · dashed node = isolated copy · dotted edge = borrowed';
+  'click remotes to filter · click a dependency or build to expand · hover to trace · dashed node = isolated copy · dotted edge = borrowed';
 
 describe('GraphView', () => {
   // T1-AC-01: one dependency node with a solid and a dotted consume edge;
@@ -339,6 +354,42 @@ describe('GraphView', () => {
     }
   });
 
+  // Accordion: one open dependency and one open build group at a time.
+  it('opens one dependency and one build group at a time', async () => {
+    const { fixture, el } = await createViewFixture('frankenstein-live');
+    const click = (node: Element) => {
+      node.dispatchEvent(new MouseEvent('click'));
+      fixture.detectChanges();
+    };
+    click(nodeByLabel(el, 'dependency', '@angular/common'));
+    expect(Array.from(el.querySelectorAll('.graph-list-text')).map((t) => textOf(t))).toEqual([
+      '@angular/common/http',
+    ]);
+    click(nodeByLabel(el, 'dependency', 'rxjs'));
+    expect(Array.from(el.querySelectorAll('.graph-list-text')).map((t) => textOf(t))).toEqual([
+      'rxjs/operators',
+    ]);
+    expect(el.querySelectorAll('.graph-node.dependency.expanded').length).toBe(1);
+    click(nodeByLabel(el, 'dependency', 'rxjs'));
+    expect(el.querySelectorAll('.graph-list-item').length).toBe(0);
+
+    openBuild(el, 'host · browser-rxjs');
+    fixture.detectChanges();
+    expect(el.querySelectorAll('.graph-node.chunk:not(.summary)').length).toBe(3);
+    openBuild(el, 'whiteboard');
+    fixture.detectChanges();
+    expect(el.querySelectorAll('.graph-node.chunk:not(.summary)').length).toBe(7);
+    const toggleOf = (label: string) =>
+      Array.from(el.querySelectorAll('g.graph-cluster.toggle'))
+        .find((group) => textOf(group.querySelector('.graph-cluster-label')).startsWith(label))!
+        .querySelector('.graph-cluster-toggle');
+    expect(textOf(toggleOf('whiteboard'))).toBe('▾');
+    expect(textOf(toggleOf('host · browser-rxjs'))).toBe('▸');
+    // A summary row toggles its group too.
+    click(el.querySelector('.graph-node.chunk.summary')!);
+    expect(el.querySelectorAll('.graph-node.chunk:not(.summary)').length).toBe(3);
+  });
+
   // T1-AC-06: a capture producing no nodes says so; a missing snapshot
   // reuses the panel's existing empty wording.
   it('renders the two empty states honestly', async () => {
@@ -377,9 +428,10 @@ describe('GraphView', () => {
       'mermaid (1)',
       'whiteboard (7)',
     ]);
-    expect(el.querySelectorAll('.graph-node.chunk').length).toBe(27);
-    expect(el.querySelectorAll('.graph-node.chunk.stub').length).toBe(0);
-    expect(el.querySelectorAll('a.graph-chunk-link[href]').length).toBe(27);
+    // The build-files column starts collapsed: one summary row per build.
+    expect(el.querySelectorAll('.graph-node.chunk').length).toBe(7);
+    expect(el.querySelectorAll('.graph-node.chunk.summary').length).toBe(7);
+    expect(el.querySelectorAll('a.graph-chunk-link[href]').length).toBe(0);
   });
 
   // T2-AC-02 + T2-AC-03: the emitting source remote carries the copy's
@@ -387,9 +439,12 @@ describe('GraphView', () => {
   // chunk file is fabricated; bundle references stay unrendered (Task 3).
   it('renders the clean-skip entry file under the emitting remote without fabricated chunks', async () => {
     const projection = ingestSnapshot(structuredClone(FIXTURES['clean-skip'])).resolutionProjection;
-    const el = await createView('clean-skip');
+    const { fixture, el } = await createViewFixture('clean-skip');
 
     expect(clusterLabels(el)).toEqual(['mfe2 (1)', 'mfe2 · browser-shared (1)']);
+    expect(textOf(el.querySelector('.graph-node.chunk.summary .graph-node-label'))).toBe('1 file');
+    openBuild(el, 'mfe2 · browser-shared');
+    fixture.detectChanges();
     expect(el.querySelectorAll('.graph-node.chunk').length).toBe(1);
     expect(el.querySelector('.graph-node.chunk.stub')).toBeNull();
     const link = el.querySelector('a.graph-chunk-link');
@@ -519,6 +574,8 @@ describe('GraphView', () => {
   // everything else dims; leaving the graph area restores everything.
   it('reveals the hovered dependency bundle edges and dims the untraced rest', async () => {
     const { fixture, el } = await createViewFixture('frankenstein-live');
+    openBuild(el, 'host · browser-angular_core');
+    fixture.detectChanges();
     const core = nodeByLabel(el, 'dependency', '@angular/core');
     core.dispatchEvent(new MouseEvent('mouseenter'));
     fixture.detectChanges();
@@ -531,8 +588,9 @@ describe('GraphView', () => {
     expect(nodeByLabel(el, 'remote', 'mermaid').classList.contains('dim')).toBe(true);
     expect(nodeByLabel(el, 'remote', 'whiteboard').classList.contains('dim')).toBe(true);
 
+    // The open group's 11 files plus the other six builds' summary rows.
     const chunks = Array.from(el.querySelectorAll('g.graph-node.chunk'));
-    expect(chunks.length).toBe(27);
+    expect(chunks.length).toBe(17);
     // Lit: @angular/core's entry file and its 5 chunk files.
     expect(chunks.filter((chunk) => !chunk.classList.contains('dim')).length).toBe(6);
     const dependencies = Array.from(el.querySelectorAll('g.graph-node.dependency'));
@@ -671,7 +729,7 @@ describe('GraphView', () => {
     const files = Array.from({ length: 100 }, (_, i) => `chunk-${i}.js`);
     const copyIds = Array.from({ length: copyCount }, (_, i) => `copy-${i}`);
     expect(copyCount * files.length).toBe(MAX_BUNDLE_EDGES + 100);
-    const el = await createSeededView(
+    const { fixture, el } = await createSeededViewFixture(
       seededProjection({
         remotes: [
           {
@@ -689,6 +747,10 @@ describe('GraphView', () => {
       }),
     );
 
+    // Collapsed, the 4100 references merge onto one summary row per copy.
+    expect(el.querySelector('.graph-toolbar-cap')).toBeNull();
+    openBuild(el, 'host · bundle-x');
+    fixture.detectChanges();
     expect(textOf(el.querySelector('.graph-toolbar-cap'))).toBe(
       '99 additional bundle links hidden to keep the graph responsive.',
     );

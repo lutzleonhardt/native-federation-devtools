@@ -87,6 +87,16 @@ export class GraphView {
     return cluster === undefined ? null : new Set(cluster.nodeKeys);
   });
 
+  // Accordion state per column: at most one open copy and one open build group.
+  protected readonly expandedCopyId = linkedSignal({
+    source: this.store.model,
+    computation: (): string | null => null,
+  });
+  protected readonly expandedBuildKey = linkedSignal({
+    source: this.store.model,
+    computation: (): string | null => null,
+  });
+
   /** Render key of the hovered node; null without a hover. */
   protected readonly hovered = linkedSignal({
     source: this.store.model,
@@ -101,6 +111,8 @@ export class GraphView {
           participantColors: this.participantColors(),
           selectedRemotes: this.selectedRemotes(),
           groupBy: this.groupBy(),
+          expandedCopyId: this.expandedCopyId(),
+          expandedBuildKey: this.expandedBuildKey(),
         });
   });
 
@@ -151,6 +163,14 @@ export class GraphView {
       nodeKeyOf('remote', edge.sourceId) !== hovered &&
       nodeKeyOf('dependency', edge.targetId) !== hovered
     );
+  }
+
+  protected toggleDependency(copyId: string): void {
+    this.expandedCopyId.update((open) => (open === copyId ? null : copyId));
+  }
+
+  protected toggleBuild(clusterKey: string): void {
+    this.expandedBuildKey.update((open) => (open === clusterKey ? null : clusterKey));
   }
 
   protected setGroupBy(groupBy: GroupBy): void {

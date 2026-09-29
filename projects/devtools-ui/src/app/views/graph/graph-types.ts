@@ -25,6 +25,9 @@ export const CLUSTER_VGAP = 20;
 /** Two-line chunk stub (bundle name + qualifier) of a claim without files. */
 export const STUB_NODE_H = 40;
 
+/** Row height of an expanded dependency's entrypoint list. */
+export const LIST_ROW_H = 16;
+
 /**
  * Bundle-edge reference budget on top of the consume edges: references are
  * capped at `edges.length + MAX_BUNDLE_EDGES`; the overflow count is
@@ -128,6 +131,8 @@ export interface DependencyGraphNode extends GraphNodeBase {
   /** Right-aligned sub-label anchor (text-anchor: end). */
   subLabelX: number;
   subLabelY: number;
+  /** The accordion-open copy: its secondary entrypoints list below it. */
+  expanded: boolean;
 }
 
 export interface ChunkGraphNode extends GraphNodeBase {
@@ -142,6 +147,24 @@ export interface ChunkGraphNode extends GraphNodeBase {
   qualifierY: number;
   /** Recorded file resolved against its emitter's scope URL; null on a stub or an unknown emitter. */
   href: string | null;
+  /** Stand-in for a collapsed build group (`N files`); its references are the group's. */
+  summary: boolean;
+  /** Key of the build-files cluster the node belongs to (the accordion toggle target). */
+  clusterKey: string;
+}
+
+/** One row of an expanded dependency's secondary-entrypoint list. */
+export interface GraphListItem {
+  key: string;
+  /** Render key of the dependency node it belongs to. */
+  ownerKey: string;
+  text: string;
+  /** Right-aligned detail (tag or file); null without one. */
+  detail: string | null;
+  tooltip: string | null;
+  x: number;
+  y: number;
+  detailX: number;
 }
 
 export type GraphNode = RemoteGraphNode | DependencyGraphNode | ChunkGraphNode;
@@ -159,6 +182,8 @@ export interface GraphCluster {
   poolId: string | null;
   /** Render keys of the enclosed nodes. */
   nodeKeys: string[];
+  /** Build-files clusters collapse to one summary node; null on dependency clusters. */
+  expanded: boolean | null;
   /** Number of enclosed nodes. */
   count: number;
   /**
@@ -217,6 +242,7 @@ export interface GraphModel {
   columns: GraphColumn[];
   clusters: GraphCluster[];
   nodes: GraphNode[];
+  listItems: GraphListItem[];
   edges: GraphEdge[];
   /** Capped at `edges.length + MAX_BUNDLE_EDGES`; overflow in `cappedEdges`. */
   bundleEdgeRefs: BundleEdgeRef[];
@@ -262,4 +288,11 @@ export interface GraphBuildOptions {
   selectedRemotes?: ReadonlySet<string>;
   /** Dependency-column clustering; defaults to `provider`. The node and edge set never depends on it. */
   groupBy?: GroupBy;
+  /** Copy whose secondary entrypoints list below it (accordion: at most one). */
+  expandedCopyId?: string | null;
+  /**
+   * Open build-files cluster (accordion: at most one); every other cluster
+   * collapses to a summary node. `'all'` (the default) opens every cluster.
+   */
+  expandedBuildKey?: string | null | 'all';
 }
