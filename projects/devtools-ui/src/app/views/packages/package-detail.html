@@ -146,6 +146,14 @@
                   "
                   >{{ consumer.declared.text }}</span
                 >
+                @if (consumer.pool; as pool) {
+                  <span
+                    class="pool-chip tip"
+                    [class.pool-chip-orphan]="pool.orphan"
+                    [title]="pool.note"
+                    >pool: {{ pool.tag }}</span
+                  >
+                }
                 @if (consumer.strict) {
                   <span
                     class="consumer-strict tip"
@@ -231,6 +239,11 @@
             "
             >{{ row.declared.text }}</span
           >
+          @if (row.pool; as pool) {
+            <span class="pool-chip tip" [class.pool-chip-orphan]="pool.orphan" [title]="pool.note"
+              >pool: {{ pool.tag }}</span
+            >
+          }
           @if (row.strict) {
             <span
               class="consumer-strict tip"

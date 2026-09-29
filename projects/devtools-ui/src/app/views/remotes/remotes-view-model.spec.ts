@@ -1174,3 +1174,39 @@ describe('buildRemoteDetail — private claim states ground on mappingState (T8-
     expect(scoped.claims.map((claim) => claim.file)).toEqual(['main.js', 'extra.js']);
   });
 });
+
+// grouping-and-pooling T5: pool chips in the remote's provides / consumes rows.
+describe('buildRemoteDetail — pool chips (grouping-and-pooling T5)', () => {
+  const tagsOf = (fixture: keyof typeof FIXTURES, remote: string) => {
+    const detail = detailOf(fixture, remote);
+    const rows = [
+      ...detail.provides.flatMap((block) => [block, ...block.secondaries]),
+      ...detail.consumes,
+      ...detail.unresolved,
+    ];
+    return Object.fromEntries(rows.map((row) => [row.packageName, row.pool?.tag ?? null]));
+  };
+
+  it('T5-AC-01: mfe1 provides the tagged family; mfe2 consumes it, tagged too', () => {
+    expect(tagsOf('pool-tag-coherent', 'mfe1')).toEqual({
+      '@nf-lab/ui-core': 'ui',
+      '@nf-lab/ui-dom': 'ui',
+    });
+    expect(tagsOf('pool-tag-coherent', 'mfe2')).toEqual({
+      '@nf-lab/ui-core': 'ui',
+      '@nf-lab/ui-dom': 'ui',
+    });
+    expect(tagsOf('pool-tag-anchored', 'mfe3')).toEqual({
+      '@nf-lab/ui-core': null,
+      '@nf-lab/ui-dom': null,
+    });
+  });
+
+  it('T5-AC-01: the orphan tag is flagged on its declaring remote', () => {
+    const detail = detailOf('pool-tag-orphan', 'mfe1');
+    const core = [...detail.provides, ...detail.consumes].find(
+      (row) => row.packageName === '@nf-lab/ui-core',
+    )!;
+    expect(core.pool).toMatchObject({ tag: 'ui', orphan: true });
+  });
+});

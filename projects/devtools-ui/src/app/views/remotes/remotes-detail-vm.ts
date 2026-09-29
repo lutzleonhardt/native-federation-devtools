@@ -24,6 +24,7 @@
  * `model.effectiveConsumerResolutions`, `model.registryEvidence` — by ID
  * only. Nothing re-derives elections, share counts, or source semantics.
  */
+import { PoolChipVm, poolChipOf } from '../../shared/pool-chip';
 import type { FederationModel, RemoteEntity } from '../../shared/store/federation-model';
 import type {
   BundleClaimStatus,
@@ -115,6 +116,8 @@ export interface ProvidesBlockVm {
   packageSelect: string;
   /** Verbatim share-scope chip; null in the global scope. */
   scopeLabel: string | null;
+  /** This remote's explicit pool tag on the package; null when untagged. */
+  pool: PoolChipVm | null;
   resolvedTag: string | null;
   /** Why the tag is unknown; null while `resolvedTag` exists. */
   unknownTagNote: string | null;
@@ -153,6 +156,7 @@ export interface ConsumesRowVm {
   packageName: string;
   packageSelect: string;
   scopeLabel: string | null;
+  pool: PoolChipVm | null;
   declared: DeclaredDisplayVm;
   strict: boolean;
   /** Claimed specifier when it is not the registry key itself. */
@@ -173,6 +177,7 @@ export interface RemoteUnresolvedRowVm {
   packageName: string;
   packageSelect: string;
   scopeLabel: string | null;
+  pool: PoolChipVm | null;
   declared: DeclaredDisplayVm;
   strict: boolean;
   /** Claimed specifier when it is not the registry key itself; null otherwise. */
@@ -650,6 +655,7 @@ function zonesOf(
           packageName: row.external.packageName,
           packageSelect: packageId(row.external.shareScope, row.external.packageName),
           scopeLabel: scopeLabelOf(row.external),
+          pool: poolChipOf(row.declaration, model.resolutionProjection),
           resolvedTag: copy.resolvedTag,
           unknownTagNote: copy.resolvedTag === null ? UNKNOWN_TAG_NOTE : null,
           declared: declaredDisplayOf(row),
@@ -678,6 +684,7 @@ function zonesOf(
       packageName: row.external.packageName,
       packageSelect: packageId(row.external.shareScope, row.external.packageName),
       scopeLabel: scopeLabelOf(row.external),
+      pool: poolChipOf(row.declaration, model.resolutionProjection),
       strict: row.declaration.strictVersion,
     };
     if (row.claims.length === 0) {

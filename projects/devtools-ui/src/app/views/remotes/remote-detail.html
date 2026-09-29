@@ -98,6 +98,11 @@
                 >{{ block.scopeLabel }}</span
               >
             }
+            @if (block.pool; as pool) {
+              <span class="pool-chip tip" [class.pool-chip-orphan]="pool.orphan" [title]="pool.note"
+                >pool: {{ pool.tag }}</span
+              >
+            }
             @if (block.resolvedTag !== null) {
               <span class="copy-tag">{{ block.resolvedTag }}</span>
             } @else {
@@ -256,6 +261,11 @@
               >{{ row.scopeLabel }}</span
             >
           }
+          @if (row.pool; as pool) {
+            <span class="pool-chip tip" [class.pool-chip-orphan]="pool.orphan" [title]="pool.note"
+              >pool: {{ pool.tag }}</span
+            >
+          }
           @if (row.via) {
             <span class="consumer-via mono tip" title="the claimed specifier of this declaration"
               >via {{ row.via }}</span
@@ -354,6 +364,11 @@
               class="dep-scope"
               [title]="'share scope — configured via shareScope: ' + row.scopeLabel"
               >{{ row.scopeLabel }}</span
+            >
+          }
+          @if (row.pool; as pool) {
+            <span class="pool-chip tip" [class.pool-chip-orphan]="pool.orphan" [title]="pool.note"
+              >pool: {{ pool.tag }}</span
             >
           }
           <span class="consumer-declared mono tip" [title]="row.declared.note">{{
