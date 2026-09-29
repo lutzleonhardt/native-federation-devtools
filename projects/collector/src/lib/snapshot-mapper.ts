@@ -70,12 +70,14 @@ type RepositoryKey = (typeof REPOSITORY_KEYS)[number];
  * `rawProbe` is the evaluated `PASSIVE_PROBE_SOURCE` result; `rawShimMap`
  * is the evaluated `SHIM_MAP_PROBE_SOURCE` result, or `null`/`undefined`
  * when the shim probe was not run (e.g. because the main probe reported no
- * readable `importShim`).
+ * readable `importShim`). `rawStorage` is the evaluated
+ * `STORAGE_PROBE_SOURCE` result when `storageProbeIndicated` held.
  */
 export function mapProbeResult(
   rawProbe: unknown,
   rawShimMap: unknown,
   context: CaptureContext,
+  rawStorage?: unknown,
 ): SnapshotV1 {
   const limits = DEFAULT_LIMITS;
   const errors: CollectionError[] = [];
@@ -102,7 +104,7 @@ export function mapProbeResult(
   const pageUrl = mapPageUrl(dataValue(rawProbe, 'page'), errors, limits);
   const globals = dataValue(rawProbe, 'globals');
 
-  const { nfChannel, runtime, runtimeSource } = mapRuntime(globals, errors, limits);
+  const { nfChannel, runtime, runtimeSource } = mapRuntime(globals, rawStorage, errors, limits);
   const { domChannel, documentMaps } = mapDocumentMaps(
     dataValue(rawProbe, 'importMaps'),
     errors,
@@ -201,6 +203,10 @@ interface DescriptorEntry {
 
 const DEFAULT_NAMESPACE = '__NATIVE_FEDERATION__';
 
+type WebStorage = 'localStorage' | 'sessionStorage';
+
+const WEB_STORAGES: readonly WebStorage[] = ['localStorage', 'sessionStorage'];
+
 function readDescriptorEntries(orchestrator: unknown): DescriptorEntry[] {
   const entries = dataValue(orchestrator, 'entries');
   if (!Array.isArray(entries)) {
@@ -221,6 +227,27 @@ function readDescriptorEntries(orchestrator: unknown): DescriptorEntry[] {
   return output;
 }
 
+/**
+ * Gate for `STORAGE_PROBE_SOURCE`, shared by the bridge and the capture
+ * pipeline: the descriptor names a web storage, or a descriptor-less page
+ * has no default global (orchestrator < 4.7 configured with web storage).
+ */
+export function storageProbeIndicated(rawProbe: unknown): boolean {
+  const summary = dataValue(dataValue(rawProbe, 'globals'), 'nativeFederation');
+  if (!isObjectLike(dataValue(summary, 'source'))) {
+    return false;
+  }
+  const source = readProbeSource(summary);
+  if (source.discovery === 'descriptor') {
+    return isWebStorage(source.type);
+  }
+  return dataValue(summary, 'present') === false;
+}
+
+function isWebStorage(type: unknown): type is WebStorage {
+  return type === 'localStorage' || type === 'sessionStorage';
+}
+
 function readProbeSource(summary: unknown): ProbeSource {
   const source = dataValue(summary, 'source');
   const namespace = dataValue(source, 'namespace');
@@ -233,6 +260,7 @@ function readProbeSource(summary: unknown): ProbeSource {
 
 function mapRuntime(
   globals: unknown,
+  rawStorage: unknown,
   errors: CollectionError[],
   limits: CollectorLimits,
 ): RuntimeResult {
@@ -250,12 +278,43 @@ function mapRuntime(
       .filter((namespace) => namespace !== source.namespace),
   });
 
+  const storage = readStorageProbe(rawStorage, source, errors, limits);
+
   if (source.type === 'globalThis') {
     const result = mapGlobalRuntime(summary, source.namespace, errors, limits);
     if (result.nfChannel.state === 'available' || source.discovery === 'descriptor') {
       result.runtimeSource = describe('globalThis');
+      return result;
     }
-    return result;
+    // Only an absent default global falls back to web storage; a present but odd one stays as is.
+    if (storage === null || result.nfChannel.state !== 'unavailable') {
+      return result;
+    }
+    const found = WEB_STORAGES.filter((name) => storageHoldsState(storage[name]));
+    if (found.length === 0) {
+      return {
+        nfChannel: {
+          state: 'unavailable',
+          reason: `${result.nfChannel.reason}; no state in localStorage or sessionStorage`,
+        },
+        runtime: null,
+      };
+    }
+    if (found.length > 1) {
+      appendError(errors, limits, 'mapper', 'storage-ambiguous');
+    }
+    return {
+      ...mapWebStorage(storage[found[0]], found[0], errors, limits),
+      runtimeSource: describe(found[0]),
+    };
+  }
+  if (isWebStorage(source.type)) {
+    return {
+      ...(storage === null
+        ? { nfChannel: { state: 'unavailable', reason: 'storage probe result unavailable' }, runtime: null }
+        : mapWebStorage(storage[source.type], source.type, errors, limits)),
+      runtimeSource: describe(source.type),
+    };
   }
   if (source.type === 'custom') {
     appendError(errors, limits, 'mapper', 'custom-storage-unsupported');
@@ -275,6 +334,86 @@ function mapRuntime(
     },
     runtime: null,
   };
+}
+
+type StorageProbeStores = Partial<Record<WebStorage, unknown>>;
+
+/**
+ * Validates the storage probe result against the passive probe's source:
+ * both probes choose independently, so a page that changed its descriptor
+ * between the two evals must not have one namespace's data reported as
+ * another's.
+ */
+function readStorageProbe(
+  rawStorage: unknown,
+  source: ProbeSource,
+  errors: CollectionError[],
+  limits: CollectorLimits,
+): StorageProbeStores | null {
+  if (rawStorage === null || rawStorage === undefined) {
+    return null;
+  }
+  if (!isObjectLike(rawStorage) || dataValue(rawStorage, 'schemaVersion') !== 'storage-probe/1') {
+    appendError(errors, limits, 'mapper', 'storage-probe-result-invalid');
+    return null;
+  }
+  carryErrors(dataValue(rawStorage, 'errors'), errors, limits);
+  const probed = dataValue(rawStorage, 'source');
+  if (
+    dataValue(probed, 'namespace') !== source.namespace ||
+    dataValue(probed, 'discovery') !== source.discovery
+  ) {
+    appendError(errors, limits, 'mapper', 'storage-source-mismatch');
+    return null;
+  }
+  const storages = dataValue(rawStorage, 'storages');
+  const output: StorageProbeStores = {};
+  for (const name of WEB_STORAGES) {
+    output[name] = dataValue(storages, name);
+  }
+  return output;
+}
+
+function storageHoldsState(store: unknown): boolean {
+  const items = dataValue(store, 'items');
+  return REPOSITORY_KEYS.some((key) => dataValue(dataValue(items, key), 'present') === true);
+}
+
+function mapWebStorage(
+  store: unknown,
+  name: WebStorage,
+  errors: CollectionError[],
+  limits: CollectorLimits,
+): RuntimeResult {
+  if (dataValue(store, 'available') !== true) {
+    return { nfChannel: { state: 'unavailable', reason: `${name} is not accessible` }, runtime: null };
+  }
+  const items = dataValue(store, 'items');
+  const repositories: Record<string, unknown> = {};
+  for (const key of REPOSITORY_KEYS) {
+    const item = dataValue(items, key);
+    if (dataValue(item, 'present') === false) {
+      repositories[key] = { present: false };
+      continue;
+    }
+    const text = dataValue(item, 'text');
+    if (typeof text !== 'string') {
+      continue;
+    }
+    try {
+      repositories[key] = { present: true, descriptor: 'data', value: JSON.parse(text) };
+    } catch {
+      appendError(errors, limits, 'mapper', 'storage-json-invalid', { path: `${name}.${key}` });
+    }
+  }
+  const result = mapRepositories(repositories, name, errors, limits);
+  if (result.nfChannel.state === 'not-recognized' && !storageHoldsState(store)) {
+    return {
+      nfChannel: { state: 'unavailable', reason: `no Native Federation state in ${name}` },
+      runtime: null,
+    };
+  }
+  return result;
 }
 
 function mapGlobalRuntime(

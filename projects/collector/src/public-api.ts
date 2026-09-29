@@ -8,5 +8,5 @@
 export { PASSIVE_PROBE_SOURCE } from './lib/passive-probe';
 export { SHIM_MAP_PROBE_SOURCE } from './lib/shim-map-probe';
 export { STORAGE_PROBE_SOURCE } from './lib/storage-probe';
-export { mapProbeResult, type CaptureContext } from './lib/snapshot-mapper';
+export { mapProbeResult, storageProbeIndicated, type CaptureContext } from './lib/snapshot-mapper';
 export { COLLECTOR_VERSION } from './lib/constants';
