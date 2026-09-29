@@ -370,6 +370,12 @@ describe('GraphView', () => {
       'rxjs/operators',
     ]);
     expect(el.querySelectorAll('.graph-node.dependency.expanded').length).toBe(1);
+    expect(textOf(nodeByLabel(el, 'dependency', 'rxjs').querySelector('.graph-node-toggle'))).toBe(
+      '▾',
+    );
+    expect(
+      textOf(nodeByLabel(el, 'dependency', '@angular/common').querySelector('.graph-node-toggle')),
+    ).toBe('▸');
     click(nodeByLabel(el, 'dependency', 'rxjs'));
     expect(el.querySelectorAll('.graph-list-item').length).toBe(0);
 
@@ -450,7 +456,7 @@ describe('GraphView', () => {
     expect(el.querySelector('.graph-cluster.toggle')).toBeNull();
     expect(el.querySelectorAll('.graph-node.chunk').length).toBe(1);
     expect(el.querySelector('.graph-node.chunk.stub')).toBeNull();
-    const link = el.querySelector('a.graph-chunk-link');
+    const link = el.querySelector('.graph-node.chunk a.graph-chunk-link');
     expect(textOf(link?.querySelector('.graph-node-label') ?? null)).toBe(
       '_nf_lab_conflict_lib.jvcc6K1csg.js',
     );
@@ -458,6 +464,17 @@ describe('GraphView', () => {
       'http://localhost:4300/mfe2/_nf_lab_conflict_lib.jvcc6K1csg.js',
     );
     expect(link?.getAttribute('target')).toBe('_blank');
+    // The click opens the tab itself instead of relying on SVG link navigation.
+    const open = vi.spyOn(window, 'open').mockReturnValue(null);
+    const click = new MouseEvent('click', { cancelable: true });
+    link!.dispatchEvent(click);
+    expect(open).toHaveBeenCalledWith(
+      'http://localhost:4300/mfe2/_nf_lab_conflict_lib.jvcc6K1csg.js',
+      '_blank',
+      'noopener',
+    );
+    expect(click.defaultPrevented).toBe(true);
+    open.mockRestore();
     // Rendered paths are exactly the consume edges (hit + visible per
     // relation) — bundle-edge references wait for the hover trace.
     expect(el.querySelectorAll('path').length).toBe(2 * projection.consumerRelations.length);

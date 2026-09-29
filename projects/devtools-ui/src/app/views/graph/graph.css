@@ -26,7 +26,8 @@
   font-style: italic;
 }
 
-.graph-cluster-toggle {
+.graph-cluster-toggle,
+.graph-node-toggle {
   font-size: 11px;
   fill: var(--nf-color-text-muted);
 }
@@ -50,6 +51,15 @@
   font-size: 11px;
   fill: var(--nf-color-accent);
   cursor: pointer;
+  text-decoration: underline;
+}
+
+.graph-chunk-link .graph-node-label {
+  fill: var(--nf-color-accent);
+  cursor: pointer;
+}
+
+.graph-chunk-link:hover .graph-node-label {
   text-decoration: underline;
 }
 

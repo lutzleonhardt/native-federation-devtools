@@ -371,7 +371,8 @@ describe('buildGraphModel', () => {
     ).toEqual(['alpha-pkg', 'https://cdn.test/alpha.js', 'named-source']);
   });
 
-  // T1-AC-04: labels above LABEL_MAX (44) chars truncate to 43 + `…`, full text as tooltip.
+  // T1-AC-04: labels above the budget truncate with `…`, full text as tooltip.
+  // Dependency nodes give two chars of LABEL_MAX (44) to the expand arrow → 41 + `…`.
   it('truncates long labels and keeps the full text as tooltip', () => {
     const long = '@nf-lab/a-very-long-package-name-that-overflows';
     const short = 'fits-within-the-limit';
@@ -385,8 +386,8 @@ describe('buildGraphModel', () => {
     );
     // Codepoint label sort puts `@nf-lab/…` before `fits-…`.
     const [truncated, fits] = model.nodes;
-    expect(truncated.label).toBe(`${long.slice(0, LABEL_MAX - 1)}…`);
-    expect(truncated.label.length).toBe(LABEL_MAX);
+    expect(truncated.label).toBe(`${long.slice(0, LABEL_MAX - 3)}…`);
+    expect(truncated.label.length).toBe(LABEL_MAX - 2);
     expect(truncated.labelTooltip).toBe(long);
     expect(fits.label).toBe(short);
     expect(fits.labelTooltip).toBeNull();
@@ -403,9 +404,9 @@ describe('buildGraphModel', () => {
       }),
     );
     const [node] = dependencyNodesOf(model);
-    // Budget = LABEL_MAX - 7 (tag) - 2 (gap) = 35 → 34 chars + `…`.
-    expect(node.label).toBe(`${long.slice(0, 34)}…`);
-    expect(node.label.length).toBe(35);
+    // Budget = LABEL_MAX - 2 (arrow) - 7 (tag) - 2 (gap) = 33 → 32 chars + `…`.
+    expect(node.label).toBe(`${long.slice(0, 32)}…`);
+    expect(node.label.length).toBe(33);
     expect(node.labelTooltip).toBe(long);
     expect(node.subLabel).toBe('21.2.12');
     expect(node.subLabelTooltip).toBeNull();
@@ -431,9 +432,9 @@ describe('buildGraphModel', () => {
     expect(node.subLabel).toBe(`${tag.slice(0, SUB_LABEL_MAX - 1)}…`);
     expect(node.subLabel!.length).toBe(SUB_LABEL_MAX);
     expect(node.subLabelTooltip).toBe(tag);
-    // Label budget from the displayed tag: 44 - 16 - 2 = 26 chars.
-    expect(node.label.length).toBe(26);
-    expect(node.label.length + 2 + node.subLabel!.length).toBeLessThanOrEqual(LABEL_MAX);
+    // Label budget from the displayed tag: 44 - 2 (arrow) - 16 - 2 = 24 chars.
+    expect(node.label.length).toBe(24);
+    expect(node.label.length + 2 + node.subLabel!.length + 2).toBeLessThanOrEqual(LABEL_MAX);
   });
 
   // A claim-less relation carries no deviation evidence: the all-own-selected

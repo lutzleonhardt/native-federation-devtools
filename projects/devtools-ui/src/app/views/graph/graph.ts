@@ -169,6 +169,12 @@ export class GraphView {
     this.expandedCopyId.update((open) => (open === copyId ? null : copyId));
   }
 
+  // Opened explicitly: the SVG link's own target="_blank" did nothing in the DevTools panel.
+  protected openFile(event: MouseEvent, href: string): void {
+    event.preventDefault();
+    window.open(href, '_blank', 'noopener');
+  }
+
   protected toggleBuild(clusterKey: string): void {
     this.expandedBuildKey.update((open) => (open === clusterKey ? null : clusterKey));
   }

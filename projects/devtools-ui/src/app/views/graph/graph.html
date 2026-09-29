@@ -198,48 +198,63 @@
                       {{ node.subLabel }}
                     </text>
                   }
+                  <text
+                    class="graph-node-toggle"
+                    [attr.x]="node.toggleX"
+                    [attr.y]="node.subLabelY"
+                    text-anchor="end"
+                  >
+                    {{ node.expanded ? '▾' : '▸' }}
+                  </text>
                 </g>
               }
               @case ('chunk') {
-                <a
-                  class="graph-chunk-link"
-                  [attr.href]="node.href"
-                  [attr.target]="node.href ? '_blank' : null"
-                  [attr.rel]="node.href ? 'noopener noreferrer' : null"
+                <g
+                  class="graph-node chunk"
+                  [class.summary]="node.summary"
+                  (click)="node.summary && toggleBuild(node.clusterKey)"
+                  [class.stub]="node.qualifier !== null"
+                  [class.dim]="nodeDimmed(node.key)"
+                  (mouseenter)="setHovered(node.key)"
+                  (mouseleave)="setHovered(null)"
                 >
-                  <g
-                    class="graph-node chunk"
-                    [class.summary]="node.summary"
-                    (click)="node.summary && toggleBuild(node.clusterKey)"
-                    [class.stub]="node.qualifier !== null"
-                    [class.dim]="nodeDimmed(node.key)"
-                    (mouseenter)="setHovered(node.key)"
-                    (mouseleave)="setHovered(null)"
-                  >
-                    @if (node.labelTooltip) {
-                      <title>{{ node.labelTooltip }}</title>
-                    }
-                    <rect
-                      [attr.x]="node.x"
-                      [attr.y]="node.y"
-                      [attr.width]="node.width"
-                      [attr.height]="node.height"
-                      rx="4"
-                    />
+                  @if (node.labelTooltip) {
+                    <title>{{ node.labelTooltip }}</title>
+                  }
+                  <rect
+                    [attr.x]="node.x"
+                    [attr.y]="node.y"
+                    [attr.width]="node.width"
+                    [attr.height]="node.height"
+                    rx="4"
+                  />
+                  @if (node.href) {
+                    <a
+                      class="graph-chunk-link"
+                      [attr.href]="node.href"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      (click)="openFile($event, node.href)"
+                    >
+                      <text class="graph-node-label" [attr.x]="node.labelX" [attr.y]="node.labelY">
+                        {{ node.label }}
+                      </text>
+                    </a>
+                  } @else {
                     <text class="graph-node-label" [attr.x]="node.labelX" [attr.y]="node.labelY">
                       {{ node.label }}
                     </text>
-                    @if (node.qualifier !== null) {
-                      <text
-                        class="graph-node-qualifier"
-                        [attr.x]="node.qualifierX"
-                        [attr.y]="node.qualifierY"
-                      >
-                        {{ node.qualifier }}
-                      </text>
-                    }
-                  </g>
-                </a>
+                  }
+                  @if (node.qualifier !== null) {
+                    <text
+                      class="graph-node-qualifier"
+                      [attr.x]="node.qualifierX"
+                      [attr.y]="node.qualifierY"
+                    >
+                      {{ node.qualifier }}
+                    </text>
+                  }
+                </g>
               }
             }
           }

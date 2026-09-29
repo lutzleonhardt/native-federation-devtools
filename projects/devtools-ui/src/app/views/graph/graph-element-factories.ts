@@ -26,6 +26,7 @@ import {
   NODE_W,
   RemoteGraphNode,
   SUB_LABEL_MAX,
+  TOGGLE_W,
 } from './graph-types';
 
 /**
@@ -58,7 +59,9 @@ function truncated(
  * never exceed `LABEL_MAX`; the floor is a pure defensive bound.
  */
 function dependencyLabelBudget(shownTag: string | null): number {
-  return shownTag === null ? LABEL_MAX : Math.max(12, LABEL_MAX - shownTag.length - 2);
+  // The expand arrow takes about two characters of the label budget.
+  const budget = LABEL_MAX - 2;
+  return shownTag === null ? budget : Math.max(12, budget - shownTag.length - 2);
 }
 
 /**
@@ -157,8 +160,9 @@ export function dependencyNodeAt(
     subLabelTooltip: tag === null ? null : tag.labelTooltip,
     isolated: isIsolated(copy),
     expanded: false,
-    subLabelX: x + NODE_W - LABEL_PAD,
+    subLabelX: x + NODE_W - LABEL_PAD - TOGGLE_W,
     subLabelY: y + LABEL_BASELINE,
+    toggleX: x + NODE_W - LABEL_PAD,
   };
 }
 

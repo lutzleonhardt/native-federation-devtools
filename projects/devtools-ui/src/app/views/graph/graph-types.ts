@@ -39,6 +39,8 @@ export const MAX_BUNDLE_EDGES = 4000;
 export const HEADER_BASELINE = 18;
 export const LABEL_BASELINE = 17;
 export const LABEL_PAD = 8;
+/** Width reserved at a dependency node's right edge for its expand arrow. */
+export const TOGGLE_W = 14;
 /** Cluster label baseline inside the cluster header band. */
 export const CLUSTER_LABEL_BASELINE = 15;
 /** Second-line baseline of a chunk stub's qualifier text. */
@@ -131,6 +133,8 @@ export interface DependencyGraphNode extends GraphNodeBase {
   /** Right-aligned sub-label anchor (text-anchor: end). */
   subLabelX: number;
   subLabelY: number;
+  /** Right-aligned expand-arrow anchor. */
+  toggleX: number;
   /** The accordion-open copy: its secondary entrypoints list below it. */
   expanded: boolean;
 }
