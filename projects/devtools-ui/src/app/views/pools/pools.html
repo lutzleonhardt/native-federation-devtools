@@ -1,0 +1,86 @@
+<section class="view pools-view">
+  <h1>Pools</h1>
+  @if (vm(); as vm) {
+    <p class="pools-definition">
+      {{ definition }}
+      <a [href]="docsUrl" target="_blank" rel="noopener noreferrer">Pooling docs</a>
+    </p>
+    @if (vm.emptyNote) {
+      <p class="view-observation">{{ vm.emptyNote }}</p>
+    }
+    @for (pool of vm.pools; track pool.id) {
+      <article class="pool-card" [attr.data-pool-id]="pool.id">
+        <header class="pool-head">
+          <h2 class="pool-name mono">pool {{ pool.name }}</h2>
+          @if (pool.scopeLabel) {
+            <span
+              class="pool-scope mono"
+              [title]="'share scope — configured via shareScope: ' + pool.scopeLabel"
+              >{{ pool.scopeLabel }}</span
+            >
+          }
+          <span class="pool-meta">{{ pool.counts }} · formed by: {{ pool.formedBy }}</span>
+        </header>
+        <table class="pool-matrix">
+          <thead>
+            <tr>
+              <th scope="col"></th>
+              @for (remote of pool.remotes; track remote.name) {
+                <th scope="col">
+                  <nf-participant-chip [name]="remote.name" [host]="remote.host" />
+                </th>
+              }
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of pool.rows; track row.packageName) {
+              <tr>
+                <th scope="row" class="mono">{{ row.packageName }}</th>
+                @for (cell of row.cells; track $index) {
+                  <td class="mono" [class.pool-cell-scoped]="cell.scoped">
+                    {{ cell.text }}
+                    @if (cell.poolTag) {
+                      <span class="pool-chip" title="pool tag declared by this remote">{{
+                        cell.poolTag
+                      }}</span>
+                    }
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+        @if (pool.pendingNote) {
+          <p class="view-observation">{{ pool.pendingNote }}</p>
+        }
+        <ul class="pool-outcomes">
+          @for (outcome of pool.outcomes; track outcome.remote.name) {
+            <li class="pool-outcome">
+              <nf-participant-chip [name]="outcome.remote.name" [host]="outcome.remote.host" />
+              <span class="pool-sentence">{{ outcome.sentence }}</span>
+              @if (outcome.finding) {
+                <span class="pool-finding">{{ outcome.finding }}</span>
+              }
+            </li>
+          }
+        </ul>
+        @for (note of pool.notes; track note) {
+          <p class="pool-note">{{ note }}</p>
+        }
+        @if (pool.footnote) {
+          <p class="pool-footnote">{{ pool.footnote }}</p>
+        }
+      </article>
+    }
+    @if (vm.orphans.length > 0) {
+      <h2 class="pools-orphans-heading">Tags that formed no pool</h2>
+      <ul class="pools-orphans">
+        @for (orphan of vm.orphans; track orphan) {
+          <li class="pool-orphan">{{ orphan }}</li>
+        }
+      </ul>
+    }
+  } @else {
+    <p class="view-observation">no captured snapshot to render</p>
+  }
+</section>

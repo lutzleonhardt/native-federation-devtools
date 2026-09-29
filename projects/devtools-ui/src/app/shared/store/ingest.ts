@@ -46,6 +46,7 @@ import {
   deriveBundleClaims,
   deriveChunkGroups,
   deriveCopyGroupingFacets,
+  derivePoolFamilies,
   deriveResolutionClaims,
   deriveTagPools,
   materializeResolvedCopies,
@@ -149,6 +150,7 @@ export function ingestSnapshot(snapshot: SnapshotV1): FederationModel {
       bundleClaims,
       tagPools.tagPools,
     ),
+    poolFamilies: derivePoolFamilies(registryEvidence, tagPools.tagPools, NF_HOST),
   });
 
   const scopedPackages: ScopedPackageRow[] = [];

@@ -1,0 +1,114 @@
+.pools-definition {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--nf-color-text-muted);
+}
+
+.mono {
+  font-family: var(--nf-font-mono);
+  font-size: 11px;
+}
+
+.pool-card {
+  margin: 0 0 16px;
+  padding: 8px 12px;
+  border: 1px solid var(--nf-color-border);
+  border-radius: 6px;
+}
+
+.pool-card.selected {
+  border-color: var(--nf-color-accent);
+}
+
+.pool-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pool-name {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pool-scope,
+.pool-chip {
+  padding: 0 4px;
+  border: 1px solid var(--nf-color-border);
+  border-radius: 3px;
+  font-size: 10px;
+  color: var(--nf-color-text-muted);
+  font-family: var(--nf-font-mono);
+}
+
+.pool-meta,
+.pool-note,
+.pool-footnote {
+  font-size: 12px;
+  color: var(--nf-color-text-muted);
+}
+
+.pool-matrix {
+  margin: 8px 0;
+  border-collapse: collapse;
+}
+
+.pool-matrix th,
+.pool-matrix td {
+  padding: 2px 10px 2px 0;
+  text-align: left;
+  font-weight: normal;
+  white-space: nowrap;
+}
+
+.pool-cell-scoped {
+  color: var(--nf-color-text-muted);
+}
+
+.pool-outcomes {
+  margin: 4px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pool-outcome {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  padding: 1px 0;
+}
+
+.pool-finding,
+.pool-orphan {
+  padding: 0 4px;
+  border: 1px solid var(--nf-color-warning-border);
+  border-radius: 3px;
+  background: var(--nf-color-warning-bg);
+  color: var(--nf-color-warning-text);
+}
+
+.pool-note,
+.pool-footnote {
+  margin: 2px 0;
+}
+
+.pools-orphans-heading {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pool-orphan {
+  width: fit-content;
+  margin: 2px 0;
+}
+
+.pools-orphans {
+  margin: 4px 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}

@@ -200,6 +200,7 @@ function syntheticProjection(
     packageMeasures: [],
     tagPools: [],
     orphanPoolTags: [],
+    poolFamilies: [],
     copyGroupingFacets: [],
     completeness: {
       total: {

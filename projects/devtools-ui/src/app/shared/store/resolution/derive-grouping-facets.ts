@@ -158,7 +158,7 @@ function tagPoolId(shareScope: string, name: string): TagPoolId {
 }
 
 // `pool-graph.ts` `owningPackage`: an npm name carries at most one `/` after an optional `@scope`.
-function owningPackage(name: string): string | undefined {
+export function owningPackage(name: string): string | undefined {
   const depth = name.startsWith('@') ? 2 : 1;
   let cut = -1;
   for (let seen = 0; seen < depth; seen++) {

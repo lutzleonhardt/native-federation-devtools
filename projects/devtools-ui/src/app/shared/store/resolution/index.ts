@@ -13,6 +13,7 @@ export type * from './copies-model';
 export type * from './bundle-claims-model';
 export type * from './projection-model';
 export type * from './grouping-model';
+export type * from './pool-family-model';
 
 export {
   normalizeRegistryEvidence,
@@ -32,6 +33,7 @@ export { aggregatePackageMeasures } from './aggregate-package-measures';
 export { deriveChunkGroups } from './derive-chunk-groups';
 export { attachBundleClaimIds, deriveBundleClaims } from './derive-bundle-claims';
 export { deriveCopyGroupingFacets, deriveTagPools } from './derive-grouping-facets';
+export { derivePoolFamilies } from './derive-pool-families';
 export {
   buildCanonicalProjection,
   type CanonicalProjectionInputs,

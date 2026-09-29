@@ -172,6 +172,7 @@ function seededProjection(
     packageMeasures: [],
     tagPools: [],
     orphanPoolTags: [],
+    poolFamilies: [],
     copyGroupingFacets: [],
     completeness: {
       total: {
