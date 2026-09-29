@@ -311,7 +311,10 @@ function mapRuntime(
   if (isWebStorage(source.type)) {
     return {
       ...(storage === null
-        ? { nfChannel: { state: 'unavailable', reason: 'storage probe result unavailable' }, runtime: null }
+        ? {
+            nfChannel: { state: 'unavailable', reason: 'storage probe result unavailable' },
+            runtime: null,
+          }
         : mapWebStorage(storage[source.type], source.type, errors, limits)),
       runtimeSource: describe(source.type),
     };
@@ -386,7 +389,10 @@ function mapWebStorage(
   limits: CollectorLimits,
 ): RuntimeResult {
   if (dataValue(store, 'available') !== true) {
-    return { nfChannel: { state: 'unavailable', reason: `${name} is not accessible` }, runtime: null };
+    return {
+      nfChannel: { state: 'unavailable', reason: `${name} is not accessible` },
+      runtime: null,
+    };
   }
   const items = dataValue(store, 'items');
   const repositories: Record<string, unknown> = {};

@@ -33,7 +33,11 @@ function capture(globals: Record<string, unknown>) {
   const counters = makeCounters();
   const page = makeBarePage({
     localStorage: makeStorage(counters, 'l', (globals['local'] as Record<string, string>) ?? {}),
-    sessionStorage: makeStorage(counters, 's', (globals['session'] as Record<string, string>) ?? {}),
+    sessionStorage: makeStorage(
+      counters,
+      's',
+      (globals['session'] as Record<string, string>) ?? {},
+    ),
     ...Object.fromEntries(
       Object.entries(globals).filter(([key]) => key !== 'local' && key !== 'session'),
     ),
@@ -60,7 +64,10 @@ describe('descriptor path', () => {
   it.each(['localStorage', 'sessionStorage'] as const)('reads %s state', (type) => {
     const { indicated, snapshot } = capture({
       __NF_ORCHESTRATOR__: descriptor('__MY_NF__', type),
-      [type === 'localStorage' ? 'local' : 'session']: webItems('__MY_NF__', 'https://web.example/'),
+      [type === 'localStorage' ? 'local' : 'session']: webItems(
+        '__MY_NF__',
+        'https://web.example/',
+      ),
       // A stale default global must not win over the descriptor.
       __NATIVE_FEDERATION__: { remotes: remotes('https://stale.example/') },
     });
@@ -230,7 +237,11 @@ describe('hostile storage contents', () => {
     const counters = makeCounters();
     const page = makeBarePage({
       __NF_ORCHESTRATOR__: descriptor('__NATIVE_FEDERATION__', 'localStorage'),
-      localStorage: makeStorage(counters, 'l', webItems('__NATIVE_FEDERATION__', 'https://web.example/')),
+      localStorage: makeStorage(
+        counters,
+        'l',
+        webItems('__NATIVE_FEDERATION__', 'https://web.example/'),
+      ),
     });
     const rawProbe = evaluateProbe(PASSIVE_PROBE_SOURCE, page);
     const rawStorage = evaluateProbe(STORAGE_PROBE_SOURCE, page) as Record<string, any>;

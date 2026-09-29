@@ -185,12 +185,16 @@ describe('primary fixture derives from the frankenstein-live capture (T2-AC-02)'
 describe('synthetic fixtures (T2-AC-02)', () => {
   const synthetic = fixtureEntries.filter(([id]) => id.startsWith('synthetic-'));
 
-  it('exist for collision, dense-entries, empty-page, hostile, missing-channel, multi-version, no-import-maps, and not-recognized states', () => {
+  it('exist for collision, dense-entries, empty-page, hostile, missing-channel, multi-version, no-import-maps, not-recognized, and storage-source states', () => {
     expect(synthetic.map(([id]) => id).sort()).toEqual([
       'synthetic-collision',
+      'synthetic-custom-namespace',
+      'synthetic-custom-storage',
       'synthetic-dense-entries',
       'synthetic-empty-page',
       'synthetic-hostile',
+      'synthetic-legacy-session-storage',
+      'synthetic-local-storage',
       'synthetic-missing-channel',
       'synthetic-multi-version',
       'synthetic-no-import-maps',

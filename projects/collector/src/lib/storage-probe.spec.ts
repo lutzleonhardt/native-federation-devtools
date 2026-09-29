@@ -39,7 +39,10 @@ describe('storage probe (descriptor path)', () => {
         '__MY_NF__.shared-externals': '{}',
         'unrelated.secret': 'session-token',
       });
-      const sandbox = makeBarePage({ __NF_ORCHESTRATOR__: descriptor('__MY_NF__', type), [type]: storage });
+      const sandbox = makeBarePage({
+        __NF_ORCHESTRATOR__: descriptor('__MY_NF__', type),
+        [type]: storage,
+      });
       const before = digestState({ storage });
 
       const raw = run(sandbox);
