@@ -94,3 +94,19 @@ errors.
 ### Git State
 
 - Branch `grouping-and-pooling`, committed as `task-4`.
+
+### Amendment (after Task 7): Bundle → Build
+
+- The fourth grouping is renamed **Build** (`groupBy: 'build'`) and keyed
+  per build output `remote · bundle` instead of the bundle name alone:
+  two remotes emitting a `browser-shared` bundle are two builds, and one
+  shared cluster would have claimed otherwise. Matches the Chunks column
+  and the Pools tab's use of "build".
+- Facet `CopyGroupingFacets.bundles: string[]` →
+  `builds: { remote: string | null; bundle: string }[]` (from each bundle
+  claim's `sourceRemote`).
+- A single-remote build cluster takes that remote's hue (the host stays
+  neutral), like its chunk clusters; share-scope and pool clusters stay
+  neutral. Bucket renamed `(no build info)`.
+- Specs: `dense-chunking-only` → `mfe1 · browser-shared (2)`;
+  `frankenstein-live` → `host · browser-angular_core (6)`; hue pin.

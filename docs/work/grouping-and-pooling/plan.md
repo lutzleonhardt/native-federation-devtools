@@ -4,7 +4,7 @@ Branch scope: grouping-and-pooling (from main)
 Upstream verified against: orchestrator `ccd98f4` (2026-09-28), native-federation-core `28a037d` (2026-09-23), docs `native-federation.com/docs/v4` (pooling, core/artifacts).
 Prior art: `topicusonderwijs/par-ticle-mfe-devtools` `0d051b6` — `src/tag-picker/tabs/federation-graph.ts` (`GroupBy = 'bundle' | 'shareScope' | 'provider'`, provider sub-clustered `provider → pool`).
 
-Goal: (a) a group-by switch on the dependency column — **Provider** (today's fixed clustering), **Share scope**, **Pool**, **Bundle** — and (b) close the remaining gaps in how the devtool presents denseExternals, denseChunking, pooling and share scopes. Pooling gets its own conditional **Pools** tab (tables, not a graph) that explains membership and outcomes, cross-linked with the Graph's Pool grouping.
+Goal: (a) a group-by switch on the dependency column — **Provider** (today's fixed clustering), **Share scope**, **Pool**, **Build** — and (b) close the remaining gaps in how the devtool presents denseExternals, denseChunking, pooling and share scopes. Pooling gets its own conditional **Pools** tab (tables, not a graph) that explains membership and outcomes, cross-linked with the Graph's Pool grouping.
 
 Hard constraints (inherited from docs/work/graph-view/plan.md, unchanged): the graph consumes only `CanonicalResolutionProjection`; views derive no domain facts; every rendered identity is a canonical ID; wording is resolution-honest and never delivery-claiming. The collector stays passive — it reads the four `__NATIVE_FEDERATION__` repositories and nothing else, so every new fact must be traceable to a stored field.
 
@@ -121,7 +121,8 @@ Why tag pools are derivable: the orchestrator does not persist pools — it reco
     for private (scoped-externals) copies.
   - `poolId`: the tag pool the copy's source member belongs to (Task 3a),
     or `null`.
-  - `bundles`: sorted distinct bundle names from the copy's bundle claims.
+  - `builds`: the `(emitting remote, bundle)` outputs of the copy's bundle
+    claims (renamed from `bundles` after Task 7, see the Task 4 log).
 - Tag pools (3a), derived in the pipeline per share scope, mirroring
   `groupByMembership` with tag edges only:
   - edge `package → (remote, tag)` for every participant carrying a
@@ -163,7 +164,7 @@ Why tag pools are derivable: the orchestrator does not persist pools — it reco
 
 ### Instructions
 
-- Add `GroupBy = 'provider' | 'shareScope' | 'pool' | 'bundle'`; the
+- Add `GroupBy = 'provider' | 'shareScope' | 'pool' | 'build'`; the
   builder takes it as an option, default `provider` (today's
   `dependencyClusterOf`, unchanged).
 - Cluster key rules (all from Task 3 facets):
@@ -171,9 +172,10 @@ Why tag pools are derivable: the orchestrator does not persist pools — it reco
     copies in a `(private)` bucket.
   - `pool`: the tag pool ID, tooltip listing each remote's declared
     tag; `(not pooled)` bucket for copies outside every tag pool.
-  - `bundle`: bundle name; `(no bundle)` bucket. Dependency clusters
-    reuse the chunk-column bundle hue so a copy and its chunk cluster
-    match (par-ticle's colour rule).
+  - `build`: one cluster per build output `remote · bundle` (the key the
+    Chunks column already uses), hued by that remote; `(no build info)`
+    bucket. Keyed per remote so equal bundle names of two remotes never
+    merge into one cluster.
   - Honest buckets (`ambiguous source`, `target only`, `unknown`) keep
     their meaning only under `provider`.
 - Segmented switch above the canvas using the existing kit; the choice
@@ -310,7 +312,7 @@ Why tag pools are derivable: the orchestrator does not persist pools — it reco
 
 ### Instructions
 
-- Graph reads `?group=<provider|shareScope|pool|bundle>` and
+- Graph reads `?group=<provider|shareScope|pool|build>` and
   `?select=<id>` on entry; under `group=pool`, `select=<poolId>` (the
   pool ID is already scope-qualified) emphasises that pool's cluster and
   dims the other dependency nodes. (Amended in Task 7: the existing

@@ -46,6 +46,11 @@ export interface TagPoolDerivation {
   orphanPoolTags: OrphanPoolTag[];
 }
 
+export interface CopyBuild {
+  remote: string | null;
+  bundle: string;
+}
+
 /**
  * Grouping keys of one resolved copy, read off its evidenced source only. A
  * copy without a unique shared source (private, target-only, sources across
@@ -55,6 +60,6 @@ export interface CopyGroupingFacets {
   copyId: ResolvedDependencyCopyId;
   shareScope: string | null;
   tagPoolId: TagPoolId | null;
-  /** Sorted distinct bundle names of the copy's bundle claims. */
-  bundles: string[];
+  /** Build outputs of the copy's bundle claims: emitting remote (null under ambiguity) and bundle. */
+  builds: CopyBuild[];
 }

@@ -1,9 +1,10 @@
 import type {
   CanonicalResolutionProjection,
+  CopyBuild,
   ResolvedDependencyCopy,
   TagPool,
 } from '../../shared/store/resolution';
-import { GLOBAL_SCOPE, STRICT_SCOPE } from '../../shared/view-conventions';
+import { GLOBAL_SCOPE, STRICT_SCOPE, participantDisplay } from '../../shared/view-conventions';
 import { compareStrings } from './graph-element-factories';
 import type { GroupBy } from './graph-types';
 
@@ -13,6 +14,8 @@ export interface DependencyGroup<Entry> {
   label: string;
   tooltip: string | null;
   poolId: string | null;
+  /** Remote owning the cluster (a single build's emitter); null renders neutral. */
+  hueRemote: string | null;
   entries: Entry[];
 }
 
@@ -21,14 +24,16 @@ interface GroupKey {
   label: string;
   tooltip: string | null;
   poolId?: string;
+  hueRemote?: string;
   /** Sort rank first, then label: named keys 1, pinned-first 0, pinned-last 2, buckets 3. */
   rank: number;
 }
 
 /**
- * Clusters of the share-scope, pool, and bundle groupings, keyed only by the
- * projection's `copyGroupingFacets`. Buckets (no key evidenced) sort last;
- * clusters are neutral — a hue is a participant identity claim.
+ * Clusters of the share-scope, pool, and build groupings, keyed only by the
+ * projection's `copyGroupingFacets`. Buckets (no key evidenced) sort last.
+ * Only a single-remote build cluster takes a hue — a hue is a participant
+ * identity claim, and scopes and pools belong to no remote.
  */
 export function groupDependencies<Entry extends { copy: ResolvedDependencyCopy }>(
   groupBy: Exclude<GroupBy, 'provider'>,
@@ -47,8 +52,8 @@ export function groupDependencies<Entry extends { copy: ResolvedDependencyCopy }
         const pool = facets?.tagPoolId == null ? undefined : poolById.get(facets.tagPoolId);
         return pool === undefined ? NOT_POOLED : poolKey(pool);
       }
-      case 'bundle':
-        return bundleKey(facets?.bundles ?? []);
+      case 'build':
+        return buildKey(facets?.builds ?? []);
     }
   };
 
@@ -63,11 +68,12 @@ export function groupDependencies<Entry extends { copy: ResolvedDependencyCopy }
     .sort(
       (a, b) => a.rank - b.rank || compareStrings(a.label, b.label) || compareStrings(a.key, b.key),
     )
-    .map(({ key, label, tooltip, poolId, entries: grouped }) => ({
+    .map(({ key, label, tooltip, poolId, hueRemote, entries: grouped }) => ({
       key,
       label,
       tooltip,
       poolId: poolId ?? null,
+      hueRemote: hueRemote ?? null,
       entries: grouped,
     }));
 }
@@ -135,19 +141,24 @@ function poolKey(pool: TagPool): GroupKey {
   };
 }
 
-function bundleKey(bundles: readonly string[]): GroupKey {
-  if (bundles.length === 0) {
+function buildKey(builds: readonly CopyBuild[]): GroupKey {
+  if (builds.length === 0) {
     return {
-      key: 'dependencies:bundle-bucket:none',
-      label: '(no bundle)',
-      tooltip: 'no bundle claim — built without features.denseChunking, or no evidenced source',
+      key: 'dependencies:build-bucket:none',
+      label: '(no build info)',
+      tooltip: 'no bundle recorded — built without features.denseChunking, or no evidenced source',
       rank: 3,
     };
   }
+  const labelOf = (build: CopyBuild) =>
+    build.remote === null ? build.bundle : `${participantDisplay(build.remote)} · ${build.bundle}`;
+  const remotes = [...new Set(builds.map((build) => build.remote))];
   return {
-    key: `dependencies:bundle:${JSON.stringify(bundles)}`,
-    label: bundles.join(' + '),
-    tooltip: "bundle named by the copy's source registration (config: features.denseChunking)",
+    key: `dependencies:build:${JSON.stringify(builds.map((b) => [b.remote, b.bundle]))}`,
+    label: builds.map(labelOf).join(' + '),
+    tooltip:
+      "build output the copy's source was bundled in: the emitting remote and its bundle (recorded with features.denseChunking)",
+    ...(remotes.length === 1 && remotes[0] !== null ? { hueRemote: remotes[0] } : {}),
     rank: 1,
   };
 }

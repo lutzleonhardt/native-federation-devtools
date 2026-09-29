@@ -1,6 +1,7 @@
 import type { BundleClaim } from './bundle-claims-model';
 import type { ResolvedDependencyCopy } from './copies-model';
 import type {
+  CopyBuild,
   CopyGroupingFacets,
   OrphanPoolTag,
   PoolTagDeclaration,
@@ -127,10 +128,14 @@ export function deriveCopyGroupingFacets(
   const poolByExternal = new Map<SharedExternalId, TagPoolId>();
   for (const pool of tagPools)
     for (const id of pool.sharedExternalIds) poolByExternal.set(id, pool.id);
-  const bundlesByCopy = new Map<string, Set<string>>();
+  const buildsByCopy = new Map<string, Map<string, CopyBuild>>();
   for (const claim of bundleClaims) {
-    const bundles = bundlesByCopy.get(claim.copyId) ?? new Set<string>();
-    bundlesByCopy.set(claim.copyId, bundles.add(claim.bundle));
+    const builds = buildsByCopy.get(claim.copyId) ?? new Map<string, CopyBuild>();
+    buildsByCopy.set(claim.copyId, builds);
+    builds.set(JSON.stringify([claim.sourceRemote, claim.bundle]), {
+      remote: claim.sourceRemote,
+      bundle: claim.bundle,
+    });
   }
 
   return copies.map((copy) => {
@@ -148,7 +153,9 @@ export function deriveCopyGroupingFacets(
       copyId: copy.id,
       shareScope: scopes.length === 1 ? scopes[0] : null,
       tagPoolId: externalIds.length === 1 ? (poolByExternal.get(externalIds[0]) ?? null) : null,
-      bundles: [...(bundlesByCopy.get(copy.id) ?? [])].sort(compareText),
+      builds: [...(buildsByCopy.get(copy.id)?.values() ?? [])].sort(
+        (a, b) => compareText(a.remote ?? '', b.remote ?? '') || compareText(a.bundle, b.bundle),
+      ),
     };
   });
 }

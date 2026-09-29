@@ -312,7 +312,7 @@ describe('GraphView', () => {
       'Provider',
       'Share scope',
       'Pool',
-      'Bundle',
+      'Build',
     ]);
     expect(buttons[0].getAttribute('aria-pressed')).toBe('true');
     const nodeKeys = () =>

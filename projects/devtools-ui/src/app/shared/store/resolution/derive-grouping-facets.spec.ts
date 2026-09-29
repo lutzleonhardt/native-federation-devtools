@@ -28,7 +28,7 @@ function facetsByPackage(id: FixtureId) {
       disposition: copy.sourceDisposition,
       shareScope: facets.shareScope,
       pool: facets.tagPoolId === null ? null : poolNames.get(facets.tagPoolId),
-      bundles: facets.bundles,
+      builds: facets.builds.map((build) => `${build.remote} · ${build.bundle}`),
     };
   });
 }
@@ -111,13 +111,15 @@ describe('tag pools and copy pools (T3-AC-02)', () => {
     expect(pool.remotes).toEqual(['__NF-HOST__', 'mfe1', 'mfe2']);
   });
 
-  it('bundles: the copy carries its bundle claims', () => {
+  it('builds: the copy carries the (remote, bundle) outputs of its bundle claims', () => {
     const facets = facetsByPackage('dense-chunking-only').filter((f) =>
       f.pkg?.startsWith('@nf-lab/dense-lib'),
     );
     expect(facets.length).toBeGreaterThan(0);
-    expect(facets.every((f) => JSON.stringify(f.bundles) === '["browser-shared"]')).toBe(true);
-    expect(facetsByPackage('dense-externals-only').every((f) => f.bundles.length === 0)).toBe(true);
+    expect(facets.every((f) => JSON.stringify(f.builds) === '["mfe1 · browser-shared"]')).toBe(
+      true,
+    );
+    expect(facetsByPackage('dense-externals-only').every((f) => f.builds.length === 0)).toBe(true);
   });
 });
 

@@ -206,7 +206,7 @@ export function buildGraphModel(
     }
   } else {
     for (const group of groupDependencies(groupBy, sortedCopies, projection)) {
-      layoutDependencyCluster({ ...group, hueRemote: null }, group.entries);
+      layoutDependencyCluster(group, group.entries);
     }
   }
 

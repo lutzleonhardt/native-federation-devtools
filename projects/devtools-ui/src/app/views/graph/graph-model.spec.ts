@@ -926,7 +926,7 @@ describe('graphAdjacencyOf', () => {
 // grouping-and-pooling Task 4: the group-by switch re-clusters the dependency
 // column from the projection's `copyGroupingFacets`; nothing else may move.
 describe('buildGraphModel — group-by (grouping-and-pooling T4)', () => {
-  const GROUPINGS = ['provider', 'shareScope', 'pool', 'bundle'] as const;
+  const GROUPINGS = ['provider', 'shareScope', 'pool', 'build'] as const;
   const dependencyClusterLabels = (model: GraphModel) =>
     model.clusters
       .filter((cluster) => cluster.column === 'dependencies')
@@ -934,7 +934,7 @@ describe('buildGraphModel — group-by (grouping-and-pooling T4)', () => {
   const groupedModel = (id: FixtureId, groupBy: (typeof GROUPINGS)[number]) =>
     buildGraphModel(projectionOf(id), { groupBy });
 
-  it('T4-AC-01: clusters by share scope, pool, and bundle', () => {
+  it('T4-AC-01: clusters by share scope, pool, and build', () => {
     expect(dependencyClusterLabels(groupedModel('frankenstein-live', 'shareScope'))).toEqual([
       `default share scope (${dependencyNodesOf(modelOf('frankenstein-live')).length})`,
     ]);
@@ -949,23 +949,35 @@ describe('buildGraphModel — group-by (grouping-and-pooling T4)', () => {
       '(not pooled) (1)',
     ]);
     // Host-provided utils carries no bundle; mfe1's dense-lib entrypoints do.
-    expect(dependencyClusterLabels(groupedModel('dense-chunking-only', 'bundle'))).toEqual([
-      'browser-shared (2)',
-      '(no bundle) (1)',
+    expect(dependencyClusterLabels(groupedModel('dense-chunking-only', 'build'))).toEqual([
+      'mfe1 · browser-shared (2)',
+      '(no build info) (1)',
     ]);
+    // The host's per-package bundles are separate builds of one remote.
+    expect(dependencyClusterLabels(groupedModel('frankenstein-live', 'build'))).toContain(
+      'host · browser-angular_core (6)',
+    );
   });
 
-  it('T4-AC-01: pool clusters explain themselves; non-provider clusters stay neutral', () => {
+  it('T4-AC-01: pool clusters explain themselves; only a remote build takes a hue', () => {
     const model = groupedModel('pool-tag-anchored', 'pool');
     const pool = model.clusters.find((cluster) => cluster.label === 'pool @nf-lab/ui-core')!;
     expect(pool.tooltip).toBe('formed by: mfe1 "ui", mfe2 "ui"');
-    for (const groupBy of ['shareScope', 'pool', 'bundle'] as const) {
+    for (const groupBy of ['shareScope', 'pool'] as const) {
       const clusters = buildGraphModel(projectionOf('frankenstein-live'), {
         groupBy,
         participantColors: new Map([['whiteboard', 1]]),
       }).clusters.filter((cluster) => cluster.column === 'dependencies');
       expect(clusters.every((cluster) => cluster.colorIndex === null)).toBe(true);
     }
+    const build = buildGraphModel(projectionOf('dense-chunking-only'), {
+      groupBy: 'build',
+      participantColors: new Map([['mfe1', 2]]),
+    }).clusters.filter((cluster) => cluster.column === 'dependencies');
+    expect(build.map((cluster) => [cluster.label, cluster.colorIndex])).toEqual([
+      ['mfe1 · browser-shared', 2],
+      ['(no build info)', null],
+    ]);
   });
 
   it('T4-AC-02: every grouping keeps the node and edge set', () => {

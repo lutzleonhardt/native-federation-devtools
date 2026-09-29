@@ -67,9 +67,9 @@ export const GROUP_BY_OPTIONS = [
     hint: 'cluster copies by the explicit pool tag pool of their package',
   },
   {
-    value: 'bundle',
-    label: 'Bundle',
-    hint: "cluster copies by the bundle of their source's bundle claim",
+    value: 'build',
+    label: 'Build',
+    hint: 'cluster copies by the build output (remote · bundle) their source was bundled in',
   },
 ] as const;
 export type GroupBy = (typeof GROUP_BY_OPTIONS)[number]['value'];
