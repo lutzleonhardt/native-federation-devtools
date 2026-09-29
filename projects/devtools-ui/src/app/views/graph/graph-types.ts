@@ -158,13 +158,11 @@ export interface GraphListItem {
   key: string;
   /** Render key of the dependency node it belongs to. */
   ownerKey: string;
+  /** The import name (specifier). */
   text: string;
-  /** Right-aligned detail (tag or file); null without one. */
-  detail: string | null;
   tooltip: string | null;
   x: number;
   y: number;
-  detailX: number;
 }
 
 export type GraphNode = RemoteGraphNode | DependencyGraphNode | ChunkGraphNode;

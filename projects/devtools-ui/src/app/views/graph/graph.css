@@ -31,15 +31,10 @@
   fill: var(--nf-color-text-muted);
 }
 
-.graph-list-text,
-.graph-list-detail {
+.graph-list-text {
   font-family: var(--nf-font-mono);
   font-size: 10px;
   fill: var(--nf-color-text-muted);
-}
-
-.graph-list-detail {
-  text-anchor: end;
 }
 
 .graph-list-item.dim {

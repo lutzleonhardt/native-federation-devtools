@@ -130,9 +130,9 @@ errors.
 ### Amendment: accordion
 
 - **Dependencies:** clicking a copy opens a small list below it — its
-  entries-map secondaries (dense builds, with their file) and sibling
-  secondary copies of the same source (flat builds, name-derived parent,
-  with their tag); "no secondary entrypoints" otherwise. One open copy at
+  entries-map secondaries (dense builds) and sibling secondary copies of
+  the same source (flat builds, name-derived parent), as import names
+  only; "no secondary entrypoints" otherwise. One open copy at
   a time; clicking it again closes it.
 - **Build files:** every build group starts collapsed to one `N files`
   summary row; clicking the group header (▸/▾ at its right edge) or the

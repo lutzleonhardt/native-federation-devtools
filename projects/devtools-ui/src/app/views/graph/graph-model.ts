@@ -178,7 +178,6 @@ export function buildGraphModel(
             ...row,
             x: node.x + 2 * LABEL_PAD,
             y,
-            detailX: node.x + NODE_W - LABEL_PAD,
           });
         });
         nodeY += rows.length * LIST_ROW_H + NODE_VGAP;
@@ -628,13 +627,12 @@ function secondaryEntrypointsOf(
   copy: ResolvedDependencyCopy,
   label: string,
   copies: readonly ResolvedDependencyCopy[],
-): Pick<GraphListItem, 'text' | 'detail' | 'tooltip'>[] {
-  const rows = new Map<string, Pick<GraphListItem, 'text' | 'detail' | 'tooltip'>>();
+): Pick<GraphListItem, 'text' | 'tooltip'>[] {
+  const rows = new Map<string, Pick<GraphListItem, 'text' | 'tooltip'>>();
   for (const specifier of Object.keys(copy.entrypoints).sort(compareStrings)) {
     if (specifier !== label) {
       rows.set(specifier, {
         text: specifier,
-        detail: fileNameOf(copy.entrypoints[specifier]),
         tooltip: "secondary entrypoint in this copy's entries map",
       });
     }
@@ -651,12 +649,11 @@ function secondaryEntrypointsOf(
     ) {
       rows.set(name, {
         text: name,
-        detail: other.resolvedTag,
         tooltip: 'secondary entrypoint registered as its own copy (name-derived parent)',
       });
     }
   }
   return rows.size > 0
     ? [...rows.values()].sort((a, b) => compareStrings(a.text, b.text))
-    : [{ text: 'no secondary entrypoints', detail: null, tooltip: null }];
+    : [{ text: 'no secondary entrypoints', tooltip: null }];
 }

@@ -1030,9 +1030,7 @@ describe('buildGraphModel — accordion', () => {
     const projection = projectionOf('frankenstein-live');
     const common = copyIdOf('frankenstein-live', '@angular/common');
     const model = buildGraphModel(projection, { expandedCopyId: common });
-    expect(model.listItems.map((item) => [item.text, item.detail])).toEqual([
-      ['@angular/common/http', '21.2.12'],
-    ]);
+    expect(model.listItems.map((item) => item.text)).toEqual(['@angular/common/http']);
     expect(
       dependencyNodesOf(model)
         .filter((node) => node.expanded)
@@ -1045,11 +1043,10 @@ describe('buildGraphModel — accordion', () => {
     expect(after[index + 1].y - before[index + 1].y).toBe(LIST_ROW_H + NODE_VGAP);
   });
 
-  it('lists a dense build’s own entries-map secondaries with their files', () => {
+  it('lists a dense build’s own entries-map secondaries', () => {
     const lib = copyIdOf('dense-both', '@nf-lab/dense-lib');
     const model = buildGraphModel(projectionOf('dense-both'), { expandedCopyId: lib });
     expect(model.listItems.map((item) => item.text)).toEqual(['@nf-lab/dense-lib/extra']);
-    expect(model.listItems[0].detail).toMatch(/^_nf_lab_dense_lib_extra\..*\.js$/);
     const utils = copyIdOf('dense-both', '@nf-lab/utils');
     expect(
       buildGraphModel(projectionOf('dense-both'), { expandedCopyId: utils }).listItems.map(
