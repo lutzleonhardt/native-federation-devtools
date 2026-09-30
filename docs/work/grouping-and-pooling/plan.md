@@ -353,3 +353,242 @@ Why tag pools are derivable: the orchestrator does not persist pools — it reco
 - par-ticle's Shared/Scoped/Chunks layer toggles and inspect cards
   (already listed as graph-view stage-2 follow-ups).
 - Grouping in the Packages list (can reuse Task 3 facets later).
+
+---
+
+# Stage 2 — Pools matrix (orchestrator v4.7)
+
+Upstream verified against: orchestrator `v4.7.0` = `0d2ad3f` (npm `gitHead`),
+which contains native-federation/orchestrator#86 (`__NF_ORCHESTRATOR__`
+storage descriptor with `version`) and #87 (`SharedExternal.poolName`,
+`SharedVersionMeta.poolCause`, auto-pooling removed).
+
+Goal: replace the Pools tab's tag matrix and per-remote outcome sentences
+with **one status matrix per pool** and **one verdict per matrix**, as
+designed in `design/pools-matrix-mock.html`
+(artifact: https://claude.ai/artifact/Tswa9NuKYk9LXQEjgFrXoV, v13). The
+matrix answers "what happened to each remote's copy of each package" at a
+glance; the verdict names the outcome in one quiet line.
+
+Amendments to Stage 1 constraints:
+
+- The collector now also reads `__NF_ORCHESTRATOR__` (data properties only,
+  `get` never called) for the orchestrator version. Still passive.
+- Island causes are persisted from v4.7 (`poolCause`), so "Outcomes, never
+  causes" no longer holds; causes are shown when stored, never inferred.
+- Stage 1 Out of scope: "Island causes: not persisted" is obsolete for v4.7.
+
+Design, fixed by the mock-up:
+
+- Per pool, top to bottom: header (name, scope, counts, tags, show in
+  Graph), **matrix**, **verdict** (directly under the matrix), notes.
+- Matrix: remotes as rows, **grouped under one band per build** ("Build of
+  orders · serves 4 others · 4 redirected", "Build of legacy · isolated"),
+  packages as columns (a shared npm scope shown once). Row header: remote
+  chip, its tag or "no tag", "↪ redirected" marker. Cell: the version that
+  remote gets, coloured by state, with a tooltip.
+- Cell states and colours (one legend per tab):
+  - **conflict** (solid red): strict copy whose range `semver` says rejects
+    the shared tag;
+  - **isolated** (orange): the remote runs the whole pool from its own build;
+  - **not shared** (orange): no remote shares this package;
+  - **serves others** (green): the build's owner, when ≥1 other remote
+    loads its build;
+  - **unchanged / redirected** (grey), `·` for not declared.
+- Verdict: one line, coloured only for isolation; wording may deviate from
+  the mock where the data calls for it, but stays one line of the form
+  `<icon> <Type> · <cause>  <who> · <why>`.
+
+## Task 8: Land the v4.7 evidence plumbing
+
+Status: implemented on the working tree, uncommitted; this task only
+verifies and commits it.
+
+### Instructions
+
+- Already present: `poolName`/`poolCause` through collector, bridge and
+  store (commit `e07f4f9`); exposed orchestrator version and the pre-4.7
+  banner (`f9066fc`). Uncommitted: `shared/store/semver-range.ts` (npm
+  `semver`, same `satisfies` call as the orchestrator's `version.check.ts`,
+  null when unparseable), strict-only conflict evidence in
+  `derive-pool-families.ts`, the "not all its packages accept the shared
+  versions" wording, `allowedCommonJsDependencies: ["semver"]`, and the lab
+  capture script's `orchestratorGlobal` channel with its `buildCapturePage`
+  reconstruction.
+- Run every suite plus `npm run build:extension && npm run check:panel-bundle`.
+
+### Acceptance
+
+- **T8-AC-01** — all suites green; extension CSP check passes.
+- **T8-AC-02** — a capture carrying `orchestratorGlobal` derives
+  `runtime.orchestratorVersion`; a capture without it derives byte-identical
+  to its fixture (both pinned in `fixture-drift.spec.ts`).
+
+### Key Locations
+
+- `shared/store/semver-range.ts`, `resolution/derive-pool-families.ts`,
+  `scripts/lab-capture-dump.js`, `collector/src/testing/fixture-pages.ts`
+
+## Task 9: Re-record the nf-lab corpus on orchestrator 4.7.0
+
+### Instructions
+
+- Playground `../angular-examples/lab` (branch `lab/grouping-and-pooling`)
+  already runs orchestrator 4.7.0 and has the `pool-showcase` scenario
+  (four pools: redirected, version conflict, one build under two tags,
+  orphan tag) plus `LAB_PORT`. Add `pool-portfolio`: the mock-up's `acme`
+  family, host + eleven remotes, one strict-conflict remote (strict on two
+  packages only), a redirect group and the host's group. Fake
+  `@nf-lab/acme-*` packages as for `chart-*`/`form-*`.
+- The probe stamps `ORCHESTRATOR_COMMIT = "8e5e0b3"` (4.6.0) in runner
+  mode. Decided: stamp the observed `orchestratorGlobal` version instead,
+  keeping the pinned commit only as the fallback for pages that expose
+  none (the `v2` corpus, still on 4.6.0), so neither corpus's provenance
+  is falsified.
+- Re-capture all nf-lab scenarios (`capture-all.mjs`), rebuild
+  `manifest-nf-lab.json`, extend `validate-lab-corpus.mjs` predicates
+  (poolName, poolCause, `orchestratorGlobal.version === "4.7.0"`), derive
+  fixtures. The `v2` corpus stays on 4.6.0 and is the pre-4.7 coverage;
+  its manifest needs a rebuild only for the probe sha256.
+- Update the lab README (the "pinned to 4.6.0" line is stale) and commit
+  the playground branch.
+
+### Acceptance
+
+- **T9-AC-01** — `validate-lab-corpus.mjs` passes for both corpora.
+- **T9-AC-02** — `pool-tag-islanded` fixture carries `poolCause:
+  "incompatible"` on the isolated remote and `poolName: "ui"`;
+  `pool-showcase` and `pool-portfolio` fixtures exist; the drift spec count
+  is updated.
+- **T9-AC-03** — the hand-edited v4.7 tests in `pools-view-model.spec.ts`
+  are replaced by the real fixtures.
+
+### Key Locations
+
+- `../angular-examples/lab/{scenarios,packages,run-scenario.mjs,README.md}`
+- `scripts/{lab-capture-dump.js,lab-corpora.mjs,build-lab-manifest.mjs,validate-lab-corpus.mjs,derive-fixtures.ts}`
+- `captures/`, `devtools-bridge/src/lib/fixtures/`, `collector/src/lib/fixture-drift.spec.ts`
+
+## Task 10: Derive the pool matrix in the pipeline
+
+### Instructions
+
+- Extend `PoolFamily` (`pool-family-model.ts`, `derive-pool-families.ts`)
+  with a `matrix` model; views derive no facts. Per pool:
+  - **bands**: one per serving build, `{ owner, kind: 'shared' |
+    'isolated' | 'mixed', members: { remote, redirected }[], servesOthers,
+    hostPrecedence }`. A consumer's band is its single serving build
+    (`servingBuilds`); outcome `own-copy` → its own band, kind `isolated`;
+    outcome `mixed-builds` (torn, which pooling prevents) → one `mixed` band
+    carrying the coherence finding. Band order: shared bands by member count
+    (host first on ties), then isolated, then mixed.
+  - **cells** per `(remote, member)`: `{ tag, state, redirected, conflict?,
+    range: { requiredVersion, strictVersion, acceptsShared } }` with
+    `state ∈ conflict | isolated | not-shared | serves-others | unchanged`,
+    in that precedence. `conflict` = strict and
+    `satisfiesRange(sharedTag, requiredVersion) === false`, computed from
+    the stored facts regardless of `poolCause`, so pre-4.7 records get it
+    too. `not-shared` = member has no `share` row and the remote is not
+    isolated. `serves-others` = band owner with ≥1 other member.
+    `acceptsShared` feeds the isolated-cell tooltip ("its own range
+    (^16.0.0, not strict) wouldn't have blocked the shared 18.2.0").
+  - **verdict**: one per pool, `{ kind: 'isolated' | 'redirected' |
+    'one-build' | 'torn', cause, who, why }`. Priority torn > isolated >
+    redirected > one-build; a lower outcome that also occurred folds into
+    `why` (e.g. "legacy · 2 conflicts · 4 redirected to orders"). `cause`
+    from stored `poolCause` when present; otherwise conflict evidence
+    implies "version conflict"; otherwise none. Keep the redirect `why`
+    simple (the matrix already shows who moved where): the builds the
+    shared versions would mix, e.g. "shared versions would mix host and
+    catalog", from each member's basis. No per-package analysis.
+  - Drop what the view no longer needs (`PoolMatrixCell`, outcome
+    sentences' inputs) once Task 11 lands; keep `pending` (dirty) and the
+    membership notes.
+
+### Acceptance
+
+- **T10-AC-01** — `pool-showcase`: `ui` bands `catalog` (serves 2
+  others: checkout, admin redirected) and `host`; `charts` has
+  catalog×chart-dom `conflict`, catalog's other cells `isolated`,
+  account×chart-core `not-shared`; `form-kit` one band, checkout
+  `serves-others`.
+- **T10-AC-02** — `pool-portfolio`: legacy's two strict packages
+  `conflict`, its non-strict ones `isolated` with `acceptsShared: false`;
+  verdict `isolated` with the redirect folded into `why`.
+- **T10-AC-03** — pre-4.7 `pooling-anchor` / `pool-tag-islanded` (v2
+  corpus): bands and conflicts derive without `poolCause`; verdict cause
+  from evidence or none.
+- **T10-AC-04** — unparseable range → no conflict, cell `isolated`.
+
+### Key Locations
+
+- `shared/store/resolution/{pool-family-model,derive-pool-families}.ts`,
+  `shared/store/semver-range.ts`, `derive-pool-families.spec.ts`
+
+## Task 11: Render the matrix and verdict in the Pools tab
+
+### Instructions
+
+- `pools-view-model.ts` maps the Task 10 model to display strings only:
+  band labels, cell text/tooltip, verdict line, legend. Wording per the
+  mock-up (v13) and the updated contract (Task 12).
+- `pools.html/css`: header → matrix → verdict → notes. Colours as new
+  semantic tokens in `styles.css` (light and dark): conflict, isolated,
+  serves-others; reuse `--nf-participant-color-*` for chips. Verdict has no
+  background or border; only its icon and type are coloured, and only for
+  isolation.
+- Cells are focusable and expose their tooltip text to assistive tech
+  (`title` plus an `aria-label`, or the existing tooltip affordance of
+  `capability-badge`/`participant-row` if it fits).
+- Wide pools scroll inside the card (`overflow-x: auto`), never the page.
+- Keep: definition line + docs link, pre-4.7 banner, orphan section,
+  pending state (matrix with plain versions + pending note, no states),
+  `?select=` highlight, "show in Graph".
+- Remove: the per-remote outcome sentences, the tag matrix, the untagged
+  footnote (replaced by "no tag" in the row header).
+
+### Acceptance
+
+- **T11-AC-01** — `pool-showcase` renders as the mock-up: three cards in
+  problem-first order, legend once, orphan section.
+- **T11-AC-02** — every coloured cell has a tooltip; keyboard focus
+  reaches them; both themes readable (component spec + a manual check in
+  the panel on the lab page).
+- **T11-AC-03** — forbidden-vocabulary pin (`pools.spec.ts`) extended to
+  the new strings.
+- **T11-AC-04** — 12-remote `pool-portfolio` card scrolls within itself at
+  panel width; the page never scrolls sideways.
+
+### Key Locations
+
+- `views/pools/{pools-view-model.ts,pools.html,pools.css,pools.ts}` and specs
+- `devtools-ui/src/styles.css`
+
+## Task 12: Contract, docs and cross-links
+
+### Instructions
+
+- Rewrite `design/pools-explainer-mock.md` for the matrix: states,
+  colours, band/verdict wording, tooltips, what is inferred vs stored.
+- Check the Stage 1 cross-links still hold (Graph "explain", Packages /
+  Remotes pool chips); the pool ID is unchanged, so they should.
+- Update the PR description.
+
+### Acceptance
+
+- **T12-AC-01** — contract matches the rendered strings (spot-checked by
+  the view-model spec).
+- **T12-AC-02** — Stage 1 T7 acceptance still passes.
+
+### Key Locations
+
+- `design/pools-explainer-mock.md`, `views/graph/`, `shared/pool-chip.ts`
+
+## Stage 2 out of scope
+
+- `uncovered` / `torn` in the lab: both need an entrypoint coverage gap
+  between builds; covered by hand-built records only.
+- A tab-wide overview matrix (tried in the mock-up, dropped for one matrix
+  per pool).
+- Recording which conflict triggered an isolation: not stored by the
+  orchestrator; the matrix shows every conflict as evidence.
