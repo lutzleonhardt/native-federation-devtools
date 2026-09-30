@@ -510,7 +510,7 @@ verifies and commits it.
 - **T10-AC-01** — `pool-showcase`: `ui` bands `catalog` (serves 2
   others: checkout, admin redirected) and `host`; `charts` has
   catalog×chart-dom `conflict`, catalog's other cells `isolated`,
-  account×chart-core `not-shared`; `form-kit` one band, checkout
+  dashboard×chart-core `not-shared`; `form-kit` one band, checkout
   `serves-others`.
 - **T10-AC-02** — `pool-portfolio`: legacy's two strict packages
   `conflict`, its non-strict ones `isolated` with `acceptsShared: false`;

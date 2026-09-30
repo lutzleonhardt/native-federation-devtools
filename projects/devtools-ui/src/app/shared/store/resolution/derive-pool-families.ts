@@ -3,11 +3,16 @@ import { owningPackage } from './derive-grouping-facets';
 import type { TagPool } from './grouping-model';
 import type { CanonicalRegistryEvidence, VersionRegistration } from './model';
 import type {
+  PoolBuildBand,
   PoolConsumer,
   PoolConsumerOutcome,
   PoolFamily,
   PoolFamilyMember,
   PoolMatrixCell,
+  PoolStatusCell,
+  PoolStatusMatrix,
+  PoolStatusRow,
+  PoolVerdict,
 } from './pool-family-model';
 
 interface MemberRow {
@@ -194,11 +199,178 @@ export function derivePoolFamilies(
       poolId: pool.id,
       members,
       matrix,
+      statusMatrix: statusMatrixOf(pool, members, consumers, rowOf, basisByMember),
       consumers,
       pending: externals.some((external) => external.dirty),
       recorded: externals.some((external) => external.poolName !== null),
     };
   });
+}
+
+type RowOf = (remote: string, member: string) => MemberRow | undefined;
+type BasisByMember = ReadonlyMap<string, { remote: string; tag: string }>;
+
+// Bands group consumers by the build they load: one serving build → that build; `own-copy` →
+// isolated on its own build; several builds → the ownerless mixed band. See Stage 2 Task 10.
+function statusMatrixOf(
+  pool: TagPool,
+  members: readonly PoolFamilyMember[],
+  consumers: readonly PoolConsumer[],
+  rowOf: RowOf,
+  basisByMember: BasisByMember,
+): PoolStatusMatrix {
+  const bandOf = (
+    consumer: PoolConsumer,
+  ): { kind: PoolBuildBand['kind']; owner: string | null } => {
+    if (consumer.outcome === 'own-copy') return { kind: 'isolated', owner: consumer.remote };
+    const builds = new Set(Object.values(consumer.servingBuilds));
+    if (consumer.outcome === 'mixed-builds' || builds.size > 1)
+      return { kind: 'mixed', owner: null };
+    return { kind: 'shared', owner: [...builds][0] ?? consumer.remote };
+  };
+  const bands = new Map<
+    string,
+    { kind: PoolBuildBand['kind']; owner: string | null; consumers: PoolConsumer[] }
+  >();
+  for (const consumer of consumers) {
+    const { kind, owner } = bandOf(consumer);
+    const key = JSON.stringify([kind, owner]);
+    const band = bands.get(key) ?? { kind, owner, consumers: [] };
+    bands.set(key, band);
+    band.consumers.push(consumer);
+  }
+
+  const unshared = new Set(members.filter((m) => m.unshared).map((m) => m.packageName));
+  const rowFor = (
+    consumer: PoolConsumer,
+    owner: string | null,
+    servesOthers: boolean,
+  ): PoolStatusRow => {
+    const cells = pool.members.map((member): PoolStatusCell | null => {
+      const row = rowOf(consumer.remote, member);
+      if (row === undefined) return null;
+      const sharedTag = basisByMember.get(member)?.tag ?? null;
+      const acceptsShared =
+        sharedTag === null ? null : satisfiesRange(sharedTag, row.requiredVersion);
+      const state: PoolStatusCell['state'] =
+        row.strictVersion && acceptsShared === false
+          ? 'conflict'
+          : consumer.outcome === 'own-copy'
+            ? 'isolated'
+            : unshared.has(member)
+              ? 'not-shared'
+              : servesOthers && consumer.remote === owner
+                ? 'serves-others'
+                : 'unchanged';
+      return {
+        state,
+        servedTag: rowOf(consumer.servingBuilds[member], member)?.tag ?? row.tag,
+        declaredTag: row.tag,
+        requiredVersion: row.requiredVersion,
+        strictVersion: row.strictVersion,
+        sharedTag,
+        acceptsShared,
+      };
+    });
+    return {
+      remote: consumer.remote,
+      host: consumer.host,
+      tag:
+        pool.members
+          .map((member) => rowOf(consumer.remote, member)?.poolTag ?? null)
+          .find((t) => t !== null) ?? null,
+      redirected: consumer.outcome === 'redirected',
+      cells,
+    };
+  };
+
+  const kindOrder = { shared: 0, isolated: 1, mixed: 2 };
+  const built: PoolBuildBand[] = [...bands.values()]
+    .map(({ kind, owner, consumers: inBand }) => {
+      const ordered = [...inBand].sort(
+        (a, b) => Number(b.remote === owner) - Number(a.remote === owner),
+      );
+      const servesOthers = kind === 'shared' ? ordered.filter((c) => c.remote !== owner).length : 0;
+      return {
+        kind,
+        owner,
+        rows: ordered.map((c) => rowFor(c, owner, servesOthers > 0)),
+        servesOthers,
+        redirected: ordered.filter((c) => c.outcome === 'redirected').length,
+        hostPrecedence: ordered.some((c) => c.host && c.remote === owner),
+      };
+    })
+    .sort(
+      (a, b) =>
+        kindOrder[a.kind] - kindOrder[b.kind] ||
+        b.rows.length - a.rows.length ||
+        Number(b.hostPrecedence) - Number(a.hostPrecedence) ||
+        compareText(a.owner ?? '', b.owner ?? ''),
+    );
+
+  return { bands: built, verdict: verdictOf(built, consumers, basisByMember) };
+}
+
+function verdictOf(
+  bands: readonly PoolBuildBand[],
+  consumers: readonly PoolConsumer[],
+  basisByMember: BasisByMember,
+): PoolVerdict {
+  const torn = consumers.filter((c) => c.coherent === false).map((c) => c.remote);
+
+  const isolatedBands = bands.filter((b) => b.kind === 'isolated');
+  const isolatedRemotes = new Set(isolatedBands.map((b) => b.owner!));
+  const conflicts = isolatedBands.reduce(
+    (sum, b) => sum + b.rows.flatMap((r) => r.cells).filter((c) => c?.state === 'conflict').length,
+    0,
+  );
+  const storedCauses = new Set(
+    consumers
+      .filter((c) => isolatedRemotes.has(c.remote))
+      .flatMap((c) => c.poolCauses.map((p) => p.cause)),
+  );
+  const cause =
+    storedCauses.size === 1 ? [...storedCauses][0] : conflicts > 0 ? 'incompatible' : null;
+
+  const redirected = consumers.filter((c) => c.outcome === 'redirected');
+  const anchors = [...new Set(redirected.flatMap((c) => Object.values(c.servingBuilds)))].sort(
+    compareText,
+  );
+  const mixes = [
+    ...new Set(
+      redirected.flatMap((c) =>
+        Object.keys(c.servingBuilds).flatMap((member) => basisByMember.get(member)?.remote ?? []),
+      ),
+    ),
+  ].sort(
+    (a, b) =>
+      Number(isHostName(b, consumers)) - Number(isHostName(a, consumers)) || compareText(a, b),
+  );
+
+  return {
+    kind:
+      torn.length > 0
+        ? 'torn'
+        : isolatedRemotes.size > 0
+          ? 'isolated'
+          : redirected.length > 0
+            ? 'redirected'
+            : 'one-build',
+    torn,
+    isolated:
+      isolatedRemotes.size > 0
+        ? { remotes: [...isolatedRemotes].sort(compareText), conflicts, cause }
+        : null,
+    redirected:
+      redirected.length > 0
+        ? { remotes: redirected.map((c) => c.remote).sort(compareText), anchors, mixes }
+        : null,
+    builds: bands.filter((b) => b.kind === 'shared').map((b) => b.owner!),
+  };
+}
+
+function isHostName(remote: string, consumers: readonly PoolConsumer[]): boolean {
+  return consumers.some((c) => c.host && c.remote === remote);
 }
 
 function causesOf(consumed: { member: string; row: MemberRow }[]): PoolConsumer['poolCauses'] {
