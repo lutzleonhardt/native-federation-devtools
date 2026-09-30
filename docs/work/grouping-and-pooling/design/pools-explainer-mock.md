@@ -1,90 +1,127 @@
 # Pools Tab — Presentation Contract
 
-Agreed in the planning conversation (2026-09-29) and frozen for Task 6.
-UI strings are the intended English wording. Scope: explicit `pool` tags
-only (see plan, "Pooling scope").
+Stage 2 (Tasks 10–11), agreed on the mock-up `pools-matrix-mock.html`
+(2026-09-30); replaces the Stage 1 tag matrix and outcome sentences. UI
+strings are the intended English wording; `pools-view-model.spec.ts` pins
+them on the orchestrator 4.7.0 fixtures. Scope: explicit `pool` tags only
+(see plan, "Pooling scope").
 
 ## Principles
 
-- **Explain membership by showing it, not the algorithm.** A tag matrix
-  (packages × remotes) makes the union rules visible; notes appear only
-  when a rule changed the result.
-- **v4.7 first.** Every sentence is read off stored rows (`action`,
-  `servedBy`, tags, and from orchestrator v4.7 `poolName` and
-  `poolCause`); nothing absent is inferred. An older runtime gets one
-  warning at the top of the tab instead of per-field markers (see
-  "Version warning").
+- **Show what happened to every copy.** One matrix per pool: every remote's
+  copy of every member, grouped by the build it loads, coloured by what
+  happened to it. The verdict names the outcome; the cells show where.
+- **Stored, never inferred.** Every state is read off stored rows
+  (`action`, `servedBy`, tags, `requiredVersion`, `strictVersion`, and from
+  orchestrator v4.7 `poolName` and `poolCause`). The one computation is a
+  range check with npm `semver`, the call the orchestrator itself makes.
+- **Quiet by default.** Colour marks what happened; the verdict colours
+  only its type, and only for isolation or a torn combination.
+- **One warning for an older runtime** at the top of the tab instead of
+  per-field markers (see "Version warning").
 - **Conditional tab.** The `Pools` nav tab exists only when the capture
   holds a tag pool or an orphan tag; `/pools` stays reachable and says
   "No pool tags in this capture." otherwise.
 
 ## Layout
 
-Definition line (always first), linking the docs, then the version
-warning when it applies:
+Definition line, linking the pooling docs, then the version warning when
+it applies, then one legend for every matrix:
 
-> A pool is a set of packages that must come from the same build. Remotes
-> opt packages in with a `pool` tag; the orchestrator then makes sure each
-> remote gets all of them from one build.
+> A pool is a set of packages that must come from the same build. Each
+> pool lists its builds and the remotes that load them.
 
-Per pool: header, matrix, outcome lines, notes.
+Per pool, top to bottom: header, matrix, verdict, notes. Problem pools
+first (torn, isolated, redirected, one build).
 
 ```
-pool @nf-lab/ui-core           2 packages · 4 remotes · formed by: ui
-                        host     mfe1        mfe2        mfe3
-@nf-lab/ui-core         2.0.0    1.0.0 ⬡ui   1.0.0 ⬡ui   1.0.0
-@nf-lab/ui-dom            —      1.0.0 ⬡ui   1.0.0 ⬡ui   1.0.0
-
-host   every package from its own build (host precedence)
-mfe1   every package from its own build · mfe2, mfe3 use this build
-mfe2   redirected: every package from mfe1's build — the shared versions
-       would have mixed @nf-lab/ui-core@2.0.0 + @nf-lab/ui-dom@1.0.0
-mfe3   redirected: every package from mfe1's build — …
-
-a tag pulls a package into the pool; every remote using that package
-takes part (mfe3 declares no tag)
+pool acme  5 packages · 12 remotes · tag: acme                 show in Graph
+@nf-lab/           acme-animations acme-common acme-core acme-forms acme-router
+Build of host · serves 5 others · host precedence
+  host                    ·        18.2.0■     18.2.0■      ·      18.2.0■
+  cart [acme]             ·        18.2.0      18.2.0       ·      18.2.0
+  …
+Build of orders · serves 4 others · 4 redirected
+  orders [acme]         18.1.3■    18.1.3■     18.1.3■   18.1.3■   18.1.3■
+  reports [no tag] ↪ redirected   18.1.3 …
+Build of legacy · isolated
+  legacy [acme]         16.2.12▲   16.2.12▲    16.2.12✕  16.2.12▲  16.2.12✕
+✕ Isolated · version conflict  legacy · 2 conflicts · 4 remotes redirected
 ```
 
-- Header: pool name as the orchestrator names it — the stored
-  `poolName` (v4.7+, most-declared tag, `~2` suffix on a clash), else the
-  smallest member (older runtimes); the pool ID keys on the smallest
-  member either way,
-  share scope when not the default, counts, `formed by:` distinct tags.
-  A single-remote pool adds "only one remote declares its members —
-  nothing to coordinate".
-- Matrix cell: `<tag version>` + `⬡<tag>` when tagged, `<tag version>`
-  when declared untagged, `—` when not declared; a scoped row reads
-  `<tag version> (own copy: <label>)` with the explanation as tooltip, or
-  `<tag version> (own copy)` when no `poolCause` is stored.
-- Outcome words: *every package from its own build*, *redirected to
-  `<build>`*, *own copy of every package*, *packages from different
-  builds*; ` — <reason>` when the consumer's copies carry a `poolCause`;
-  `· <remotes> use this build` when others are anchored on it.
+- **Header:** pool name as the orchestrator names it (the stored
+  `poolName`, v4.7+; the smallest member before) — the pool ID keys on the
+  smallest member either way; share scope when not the default; `<n>
+  packages · <n> remotes · tag(s): <distinct tags>`; `show in Graph`.
+- **Columns:** the pool's members; a shared npm scope is shown once in the
+  corner (`@nf-lab/`) and dropped from the column labels.
+- **Bands:** one per build, `Build of <owner>` with a muted note joining
+  `isolated`, `serves <n> other(s)`, `<n> redirected`, `host precedence`.
+  A remote served by several builds lands in a `Mixed builds` band.
+  Order: shared bands by size (host first on ties), isolated, mixed.
+- **Rows:** owner first. Participant chip, then the remote's tag or
+  `no tag` (nothing for the host), then `↪ redirected` when pooling pointed
+  it at another remote's build.
+- **Cells:** the version the remote gets (the serving build's tag, not
+  necessarily the one it declared); `·` where it does not use the member.
 
-| `poolCause` | Cell label | Outcome reason |
-|---|---|---|
-| `incompatible` | version conflict | `version conflict: not all its packages accept the shared versions`, then `(<pkg> needs <range>, shared is <tag>; …)` as evidence — packages whose copy is `strictVersion` and whose range `semver` says rejects the shared tag. Evidence, not a culprit: the record doesn't say which conflict isolated the remote. No brackets when none qualifies or a range can't be read. |
-| `uncovered` | not covered | no single build has every package it imports |
-| `torn` | would mix builds | the shared versions would mix builds |
-| `unshared` | no shared copy | `no remote shares <pkg> any more` |
-| other | `<raw>` | `pooling cause "<raw>"` |
-- Coherence finding (should never appear — pooling guarantees it):
-  "no single build ships this combination: …".
-- `dirty` record: "pending re-election — outcomes not settled yet".
+## Cell states
+
+| State | Colour | When | Tooltip (after `<remote> · <package> <version>`) |
+|---|---|---|---|
+| conflict | solid red | strict copy whose range `semver` says rejects the shared tag | `Conflict: needs <range>, shared is <tag>` |
+| isolated | orange | the remote runs the whole pool from its own build | `Isolated: follows <remote>'s conflict(s), since a pool comes from one build.` or `Isolated: runs the whole pool from its own build.`, plus ` Its range (<r>) accepts the shared <tag>.` or ` Its own range (<r>, not strict) wouldn't have blocked the shared <tag>.` when that is known |
+| not shared | orange | no remote shares the member, the remote is not isolated | `Not shared: no remote shares this package, so each loads its own` |
+| serves others | green | the band's owner, when another remote loads its build | `Serves <n> other remote(s)` |
+| unchanged / redirected | grey | everything else | `Redirected to the build of <owner>` / `Unchanged: its own build` / `Unchanged: the build of <owner>` |
+
+Precedence top to bottom. A range `semver` cannot read is never a
+conflict. Conflicts are evidence, not a culprit: the orchestrator stores
+`incompatible` on every copy of an isolated remote, not which conflict
+triggered it, so every conflicting package is marked.
+
+## Verdict
+
+One line per pool, directly under its matrix: `<icon> <Type> · <cause>`
+in bold, then `<who> · <why>`. Only the type is coloured, and only for
+isolation (orange) or a torn combination (red). The worst outcome leads;
+a redirect that also happened folds into `<why>`. More than two remotes
+read as a count; the matrix shows who.
+
+| Outcome | Line |
+|---|---|
+| torn | `✕ Mixed builds  <remotes> · no single build ships their combination` |
+| isolated | `✕ Isolated · <cause>  <remotes> · <n> conflict(s) · <n> remotes redirected` |
+| redirected | `↪ Redirected · would mix builds  <remotes> → build of <anchor> · shared versions come from <builds>` |
+| one build | `✓ One build  build of <owner>` (`✓ Unchanged  builds of …` for several) |
+
+Isolated `<cause>`: the stored `poolCause` when the isolated copies agree
+on one, else `version conflict` from conflict evidence, else none.
+
+| `poolCause` | Label |
+|---|---|
+| `incompatible` | version conflict |
+| `uncovered` | not covered |
+| `torn` | would mix builds |
+| `unshared` | no shared copy |
+| other | `<raw>` |
+
+A `dirty` record shows the matrix with plain versions, no states and no
+verdict, and "pending re-election — outcomes not settled yet".
 
 ## Version warning
 
 The version comes from `__NF_ORCHESTRATOR__.storage.__NATIVE_FEDERATION__.version`
 (orchestrator v4.7+, native-federation/orchestrator#86). The warning shows when
 the tab has content and the version is below 4.7.0, or when no version is
-published and no pool carries a stored `poolName`. A non-semver version
+exposed and no pool carries a stored `poolName`. A non-semver version
 (`dev`) counts as current.
 
 > This page runs orchestrator 4.6.0, which doesn't store pool names or why a
 > remote got its own copy — this tab may be incomplete.
 
 Without a version, which is an observation rather than a claim about the
-runtime (publishing is best-effort, and the probe reads one namespace):
+runtime (exposing it is best-effort, and the probe reads one namespace):
 
 > No orchestrator version found (exposed from 4.7.0). Pool names and
 > reasons may be missing.
@@ -93,18 +130,19 @@ runtime (publishing is best-effort, and the probe reads one namespace):
 
 | Case | Note |
 |---|---|
-| different tags, one pool | `tags a, b form one pool — they meet through <package>` |
+| a single remote | `only one remote declares its members — nothing to coordinate` |
+| different tags, one pool | `tags "a", "b" form one pool — they meet through <package>` |
 | one tag, several pools | `tag "t" also forms pool <other> — tags only connect through a shared package` |
 | untagged entrypoint joined | `<entrypoint> follows its package <package>` |
 | orphan (own section) | `<package>: tag "t" by <remote> joined nothing — likely a typo or a missing sibling` |
 
 ## Acceptance reference
 
-- `pooling-anchor` (V2): pool `@nf-lab/conflict-lib`, formed by
-  `family`; mfe2 redirected to mfe1; untagged-remote footnote.
-- `pool-tag-anchored`: as drawn above.
-- `pool-tag-islanded`: mfe1 `own copy of every package`; ui-core has no
-  shared version ("no remote shares @nf-lab/ui-core — 2 remotes run
-  their own copy").
-- `pool-tag-coherent`: every remote one build, no notes.
+- `pool-showcase` (4.7.0): charts `✕ Isolated · version conflict  catalog ·
+  1 conflict`; ui `↪ Redirected · would mix builds  admin, checkout → build
+  of catalog · shared versions come from host and catalog`; form-kit `✓ One
+  build  build of checkout` with the two-tags note; icons orphan.
+- `pool-portfolio` (4.7.0): as drawn above.
+- `pooling-anchor` (4.6.0): pool `@nf-lab/conflict-lib`, mfe2 redirected
+  onto mfe1, the no-version warning.
 - `pool-tag-orphan`: no pool; orphan section only.
