@@ -12,8 +12,6 @@ export const POOLS_DEFINITION =
   'A pool is a set of packages that must come from the same build. Remotes opt packages in with a pool tag; the orchestrator then makes sure each remote gets all of them from one build.';
 export const POOLING_DOCS_URL = 'https://native-federation.com/docs/v4/orchestrator/pooling';
 
-export const LEGACY_POOL_NOTE = 'orchestrator before 4.7: pool name and reasons not recorded';
-
 // The orchestrator's `PoolCause` (v4.7+): cell label and outcome explanation. An unknown value is shown raw.
 const POOL_CAUSES: Record<string, { label: string; text: string }> = {
   incompatible: { label: 'version conflict', text: 'version conflict with the shared versions' },
@@ -32,7 +30,7 @@ export interface PoolCellVm {
   text: string;
   poolTag: string | null;
   scoped: boolean;
-  /** Why pooling gave this copy its own build; `unknown` before v4.7. */
+  /** Why pooling gave this copy its own build, when the runtime stored it (v4.7+). */
   causeNote: string | null;
 }
 
@@ -66,13 +64,18 @@ export interface PoolCardVm {
 }
 
 export interface PoolsVm {
+  /** Set when the capture comes from an orchestrator before 4.7.0, which stores no pool results. */
+  versionWarning: string | null;
   pools: PoolCardVm[];
   orphans: string[];
   /** Set when the capture holds no pool tag at all. */
   emptyNote: string | null;
 }
 
-export function buildPoolsVm(projection: CanonicalResolutionProjection): PoolsVm {
+export function buildPoolsVm(
+  projection: CanonicalResolutionProjection,
+  orchestratorVersion: string | null,
+): PoolsVm {
   const pools = projection.tagPools.map((pool, index) =>
     poolCardOf(pool, projection.poolFamilies[index], projection.tagPools),
   );
@@ -82,7 +85,9 @@ export function buildPoolsVm(projection: CanonicalResolutionProjection): PoolsVm
         `${orphan.packageName}${scopeSuffix(orphan.shareScope)}: tag "${tag.tag}" by ${participantDisplay(tag.remote)} joined nothing — likely a typo or a missing sibling`,
     ),
   );
+  const hasContent = pools.length > 0 || orphans.length > 0;
   return {
+    versionWarning: hasContent ? versionWarningOf(projection, orchestratorVersion) : null,
     pools,
     orphans,
     emptyNote: pools.length === 0 && orphans.length === 0 ? 'No pool tags in this capture.' : null,
@@ -100,7 +105,6 @@ function poolCardOf(pool: TagPool, family: PoolFamily, allPools: readonly TagPoo
   const untagged = pool.remotes.filter((remote) => !pool.tags.some((tag) => tag.remote === remote));
 
   const notes: string[] = [];
-  if (!family.recorded) notes.push(LEGACY_POOL_NOTE);
   if (pool.remotes.length < 2) {
     notes.push('only one remote declares its members — nothing to coordinate');
   }
@@ -151,16 +155,16 @@ function poolCardOf(pool: TagPool, family: PoolFamily, allPools: readonly TagPoo
           ? { text: '—', poolTag: null, scoped: false, causeNote: null }
           : {
               text: cell.scoped
-                ? `${cell.tag} (own copy: ${causeLabel(cell.poolCause)})`
+                ? `${cell.tag} (own copy${cell.poolCause === null ? '' : `: ${causeLabel(cell.poolCause)}`})`
                 : cell.tag,
               poolTag: cell.poolTag,
               scoped: cell.scoped,
-              causeNote: cell.scoped ? causeText(cell.poolCause) : null,
+              causeNote: cell.poolCause === null ? null : causeText(cell.poolCause),
             },
       ),
     })),
     pendingNote: family.pending ? 'pending re-election — outcomes not settled yet' : null,
-    outcomes: family.pending ? [] : family.consumers.map((c) => outcomeOf(c, family.recorded)),
+    outcomes: family.pending ? [] : family.consumers.map(outcomeOf),
     notes,
     footnote:
       untagged.length > 0
@@ -169,7 +173,7 @@ function poolCardOf(pool: TagPool, family: PoolFamily, allPools: readonly TagPoo
   };
 }
 
-function outcomeOf(consumer: PoolConsumer, recorded: boolean): PoolOutcomeVm {
+function outcomeOf(consumer: PoolConsumer): PoolOutcomeVm {
   const builds = [...new Set(Object.values(consumer.servingBuilds))];
   const own = builds.length === 1 && builds[0] === consumer.remote;
   const fromBuilds =
@@ -198,7 +202,7 @@ function outcomeOf(consumer: PoolConsumer, recorded: boolean): PoolOutcomeVm {
         : `every package from ${fromBuilds}`;
       break;
   }
-  const why = reasonOf(consumer, recorded);
+  const why = reasonOf(consumer);
   if (why !== null) sentence += ` — ${why}`;
   if (consumer.servesOthers.length > 0) {
     sentence += ` · ${consumer.servesOthers.map(participantDisplay).join(', ')} ${consumer.servesOthers.length === 1 ? 'uses' : 'use'} this build`;
@@ -213,8 +217,7 @@ function outcomeOf(consumer: PoolConsumer, recorded: boolean): PoolOutcomeVm {
   };
 }
 
-function reasonOf(consumer: PoolConsumer, recorded: boolean): string | null {
-  if (!recorded) return consumer.outcome === 'own-copy' ? 'reason unknown' : null;
+function reasonOf(consumer: PoolConsumer): string | null {
   if (consumer.poolCauses.length === 0) return null;
   return consumer.poolCauses
     .map(({ cause, members }) => {
@@ -229,13 +232,36 @@ function reasonOf(consumer: PoolConsumer, recorded: boolean): string | null {
     .join('; ');
 }
 
-function causeLabel(cause: string | null): string {
-  return cause === null ? 'unknown' : (POOL_CAUSES[cause]?.label ?? cause);
+function causeLabel(cause: string): string {
+  return POOL_CAUSES[cause]?.label ?? cause;
 }
 
-function causeText(cause: string | null): string {
-  if (cause === null) return 'reason unknown';
+function causeText(cause: string): string {
   return POOL_CAUSES[cause]?.text ?? `pooling cause "${cause}"`;
+}
+
+// Without a published version (it arrived in v4.7 too), stored pool results are the only evidence of v4.7.
+function versionWarningOf(
+  projection: CanonicalResolutionProjection,
+  version: string | null,
+): string | null {
+  const legacy =
+    version === null
+      ? !projection.poolFamilies.some((family) => family.recorded)
+      : isBefore47(version);
+  if (!legacy) return null;
+  if (version === null) {
+    return 'No orchestrator version found (exposed from 4.7.0). Pool names and reasons may be missing.';
+  }
+  return `This page runs orchestrator ${version}, which doesn't store pool names or why a remote got its own copy — this tab may be incomplete.`;
+}
+
+// A non-semver version ('dev', from an unreleased build) is taken as current.
+function isBefore47(version: string): boolean {
+  const match = /^(\d+)\.(\d+)\./.exec(version);
+  if (match === null) return false;
+  const [major, minor] = [Number(match[1]), Number(match[2])];
+  return major < 4 || (major === 4 && minor < 7);
 }
 
 function scopeSuffix(scope: string): string {

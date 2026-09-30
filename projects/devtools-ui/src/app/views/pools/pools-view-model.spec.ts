@@ -9,10 +9,11 @@ import { FIXTURES, NF_HOST, type FixtureId, type SnapshotV1 } from 'devtools-bri
 
 import { ingestSnapshot } from '../../shared/store/ingest';
 import type { CanonicalResolutionProjection } from '../../shared/store/resolution';
-import { LEGACY_POOL_NOTE, buildPoolsVm, hasPoolTags } from './pools-view-model';
+import { buildPoolsVm, hasPoolTags } from './pools-view-model';
 
 const projectionOf = (id: FixtureId) => ingestSnapshot(FIXTURES[id]).resolutionProjection;
-const vmOf = (id: FixtureId) => buildPoolsVm(projectionOf(id));
+// The corpus is orchestrator v4.6.0, which publishes no version.
+const vmOf = (id: FixtureId) => buildPoolsVm(projectionOf(id), null);
 const sentences = (id: FixtureId) =>
   Object.fromEntries(vmOf(id).pools[0].outcomes.map((o) => [o.remote.name, o.sentence]));
 
@@ -46,17 +47,12 @@ describe('buildPoolsVm (grouping-and-pooling T6)', () => {
 
   it('T6-AC-02: pool-tag-islanded — own copy of every package, unshared note', () => {
     const [pool] = vmOf('pool-tag-islanded').pools;
-    expect(sentences('pool-tag-islanded')['mfe1']).toBe(
-      'own copy of every package (2) — reason unknown',
-    );
+    expect(sentences('pool-tag-islanded')['mfe1']).toBe('own copy of every package (2)');
     expect(pool.rows[0].cells.map((cell) => cell.text)).toEqual([
-      '1.1.0 (own copy: unknown)',
-      '1.0.0 (own copy: unknown)',
+      '1.1.0 (own copy)',
+      '1.0.0 (own copy)',
     ]);
-    expect(pool.notes).toEqual([
-      LEGACY_POOL_NOTE,
-      'no remote shares @nf-lab/ui-core — 2 remotes run their own copy',
-    ]);
+    expect(pool.notes).toEqual(['no remote shares @nf-lab/ui-core — 2 remotes run their own copy']);
   });
 
   it('T6-AC-03: pool-tag-coherent — one build for everyone, no notes, no findings', () => {
@@ -65,8 +61,7 @@ describe('buildPoolsVm (grouping-and-pooling T6)', () => {
       mfe1: 'every package from its own build',
       mfe2: "every package from mfe1's build",
     });
-    // The v4.6.0 corpus predates stored pool state.
-    expect(pool.notes).toEqual([LEGACY_POOL_NOTE]);
+    expect(pool.notes).toEqual([]);
     expect(pool.footnote).toBeNull();
     expect(pool.outcomes.every((outcome) => outcome.finding === null)).toBe(true);
   });
@@ -83,6 +78,7 @@ describe('buildPoolsVm (grouping-and-pooling T6)', () => {
 
   it('T6-AC-06: no pool tags — empty note, no tab', () => {
     expect(vmOf('frankenstein-live')).toEqual({
+      versionWarning: null,
       pools: [],
       orphans: [],
       emptyNote: 'No pool tags in this capture.',
@@ -131,12 +127,11 @@ describe('buildPoolsVm (grouping-and-pooling T6)', () => {
         { ...family, poolId: other.id, pending: true },
       ],
     };
-    const [card, pendingCard] = buildPoolsVm(projection).pools;
+    const [card, pendingCard] = buildPoolsVm(projection, null).pools;
     expect(card.outcomes[1].finding).toBe(
       'no single build ships this combination: a@2.0.0 + b@1.0.0',
     );
     expect(card.notes).toEqual([
-      LEGACY_POOL_NOTE,
       'tags "dom", "ui" form one pool — they meet through @nf-lab/ui-dom',
       'tag "ui" also forms pool zz — tags only connect through a shared package',
       '@nf-lab/ui-dom follows its package @nf-lab/ui-core',
@@ -162,7 +157,7 @@ describe('buildPoolsVm (grouping-and-pooling T6)', () => {
       return snapshot;
     };
     const vmFrom = (snapshot: SnapshotV1) =>
-      buildPoolsVm(ingestSnapshot(snapshot).resolutionProjection);
+      buildPoolsVm(ingestSnapshot(snapshot).resolutionProjection, '4.7.0');
 
     it('names the pool as stored, keeping the pre-v4.7 pool ID', () => {
       const [legacy] = vmOf('pool-tag-islanded').pools;
@@ -192,6 +187,37 @@ describe('buildPoolsVm (grouping-and-pooling T6)', () => {
       expect(pool.outcomes.find((o) => o.remote.name === 'mfe1')!.sentence).toBe(
         'own copy of every package (2) — pooling cause "future"',
       );
+    });
+  });
+
+  describe('pre-4.7.0 warning', () => {
+    const warningOf = (
+      version: string | null,
+      snapshot: SnapshotV1 = FIXTURES['pool-tag-islanded'],
+    ) => buildPoolsVm(ingestSnapshot(snapshot).resolutionProjection, version).versionWarning;
+
+    it('warns once, at the top, for an older or unpublished version', () => {
+      expect(warningOf(null)).toBe(
+        'No orchestrator version found (exposed from 4.7.0). Pool names and reasons may be missing.',
+      );
+      expect(warningOf('4.6.0')).toBe(
+        "This page runs orchestrator 4.6.0, which doesn't store pool names or why a remote got its own copy — this tab may be incomplete.",
+      );
+    });
+
+    it('does not warn from 4.7.0 on, for an unreleased build, or when there is nothing to show', () => {
+      expect(warningOf('4.7.0')).toBeNull();
+      expect(warningOf('5.0.0-rc.1')).toBeNull();
+      expect(warningOf('dev')).toBeNull();
+      expect(warningOf(null, FIXTURES['frankenstein-live'])).toBeNull();
+    });
+
+    // The version is published by a best-effort write; a stored poolName proves v4.7 without it.
+    it('does not warn when the record carries v4.7 pool state but no version was published', () => {
+      const snapshot: SnapshotV1 = structuredClone(FIXTURES['pool-tag-islanded']);
+      for (const external of Object.values(snapshot.runtime!.sharedExternals['__GLOBAL__']))
+        external.poolName = 'ui';
+      expect(warningOf(null, snapshot)).toBeNull();
     });
   });
 });

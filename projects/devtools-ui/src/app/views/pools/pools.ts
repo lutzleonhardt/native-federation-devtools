@@ -35,6 +35,8 @@ export class PoolsView {
 
   protected readonly vm = computed<PoolsVm | null>(() => {
     const model = this.store.model();
-    return model === null ? null : buildPoolsVm(model.resolutionProjection);
+    return model === null
+      ? null
+      : buildPoolsVm(model.resolutionProjection, model.provenance.orchestratorVersion);
   });
 }

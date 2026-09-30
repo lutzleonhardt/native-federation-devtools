@@ -11,17 +11,17 @@ only (see plan, "Pooling scope").
   when a rule changed the result.
 - **v4.7 first.** Every sentence is read off stored rows (`action`,
   `servedBy`, tags, and from orchestrator v4.7 `poolName` and
-  `poolCause`). A pool whose members carry no `poolName` was recorded by
-  an older runtime: its reasons read *unknown*, never inferred, and the
-  card notes "orchestrator before 4.7: pool name and reasons not
-  recorded".
+  `poolCause`); nothing absent is inferred. An older runtime gets one
+  warning at the top of the tab instead of per-field markers (see
+  "Version warning").
 - **Conditional tab.** The `Pools` nav tab exists only when the capture
   holds a tag pool or an orphan tag; `/pools` stays reachable and says
   "No pool tags in this capture." otherwise.
 
 ## Layout
 
-Definition line (always first), linking the docs:
+Definition line (always first), linking the docs, then the version
+warning when it applies:
 
 > A pool is a set of packages that must come from the same build. Remotes
 > opt packages in with a `pool` tag; the orchestrator then makes sure each
@@ -54,13 +54,12 @@ takes part (mfe3 declares no tag)
   nothing to coordinate".
 - Matrix cell: `<tag version>` + `⬡<tag>` when tagged, `<tag version>`
   when declared untagged, `—` when not declared; a scoped row reads
-  `<tag version> (own copy: <label>)`, the explanation as tooltip;
-  `<label>` is `unknown` before v4.7.
+  `<tag version> (own copy: <label>)` with the explanation as tooltip, or
+  `<tag version> (own copy)` when no `poolCause` is stored.
 - Outcome words: *every package from its own build*, *redirected to
   `<build>`*, *own copy of every package*, *packages from different
-  builds*; ` — <reason>` when the consumer's copies carry a `poolCause`
-  (` — reason unknown` on an own-copy line before v4.7); `· <remotes> use
-  this build` when others are anchored on it.
+  builds*; ` — <reason>` when the consumer's copies carry a `poolCause`;
+  `· <remotes> use this build` when others are anchored on it.
 
 | `poolCause` | Cell label | Outcome reason |
 |---|---|---|
@@ -72,6 +71,23 @@ takes part (mfe3 declares no tag)
 - Coherence finding (should never appear — pooling guarantees it):
   "no single build ships this combination: …".
 - `dirty` record: "pending re-election — outcomes not settled yet".
+
+## Version warning
+
+The version comes from `__NF_ORCHESTRATOR__.storage.__NATIVE_FEDERATION__.version`
+(orchestrator v4.7+, native-federation/orchestrator#86). The warning shows when
+the tab has content and the version is below 4.7.0, or when no version is
+published and no pool carries a stored `poolName`. A non-semver version
+(`dev`) counts as current.
+
+> This page runs orchestrator 4.6.0, which doesn't store pool names or why a
+> remote got its own copy — this tab may be incomplete.
+
+Without a version, which is an observation rather than a claim about the
+runtime (publishing is best-effort, and the probe reads one namespace):
+
+> No orchestrator version found (exposed from 4.7.0). Pool names and
+> reasons may be missing.
 
 ## Membership notes (only when they occurred)
 

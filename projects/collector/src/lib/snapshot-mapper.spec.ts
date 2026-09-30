@@ -232,6 +232,78 @@ function registerAnchorProjectionTests(
   });
 }
 
+// The descriptor orchestrator v4.7 publishes (native-federation/orchestrator#86): frozen, with a
+// `get` function the passive probe must never call.
+describe('orchestrator version from __NF_ORCHESTRATOR__', () => {
+  const orchestratorPage = (entry: Record<string, unknown>) => {
+    const counters = { getCalls: 0 };
+    const sandbox = makeBarePage({
+      __NATIVE_FEDERATION__: {
+        remotes: {},
+        'scoped-externals': {},
+        'shared-externals': {},
+        'shared-chunks': {},
+      },
+      __NF_ORCHESTRATOR__: Object.freeze({
+        storage: Object.freeze({
+          __NATIVE_FEDERATION__: Object.freeze({
+            type: 'globalThis',
+            namespace: '__NATIVE_FEDERATION__',
+            keys: ['remotes', 'shared-externals', 'scoped-externals', 'shared-chunks'],
+            get: () => {
+              counters.getCalls += 1;
+              return {};
+            },
+            ...entry,
+          }),
+        }),
+      }),
+    });
+    const raw = evaluateProbe(PASSIVE_PROBE_SOURCE, sandbox);
+    return { snapshot: mapProbeResult(raw, null, { capturedAt: CAPTURED_AT }), counters };
+  };
+
+  it('carries the published version without calling get', () => {
+    const { snapshot, counters } = orchestratorPage({ version: '4.7.0' });
+    expect(snapshot.runtime!.orchestratorVersion).toBe('4.7.0');
+    expect(counters.getCalls).toBe(0);
+    expect(snapshot.errors).toEqual([]);
+  });
+
+  it('omits the version when the page publishes no descriptor (before v4.7)', () => {
+    const snapshot = captureInlineAnchor(makeAnchorParticipant());
+    expect(hasOwn(snapshot.runtime!, 'orchestratorVersion')).toBe(false);
+  });
+
+  it('drops a version that is not a version token', () => {
+    const { snapshot } = orchestratorPage({ version: '4.7.0 <script>' });
+    expect(hasOwn(snapshot.runtime!, 'orchestratorVersion')).toBe(false);
+    expect(snapshot.errors.map((error) => error.code)).toContain('orchestrator-version-invalid');
+  });
+
+  it('skips an accessor-backed version without invoking it', () => {
+    let getterCalls = 0;
+    const entry = {};
+    Object.defineProperty(entry, 'version', {
+      enumerable: true,
+      get() {
+        getterCalls += 1;
+        return '4.7.0';
+      },
+    });
+    const sandbox = makeBarePage({
+      __NATIVE_FEDERATION__: { remotes: {} },
+      __NF_ORCHESTRATOR__: { storage: { __NATIVE_FEDERATION__: entry } },
+    });
+    const snapshot = mapProbeResult(evaluateProbe(PASSIVE_PROBE_SOURCE, sandbox), null, {
+      capturedAt: CAPTURED_AT,
+    });
+    expect(getterCalls).toBe(0);
+    expect(hasOwn(snapshot.runtime!, 'orchestratorVersion')).toBe(false);
+    expect(snapshot.errors.map((error) => error.code)).toContain('accessor-skipped');
+  });
+});
+
 registerAnchorProjectionTests('the inline probe schema', 'probe', captureInlineAnchor);
 registerAnchorProjectionTests('the host mapper schema', 'mapper', captureHostAnchor);
 

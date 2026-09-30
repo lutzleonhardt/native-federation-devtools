@@ -168,6 +168,8 @@ export interface RuntimeRepositoriesV1 {
   sharedChunks: Record<string, Record<string, string[]>>;
   /** Aggregate of the participant generation discriminators. */
   generation: SnapshotGenerationV1;
+  /** `__NF_ORCHESTRATOR__.storage.__NATIVE_FEDERATION__.version`; absent before orchestrator v4.7. */
+  orchestratorVersion?: string;
 }
 
 export interface ImportMapEntryV1 {

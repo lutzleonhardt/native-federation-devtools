@@ -5,6 +5,9 @@
       {{ definition }}
       <a [href]="docsUrl" target="_blank" rel="noopener noreferrer">Pooling docs</a>
     </p>
+    @if (vm.versionWarning) {
+      <p class="pools-version-warning" role="note">{{ vm.versionWarning }}</p>
+    }
     @if (vm.emptyNote) {
       <p class="view-observation">{{ vm.emptyNote }}</p>
     }
