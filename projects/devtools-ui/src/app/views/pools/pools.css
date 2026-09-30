@@ -75,7 +75,7 @@
 
 /* A wide family scrolls inside its card, never the page. */
 .pool-matrix-wrap {
-  margin: 8px 0 4px;
+  margin: 16px 0 4px;
   overflow-x: auto;
 }
 
@@ -93,6 +93,15 @@
 
 .pool-matrix thead th {
   color: var(--nf-color-text-muted);
+}
+
+/* One width for the remote column in every pool, so the version columns line up across cards. */
+.pool-matrix thead th:first-child,
+.pool-matrix th[scope='row'] {
+  box-sizing: border-box;
+  width: 240px;
+  min-width: 240px;
+  padding-right: 12px;
 }
 
 .pool-band th {
@@ -118,7 +127,9 @@
 
 .pool-matrix td {
   min-width: 4.5em;
-  padding: 2px 6px;
+  /* Digits have no descenders: a tight line box nudged down centres them optically. */
+  padding: 4px 6px 2px;
+  line-height: 1;
   border-radius: 3px;
   text-align: center;
   font-variant-numeric: tabular-nums;
@@ -181,7 +192,7 @@
 }
 
 .pool-verdict[data-tone='torn'] .pool-verdict-type {
-  color: var(--nf-color-conflict);
+  color: var(--nf-color-conflict-text);
 }
 
 .pool-note {

@@ -28,7 +28,8 @@
   --nf-color-warning-border: #e3c26d;
 
   /* Pool matrix states (views/pools): conflict, isolated / not shared, a build serving others. */
-  --nf-color-conflict: #c5221f;
+  --nf-color-conflict: #8c1d2f;
+  --nf-color-conflict-text: #8c1d2f;
   --nf-color-conflict-contrast: #ffffff;
   --nf-color-isolated-text: #b95000;
   --nf-color-isolated-bg: #ffd9b3;
@@ -67,8 +68,9 @@
     --nf-color-warning-bg: #35301f;
     --nf-color-warning-border: #6b5c2a;
 
-    --nf-color-conflict: #f28b82;
-    --nf-color-conflict-contrast: #202124;
+    --nf-color-conflict: #9a2436;
+    --nf-color-conflict-text: #f28b82;
+    --nf-color-conflict-contrast: #ffffff;
     --nf-color-isolated-text: #ffb870;
     --nf-color-isolated-bg: #5a3313;
     --nf-color-serves-text: #81c995;
@@ -101,8 +103,9 @@
   --nf-color-warning-bg: #35301f;
   --nf-color-warning-border: #6b5c2a;
 
-  --nf-color-conflict: #f28b82;
-  --nf-color-conflict-contrast: #202124;
+  --nf-color-conflict: #9a2436;
+  --nf-color-conflict-text: #f28b82;
+  --nf-color-conflict-contrast: #ffffff;
   --nf-color-isolated-text: #ffb870;
   --nf-color-isolated-bg: #5a3313;
   --nf-color-serves-text: #81c995;
