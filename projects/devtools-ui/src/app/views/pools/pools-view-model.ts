@@ -10,11 +10,14 @@ import { GLOBAL_SCOPE, isHostRemote, participantDisplay } from '../../shared/vie
 
 export const POOLS_DEFINITION =
   'A pool is a set of packages that must come from the same build. Remotes opt packages in with a pool tag; the orchestrator then makes sure each remote gets all of them from one build.';
-export const POOLING_DOCS_URL = 'https://native-federation.com/docs/v4/orchestrator/pooling';
+export const POOLING_DOCS_URL = 'https://native-federation.com/docs/v4/orchestrator/pooling/';
 
 // The orchestrator's `PoolCause` (v4.7+): cell label and outcome explanation. An unknown value is shown raw.
 const POOL_CAUSES: Record<string, { label: string; text: string }> = {
-  incompatible: { label: 'version conflict', text: 'version conflict with the shared versions' },
+  incompatible: {
+    label: 'version conflict',
+    text: 'version conflict: not all its packages accept the shared versions',
+  },
   uncovered: { label: 'not covered', text: 'no single build has every package it imports' },
   torn: { label: 'would mix builds', text: 'the shared versions would mix builds' },
   unshared: { label: 'no shared copy', text: 'no remote shares it any more' },
@@ -221,10 +224,11 @@ function reasonOf(consumer: PoolConsumer): string | null {
   if (consumer.poolCauses.length === 0) return null;
   return consumer.poolCauses
     .map(({ cause, members }) => {
+      // Evidence, not attribution: the record doesn't say which conflict isolated the remote.
       if (cause === 'incompatible' && consumer.conflicts.length > 0) {
-        return `version conflict: ${consumer.conflicts
-          .map((c) => `needs ${c.member}@${c.requiredVersion}, shared is ${c.sharedTag}`)
-          .join('; ')}`;
+        return `${causeText(cause)} (${consumer.conflicts
+          .map((c) => `${c.member} needs ${c.requiredVersion}, shared is ${c.sharedTag}`)
+          .join('; ')})`;
       }
       if (cause === 'unshared') return `no remote shares ${members.join(', ')} any more`;
       return causeText(cause);

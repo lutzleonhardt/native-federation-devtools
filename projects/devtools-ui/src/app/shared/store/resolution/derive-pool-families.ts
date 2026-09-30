@@ -1,3 +1,4 @@
+import { satisfiesRange } from '../semver-range';
 import { owningPackage } from './derive-grouping-facets';
 import type { TagPool } from './grouping-model';
 import type { CanonicalRegistryEvidence, VersionRegistration } from './model';
@@ -13,6 +14,7 @@ interface MemberRow {
   remote: string;
   tag: string;
   requiredVersion: string;
+  strictVersion: boolean;
   action: VersionRegistration['action'];
   poolTag: string | null;
   servedBy: string | null;
@@ -65,6 +67,7 @@ export function derivePoolFamilies(
             remote: declaration.participant,
             tag: registration.tag,
             requiredVersion: declaration.requiredVersion,
+            strictVersion: declaration.strictVersion,
             action: registration.action,
             poolTag: declaration.pool?.trim() || null,
             servedBy: declaration.servedBy,
@@ -163,11 +166,14 @@ export function derivePoolFamilies(
         host,
         outcome,
         poolCauses: causesOf(consumed),
+        // `determine`'s objector: only a strict copy whose range rejects the shared tag keeps its own build.
         conflicts: consumed.flatMap(({ member, row }) => {
           const basis = basisByMember.get(member);
-          return basis === undefined || basis.tag === row.tag
-            ? []
-            : [{ member, requiredVersion: row.requiredVersion, sharedTag: basis.tag }];
+          return basis !== undefined &&
+            row.strictVersion &&
+            satisfiesRange(basis.tag, row.requiredVersion) === false
+            ? [{ member, requiredVersion: row.requiredVersion, sharedTag: basis.tag }]
+            : [];
         }),
         servingBuilds,
         servesOthers: pool.remotes

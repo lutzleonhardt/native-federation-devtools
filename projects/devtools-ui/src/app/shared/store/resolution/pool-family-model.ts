@@ -31,7 +31,7 @@ export interface PoolConsumer {
   outcome: PoolConsumerOutcome;
   /** Stored `poolCause`s of this consumer's member copies, sorted by cause; empty before v4.7. */
   poolCauses: { cause: string; members: string[] }[];
-  /** Members this consumer runs at another tag than the shared one, with the range it declared. */
+  /** Members whose strict range definitely rejects the shared tag; a range it cannot read is left out. */
   conflicts: PoolVersionConflict[];
   /** Member package → the remote whose build serves it to this consumer. */
   servingBuilds: Record<string, string>;

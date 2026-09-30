@@ -151,6 +151,41 @@
     addError("namespace-unreadable", "channels.nativeFederationGlobals", error && error.message);
   }
 
+  // --- channel: orchestratorGlobal (__NF_ORCHESTRATOR__, orchestrator v4.7+) --
+  // The storage descriptor the orchestrator exposes for tools (native-federation/orchestrator#86).
+  // Absent before v4.7, which is an observation, not an error. Each entry's `get` is a function,
+  // so it is recorded as `hasGet` and never called.
+  const orchestratorGlobal = { availability: "unavailable", observedAt: now(), data: null };
+  try {
+    const value = globalThis.__NF_ORCHESTRATOR__;
+    if (value === undefined || value === null) {
+      orchestratorGlobal.data = { present: false };
+    } else {
+      const storageValue = value.storage;
+      const storage = {};
+      for (const namespace of Object.getOwnPropertyNames(storageValue ?? {})) {
+        const entry = storageValue[namespace];
+        const plain = {};
+        for (const key of Object.getOwnPropertyNames(entry)) {
+          if (key !== "get") plain[key] = entry[key];
+        }
+        storage[namespace] = {
+          ...cloneJson(plain, "channels.orchestratorGlobal.storage." + namespace),
+          hasGet: typeof entry.get === "function"
+        };
+      }
+      orchestratorGlobal.availability = "available";
+      orchestratorGlobal.data = {
+        present: true,
+        valueType: typeof value,
+        keys: Object.getOwnPropertyNames(value),
+        storage
+      };
+    }
+  } catch (error) {
+    addError("orchestrator-global-unreadable", "channels.orchestratorGlobal", error && error.message);
+  }
+
   // --- channel: domImportMaps (tag inventory, document order) -------------
   // Adapted from projects/collector/src/lib/passive-probe.ts:279-307,
   // minus count/length caps; raw text is the ground truth, `map` is the
@@ -225,6 +260,7 @@
     },
     channels: {
       nativeFederationGlobals,
+      orchestratorGlobal,
       domImportMaps,
       importShim
     },

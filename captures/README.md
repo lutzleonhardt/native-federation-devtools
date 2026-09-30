@@ -25,7 +25,12 @@ repository, `nf/playground`, branch `lab/v2-scenarios` — see
 `lab-lossless-capture/1`: the full `__NATIVE_FEDERATION__` registry
 namespace cloned **losslessly** (no allowlist, no caps), the DOM
 import-map tag inventory, and the effective `importShim.getImportMap()`
-copy including SRI integrity hash values.
+copy including SRI integrity hash values. Captures from orchestrator
+v4.7 on can also carry an `orchestratorGlobal` channel: the
+`__NF_ORCHESTRATOR__` storage descriptor with its exposed `version`
+(`get` recorded as `hasGet`, never called). Older pages record it as
+`{ present: false }`, and captures from before the channel existed don't
+have it at all.
 
 Produced by evaluating `scripts/lab-capture-dump.js` unchanged in the
 served scenario page (chrome-devtools MCP session; the probe is one

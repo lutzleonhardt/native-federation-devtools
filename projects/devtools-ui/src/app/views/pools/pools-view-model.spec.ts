@@ -170,11 +170,14 @@ describe('buildPoolsVm (grouping-and-pooling T6)', () => {
     it('states the stored cause in the cells and outcome lines', () => {
       const [pool] = vmFrom(withV47Fields({ mfe1: 'incompatible', mfe2: 'unshared' })).pools;
       expect(pool.rows[0].cells.map((cell) => [cell.text, cell.causeNote])).toEqual([
-        ['1.1.0 (own copy: version conflict)', 'version conflict with the shared versions'],
+        [
+          '1.1.0 (own copy: version conflict)',
+          'version conflict: not all its packages accept the shared versions',
+        ],
         ['1.0.0 (own copy: no shared copy)', 'no remote shares it any more'],
       ]);
       expect(Object.fromEntries(pool.outcomes.map((o) => [o.remote.name, o.sentence]))).toEqual({
-        mfe1: 'own copy of every package (2) — version conflict: needs @nf-lab/ui-dom@^1.0.0, shared is 2.0.0',
+        mfe1: 'own copy of every package (2) — version conflict: not all its packages accept the shared versions (@nf-lab/ui-dom needs ^1.0.0, shared is 2.0.0)',
         mfe2: 'every package from its own build — no remote shares @nf-lab/ui-core any more',
       });
       expect(pool.notes).toEqual([
@@ -186,6 +189,23 @@ describe('buildPoolsVm (grouping-and-pooling T6)', () => {
       const [pool] = vmFrom(withV47Fields({ mfe1: 'future', mfe2: 'unshared' })).pools;
       expect(pool.outcomes.find((o) => o.remote.name === 'mfe1')!.sentence).toBe(
         'own copy of every package (2) — pooling cause "future"',
+      );
+    });
+
+    // mfe1's ui-dom copy (strict ^1.0.0 against the shared 2.0.0) is the fixture's one real conflict.
+    // A package is only named when its strict range certainly rejects the shared tag; otherwise the
+    // line falls back to the generic reason rather than blame a package that may be fine.
+    it.each([
+      ['a range that accepts the shared tag', { requiredVersion: '>=1.0.0' }],
+      ['a range it cannot read', { requiredVersion: 'latest' }],
+      ['a non-strict copy', { strictVersion: false }],
+    ])('names no package for %s', (_case, override) => {
+      const snapshot = withV47Fields({ mfe1: 'incompatible', mfe2: 'unshared' });
+      const dom = snapshot.runtime!.sharedExternals['__GLOBAL__']['@nf-lab/ui-dom'];
+      Object.assign(dom.versions.find((v) => v.action === 'scope')!.remotes[0], override);
+      const [pool] = vmFrom(snapshot).pools;
+      expect(pool.outcomes.find((o) => o.remote.name === 'mfe1')!.sentence).toBe(
+        'own copy of every package (2) — version conflict: not all its packages accept the shared versions',
       );
     });
   });

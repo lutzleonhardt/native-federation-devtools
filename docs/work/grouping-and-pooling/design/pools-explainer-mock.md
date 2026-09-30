@@ -63,7 +63,7 @@ takes part (mfe3 declares no tag)
 
 | `poolCause` | Cell label | Outcome reason |
 |---|---|---|
-| `incompatible` | version conflict | `version conflict: needs <pkg>@<range>, shared is <tag>` (members at another tag than the shared one; generic text when none) |
+| `incompatible` | version conflict | `version conflict: not all its packages accept the shared versions`, then `(<pkg> needs <range>, shared is <tag>; …)` as evidence — packages whose copy is `strictVersion` and whose range `semver` says rejects the shared tag. Evidence, not a culprit: the record doesn't say which conflict isolated the remote. No brackets when none qualifies or a range can't be read. |
 | `uncovered` | not covered | no single build has every package it imports |
 | `torn` | would mix builds | the shared versions would mix builds |
 | `unshared` | no shared copy | `no remote shares <pkg> any more` |
