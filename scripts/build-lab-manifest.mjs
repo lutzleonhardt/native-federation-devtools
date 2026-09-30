@@ -22,12 +22,12 @@ import { corpusById } from "./lab-corpora.mjs";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const CAPTURES_DIR = join(REPO_ROOT, "captures");
-const PROBE_PATH = join(REPO_ROOT, "scripts", "lab-capture-dump.js");
 
 const args = process.argv.slice(2);
 const corpusFlag = args.indexOf("--corpus");
 const corpus = corpusById(corpusFlag !== -1 ? args[corpusFlag + 1] : "v2");
 const MANIFEST_PATH = join(CAPTURES_DIR, corpus.manifest);
+const PROBE_PATH = join(REPO_ROOT, corpus.probe);
 const EXPECTED_SCENARIOS = corpus.scenarios;
 const playgroundFlag = args.indexOf("--playground");
 const playgroundDir =
@@ -180,7 +180,7 @@ const manifest = {
     },
     orchestratorCommit: [...orchestratorCommits][0],
     probe: {
-      file: "scripts/lab-capture-dump.js",
+      file: corpus.probe,
       schemaVersion: "lab-lossless-capture/1",
       sha256: sha256(readFileSync(PROBE_PATH))
     }

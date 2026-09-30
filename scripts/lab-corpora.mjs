@@ -6,6 +6,7 @@ export const LAB_CORPORA = [
     manifest: "manifest.json",
     repository: "nf/playground",
     runner: "run-scenario.mjs",
+    probe: "scripts/lab-capture-dump-v1.js",
     collector: { kind: "chrome-devtools-mcp", interface: "generic-devtools", webMcpUsed: false },
     live: true,
     scenarios: [
@@ -28,6 +29,7 @@ export const LAB_CORPORA = [
     manifest: "manifest-nf-lab.json",
     repository: "native-federation/playground",
     runner: "lab/run-scenario.mjs",
+    probe: "scripts/lab-capture-dump.js",
     collector: { kind: "playwright-cdp", interface: "headless-chromium", webMcpUsed: false },
     live: false,
     scenarios: [
