@@ -12,6 +12,16 @@ export const POOLS_DEFINITION =
   'A pool is a set of packages that must come from the same build. Remotes opt packages in with a pool tag; the orchestrator then makes sure each remote gets all of them from one build.';
 export const POOLING_DOCS_URL = 'https://native-federation.com/docs/v4/orchestrator/pooling';
 
+export const LEGACY_POOL_NOTE = 'orchestrator before 4.7: pool name and reasons not recorded';
+
+// The orchestrator's `PoolCause` (v4.7+): cell label and outcome explanation. An unknown value is shown raw.
+const POOL_CAUSES: Record<string, { label: string; text: string }> = {
+  incompatible: { label: 'version conflict', text: 'version conflict with the shared versions' },
+  uncovered: { label: 'not covered', text: 'no single build has every package it imports' },
+  torn: { label: 'would mix builds', text: 'the shared versions would mix builds' },
+  unshared: { label: 'no shared copy', text: 'no remote shares it any more' },
+};
+
 export interface PoolRemoteVm {
   name: string;
   host: boolean;
@@ -22,6 +32,8 @@ export interface PoolCellVm {
   text: string;
   poolTag: string | null;
   scoped: boolean;
+  /** Why pooling gave this copy its own build; `unknown` before v4.7. */
+  causeNote: string | null;
 }
 
 export interface PoolRowVm {
@@ -88,6 +100,7 @@ function poolCardOf(pool: TagPool, family: PoolFamily, allPools: readonly TagPoo
   const untagged = pool.remotes.filter((remote) => !pool.tags.some((tag) => tag.remote === remote));
 
   const notes: string[] = [];
+  if (!family.recorded) notes.push(LEGACY_POOL_NOTE);
   if (pool.remotes.length < 2) {
     notes.push('only one remote declares its members — nothing to coordinate');
   }
@@ -135,16 +148,19 @@ function poolCardOf(pool: TagPool, family: PoolFamily, allPools: readonly TagPoo
       packageName,
       cells: family.matrix[row].map((cell) =>
         cell.kind === 'not-declared'
-          ? { text: '—', poolTag: null, scoped: false }
+          ? { text: '—', poolTag: null, scoped: false, causeNote: null }
           : {
-              text: cell.scoped ? `${cell.tag} (own copy)` : cell.tag,
+              text: cell.scoped
+                ? `${cell.tag} (own copy: ${causeLabel(cell.poolCause)})`
+                : cell.tag,
               poolTag: cell.poolTag,
               scoped: cell.scoped,
+              causeNote: cell.scoped ? causeText(cell.poolCause) : null,
             },
       ),
     })),
     pendingNote: family.pending ? 'pending re-election — outcomes not settled yet' : null,
-    outcomes: family.pending ? [] : family.consumers.map(outcomeOf),
+    outcomes: family.pending ? [] : family.consumers.map((c) => outcomeOf(c, family.recorded)),
     notes,
     footnote:
       untagged.length > 0
@@ -153,7 +169,7 @@ function poolCardOf(pool: TagPool, family: PoolFamily, allPools: readonly TagPoo
   };
 }
 
-function outcomeOf(consumer: PoolConsumer): PoolOutcomeVm {
+function outcomeOf(consumer: PoolConsumer, recorded: boolean): PoolOutcomeVm {
   const builds = [...new Set(Object.values(consumer.servingBuilds))];
   const own = builds.length === 1 && builds[0] === consumer.remote;
   const fromBuilds =
@@ -182,6 +198,8 @@ function outcomeOf(consumer: PoolConsumer): PoolOutcomeVm {
         : `every package from ${fromBuilds}`;
       break;
   }
+  const why = reasonOf(consumer, recorded);
+  if (why !== null) sentence += ` — ${why}`;
   if (consumer.servesOthers.length > 0) {
     sentence += ` · ${consumer.servesOthers.map(participantDisplay).join(', ')} ${consumer.servesOthers.length === 1 ? 'uses' : 'use'} this build`;
   }
@@ -193,6 +211,31 @@ function outcomeOf(consumer: PoolConsumer): PoolOutcomeVm {
         ? `no single build ships this combination: ${consumer.combination.join(' + ')}`
         : null,
   };
+}
+
+function reasonOf(consumer: PoolConsumer, recorded: boolean): string | null {
+  if (!recorded) return consumer.outcome === 'own-copy' ? 'reason unknown' : null;
+  if (consumer.poolCauses.length === 0) return null;
+  return consumer.poolCauses
+    .map(({ cause, members }) => {
+      if (cause === 'incompatible' && consumer.conflicts.length > 0) {
+        return `version conflict: ${consumer.conflicts
+          .map((c) => `needs ${c.member}@${c.requiredVersion}, shared is ${c.sharedTag}`)
+          .join('; ')}`;
+      }
+      if (cause === 'unshared') return `no remote shares ${members.join(', ')} any more`;
+      return causeText(cause);
+    })
+    .join('; ');
+}
+
+function causeLabel(cause: string | null): string {
+  return cause === null ? 'unknown' : (POOL_CAUSES[cause]?.label ?? cause);
+}
+
+function causeText(cause: string | null): string {
+  if (cause === null) return 'reason unknown';
+  return POOL_CAUSES[cause]?.text ?? `pooling cause "${cause}"`;
 }
 
 function scopeSuffix(scope: string): string {

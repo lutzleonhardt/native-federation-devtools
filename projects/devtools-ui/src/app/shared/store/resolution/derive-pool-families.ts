@@ -12,9 +12,11 @@ import type {
 interface MemberRow {
   remote: string;
   tag: string;
+  requiredVersion: string;
   action: VersionRegistration['action'];
   poolTag: string | null;
   servedBy: string | null;
+  poolCause: string | null;
   specifiers: string[];
 }
 
@@ -62,9 +64,11 @@ export function derivePoolFamilies(
           rows.push({
             remote: declaration.participant,
             tag: registration.tag,
+            requiredVersion: declaration.requiredVersion,
             action: registration.action,
             poolTag: declaration.pool?.trim() || null,
             servedBy: declaration.servedBy,
+            poolCause: declaration.poolCause,
             specifiers: declaration.entrypointCandidateIds.map(
               (id) => candidateById.get(id)!.specifier,
             ),
@@ -125,6 +129,7 @@ export function derivePoolFamilies(
               tag: row.tag,
               poolTag: row.poolTag,
               scoped: row.action === 'scope',
+              poolCause: row.poolCause,
             };
       }),
     );
@@ -157,6 +162,13 @@ export function derivePoolFamilies(
         remote,
         host,
         outcome,
+        poolCauses: causesOf(consumed),
+        conflicts: consumed.flatMap(({ member, row }) => {
+          const basis = basisByMember.get(member);
+          return basis === undefined || basis.tag === row.tag
+            ? []
+            : [{ member, requiredVersion: row.requiredVersion, sharedTag: basis.tag }];
+        }),
         servingBuilds,
         servesOthers: pool.remotes
           .filter((other) => other !== remote)
@@ -178,8 +190,20 @@ export function derivePoolFamilies(
       matrix,
       consumers,
       pending: externals.some((external) => external.dirty),
+      recorded: externals.some((external) => external.poolName !== null),
     };
   });
+}
+
+function causesOf(consumed: { member: string; row: MemberRow }[]): PoolConsumer['poolCauses'] {
+  const members = new Map<string, string[]>();
+  for (const { member, row } of consumed) {
+    if (row.poolCause !== null)
+      members.set(row.poolCause, [...(members.get(row.poolCause) ?? []), member]);
+  }
+  return [...members]
+    .sort(([a], [b]) => compareText(a, b))
+    .map(([cause, names]) => ({ cause, members: names }));
 }
 
 function outcomeOf(

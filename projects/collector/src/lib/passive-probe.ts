@@ -151,6 +151,7 @@ export const PASSIVE_PROBE_SOURCE = `(() => {
       file: schemas.string,
       name: schemas.string,
       pool: schemas.string,
+      poolCause: schemas.string,
       requiredVersion: schemas.string,
       servedBy: schemas.string,
       strictVersion: schemas.boolean
@@ -169,6 +170,7 @@ export const PASSIVE_PROBE_SOURCE = `(() => {
     type: "record",
     fields: {
       dirty: schemas.boolean,
+      poolName: schemas.string,
       versions: { type: "array", item: schemas.version }
     }
   };

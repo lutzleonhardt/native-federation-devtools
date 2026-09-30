@@ -47,7 +47,11 @@
               <tr>
                 <th scope="row" class="mono">{{ row.packageName }}</th>
                 @for (cell of row.cells; track $index) {
-                  <td class="mono" [class.pool-cell-scoped]="cell.scoped">
+                  <td
+                    class="mono"
+                    [class.pool-cell-scoped]="cell.scoped"
+                    [attr.title]="cell.causeNote"
+                  >
                     {{ cell.text }}
                     @if (cell.poolTag) {
                       <span class="pool-chip" title="pool tag declared by this remote">{{

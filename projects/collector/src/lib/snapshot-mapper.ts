@@ -344,8 +344,10 @@ function toExternalScopes(
       if (!isObjectLike(externalRaw)) {
         continue;
       }
+      const poolName = dataValue(externalRaw, 'poolName');
       scopeOutput[pkg] = {
         dirty: dataValue(externalRaw, 'dirty') === true,
+        ...(typeof poolName === 'string' ? { poolName } : {}),
         versions: toExternalVersions(dataValue(externalRaw, 'versions'), errors, limits, `shared-externals.${pkg}`),
       };
     }
@@ -458,6 +460,7 @@ function toExternalRemotes(
     const bundle = dataValue(remoteRaw, 'bundle');
     const pool = dataValue(remoteRaw, 'pool');
     const servedBy = dataValue(remoteRaw, 'servedBy');
+    const poolCause = dataValue(remoteRaw, 'poolCause');
     remotes.push({
       name,
       requiredVersion,
@@ -468,6 +471,7 @@ function toExternalRemotes(
       bundle: typeof bundle === 'string' ? bundle : null,
       ...(typeof pool === 'string' ? { pool } : {}),
       ...(typeof servedBy === 'string' ? { servedBy } : {}),
+      ...(typeof poolCause === 'string' ? { poolCause } : {}),
       servedFiles:
         entries !== null
           ? Object.entries(entries).map(([entry, entryFile]) => ({ entry, file: entryFile }))

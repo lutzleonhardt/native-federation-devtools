@@ -53,10 +53,10 @@ describe('derivePoolFamilies — outcomes from stored rows', () => {
       '@nf-lab/ui-dom@1.0.0',
     ]);
     expect(family.matrix[0]).toEqual([
-      { kind: 'declared', tag: '2.0.0', poolTag: null, scoped: false },
-      { kind: 'declared', tag: '1.0.0', poolTag: 'ui', scoped: false },
-      { kind: 'declared', tag: '1.0.0', poolTag: 'ui', scoped: false },
-      { kind: 'declared', tag: '1.0.0', poolTag: null, scoped: false },
+      { kind: 'declared', tag: '2.0.0', poolTag: null, scoped: false, poolCause: null },
+      { kind: 'declared', tag: '1.0.0', poolTag: 'ui', scoped: false, poolCause: null },
+      { kind: 'declared', tag: '1.0.0', poolTag: 'ui', scoped: false, poolCause: null },
+      { kind: 'declared', tag: '1.0.0', poolTag: null, scoped: false, poolCause: null },
     ]);
     expect(family.matrix[1][0]).toEqual({ kind: 'not-declared' });
   });

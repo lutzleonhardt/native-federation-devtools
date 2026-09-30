@@ -18,6 +18,7 @@ interface PoolCandidate {
   ids: SharedExternalId[];
   tags: PoolTagDeclaration[];
   remotes: Set<string>;
+  storedPoolNames: Set<string>;
 }
 
 /** Tag pools per share scope, mirroring the orchestrator's `groupByMembership` with tag edges only. */
@@ -38,9 +39,15 @@ export function deriveTagPools(evidence: CanonicalRegistryEvidence): TagPoolDeri
     if (external.shareScope === STRICT_SCOPE) continue;
     const scope = byScope.get(external.shareScope) ?? new Map<string, PoolCandidate>();
     byScope.set(external.shareScope, scope);
-    const candidate = scope.get(external.packageName) ?? { ids: [], tags: [], remotes: new Set() };
+    const candidate = scope.get(external.packageName) ?? {
+      ids: [],
+      tags: [],
+      remotes: new Set(),
+      storedPoolNames: new Set(),
+    };
     scope.set(external.packageName, candidate);
     candidate.ids.push(external.id);
+    if (external.poolName !== null) candidate.storedPoolNames.add(external.poolName);
     for (const declaration of declarationsOf(external)) {
       candidate.remotes.add(declaration.participant);
       const tag = declaration.pool?.trim();
@@ -81,8 +88,9 @@ export function deriveTagPools(evidence: CanonicalRegistryEvidence): TagPoolDeri
     for (const names of membersByRoot.values()) {
       const tags = names.flatMap((name) => candidates.get(name)!.tags).sort(compareTags);
       if (tags.length === 0) continue;
-      // The orchestrator sorts members with localeCompare and names the pool after the first.
+      // Before v4.7 the orchestrator stored no name and named the pool after its localeCompare-first member.
       const members = [...names].sort((a, b) => a.localeCompare(b));
+      const stored = new Set(members.flatMap((name) => [...candidates.get(name)!.storedPoolNames]));
       if (members.length < 2) {
         const only = candidates.get(members[0])!;
         orphanPoolTags.push({
@@ -95,7 +103,7 @@ export function deriveTagPools(evidence: CanonicalRegistryEvidence): TagPoolDeri
       }
       tagPools.push({
         id: tagPoolId(shareScope, members[0]),
-        name: members[0],
+        name: stored.size === 1 ? [...stored][0] : members[0],
         shareScope,
         members: [...members].sort(compareText),
         sharedExternalIds: members.flatMap((name) => candidates.get(name)!.ids).sort(compareText),

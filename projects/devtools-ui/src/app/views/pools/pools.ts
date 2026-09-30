@@ -9,7 +9,7 @@ import { POOLING_DOCS_URL, POOLS_DEFINITION, PoolsVm, buildPoolsVm } from './poo
 /**
  * Pools tab — one card per explicit-tag pool: the tag matrix that shows why
  * the packages belong together, and one outcome line per remote read off the
- * stored rows. Outcomes only; the orchestrator's reasons are not recorded.
+ * stored rows, with the orchestrator's `poolCause` where it stored one (v4.7+).
  */
 @Component({
   selector: 'nf-pools-view',

@@ -21,7 +21,10 @@ export interface PoolTagDeclaration {
  */
 export interface TagPool {
   id: TagPoolId;
-  /** The alphabetically smallest member — the orchestrator's pool name, not necessarily a tag. */
+  /**
+   * The orchestrator's pool name: the stored `poolName` (v4.7+, most-declared tag), else the
+   * alphabetically smallest member as older runtimes named it. `id` always keys on the latter.
+   */
   name: string;
   shareScope: string;
   /** Registry package names, sorted; entrypoints that joined through their package included. */
