@@ -252,4 +252,26 @@ describe('hostile storage contents', () => {
     expect(snapshot.runtime).toBeNull();
     expect(snapshot.errors).toContainEqual({ stage: 'mapper', code: 'storage-source-mismatch' });
   });
+
+  it('rejects a storage probe result for another storage type', () => {
+    // The page swapped its descriptor from sessionStorage to localStorage
+    // between the passive eval and the storage eval.
+    const counters = makeCounters();
+    const page = makeBarePage({
+      __NF_ORCHESTRATOR__: descriptor('__NATIVE_FEDERATION__', 'sessionStorage'),
+      sessionStorage: makeStorage(
+        counters,
+        's',
+        webItems('__NATIVE_FEDERATION__', 'https://web.example/'),
+      ),
+    });
+    const rawProbe = evaluateProbe(PASSIVE_PROBE_SOURCE, page);
+    const rawStorage = evaluateProbe(STORAGE_PROBE_SOURCE, page) as Record<string, any>;
+    rawStorage['source'] = { ...rawStorage['source'], type: 'localStorage' };
+
+    const snapshot = mapProbeResult(rawProbe, null, { capturedAt: CAPTURED_AT }, rawStorage);
+
+    expect(snapshot.runtime).toBeNull();
+    expect(snapshot.errors).toContainEqual({ stage: 'mapper', code: 'storage-source-mismatch' });
+  });
 });

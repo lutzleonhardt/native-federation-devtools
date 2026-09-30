@@ -364,7 +364,8 @@ function readStorageProbe(
   const probed = dataValue(rawStorage, 'source');
   if (
     dataValue(probed, 'namespace') !== source.namespace ||
-    dataValue(probed, 'discovery') !== source.discovery
+    dataValue(probed, 'discovery') !== source.discovery ||
+    (source.discovery === 'descriptor' && dataValue(probed, 'type') !== source.type)
   ) {
     appendError(errors, limits, 'mapper', 'storage-source-mismatch');
     return null;
