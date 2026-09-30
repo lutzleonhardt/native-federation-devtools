@@ -11,6 +11,8 @@ import { exportedPlaygroundCheckoutFixture } from './exported-playground-checkou
 import { frankensteinLiveFixture } from './frankenstein-live.fixture';
 import { nonDenseFixture } from './non-dense.fixture';
 import { poolingAnchorFixture } from './pooling-anchor.fixture';
+import { poolPortfolioFixture } from './pool-portfolio.fixture';
+import { poolShowcaseFixture } from './pool-showcase.fixture';
 import { poolTagAnchoredFixture } from './pool-tag-anchored.fixture';
 import { poolTagCoherentFixture } from './pool-tag-coherent.fixture';
 import { poolTagIslandedFixture } from './pool-tag-islanded.fixture';
@@ -53,6 +55,8 @@ export const FIXTURES = {
   'exported-playground-checkout': exportedPlaygroundCheckoutFixture,
   'non-dense': nonDenseFixture,
   'pooling-anchor': poolingAnchorFixture,
+  'pool-portfolio': poolPortfolioFixture,
+  'pool-showcase': poolShowcaseFixture,
   'pool-tag-anchored': poolTagAnchoredFixture,
   'pool-tag-coherent': poolTagCoherentFixture,
   'pool-tag-islanded': poolTagIslandedFixture,

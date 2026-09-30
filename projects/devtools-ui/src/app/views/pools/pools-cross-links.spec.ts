@@ -61,12 +61,10 @@ describe('pool cross-links (grouping-and-pooling T7)', () => {
     expect(pressed?.textContent?.trim()).toBe('Pool');
     expect(
       el.querySelector('.graph-cluster.focused .graph-cluster-label')?.textContent?.trim(),
-    ).toBe('pool @nf-lab/ui-core (2)');
+    ).toBe('pool ui (2)');
     // The unpooled utils copy dims; the pool's two copies stay lit.
     expect(el.querySelectorAll('.graph-node.dependency.dim').length).toBe(1);
-    expect(el.querySelector('.graph-toolbar-line')?.textContent?.trim()).toBe(
-      'showing pool @nf-lab/ui-core',
-    );
+    expect(el.querySelector('.graph-toolbar-line')?.textContent?.trim()).toBe('showing pool ui');
   });
 
   it("T7-AC-01: the pool cluster's explain link returns to the same pool, selected", async () => {

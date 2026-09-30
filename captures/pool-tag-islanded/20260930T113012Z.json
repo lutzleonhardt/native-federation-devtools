@@ -1,9 +1,9 @@
 {
   "schemaVersion": "lab-lossless-capture/1",
-  "capturedAt": "2026-09-29T15:11:57.997Z",
+  "capturedAt": "2026-09-30T11:31:02.550Z",
   "scenario": {
     "scenarioId": "pool-tag-islanded",
-    "orchestratorCommit": "8e5e0b3",
+    "orchestratorCommit": "4.7.0",
     "ready": true,
     "readyError": null
   },
@@ -21,7 +21,7 @@
   "channels": {
     "nativeFederationGlobals": {
       "availability": "available",
-      "observedAt": "2026-09-29T15:11:57.995Z",
+      "observedAt": "2026-09-30T11:31:02.549Z",
       "data": {
         "present": true,
         "valueType": "object",
@@ -58,6 +58,7 @@
             "__GLOBAL__": {
               "@nf-lab/ui-core": {
                 "dirty": false,
+                "poolName": "ui",
                 "versions": [
                   {
                     "tag": "1.1.0",
@@ -72,7 +73,8 @@
                         "pool": "ui",
                         "entries": {
                           "@nf-lab/ui-core": "_nf_lab_ui_core.omKXFDLfPd.js"
-                        }
+                        },
+                        "poolCause": "incompatible"
                       }
                     ]
                   },
@@ -89,7 +91,8 @@
                         "pool": "ui",
                         "entries": {
                           "@nf-lab/ui-core": "_nf_lab_ui_core.FGCSlTph3q.js"
-                        }
+                        },
+                        "poolCause": "unshared"
                       }
                     ]
                   }
@@ -97,6 +100,7 @@
               },
               "@nf-lab/ui-dom": {
                 "dirty": false,
+                "poolName": "ui",
                 "versions": [
                   {
                     "tag": "2.0.0",
@@ -128,7 +132,8 @@
                         "pool": "ui",
                         "entries": {
                           "@nf-lab/ui-dom": "_nf_lab_ui_dom.dFB1zhKPhR.js"
-                        }
+                        },
+                        "poolCause": "incompatible"
                       }
                     ]
                   }
@@ -160,9 +165,34 @@
         }
       }
     },
+    "orchestratorGlobal": {
+      "availability": "available",
+      "observedAt": "2026-09-30T11:31:02.550Z",
+      "data": {
+        "present": true,
+        "valueType": "object",
+        "keys": [
+          "storage"
+        ],
+        "storage": {
+          "__NATIVE_FEDERATION__": {
+            "version": "4.7.0",
+            "type": "globalThis",
+            "namespace": "__NATIVE_FEDERATION__",
+            "keys": [
+              "remotes",
+              "shared-externals",
+              "scoped-externals",
+              "shared-chunks"
+            ],
+            "hasGet": true
+          }
+        }
+      }
+    },
     "domImportMaps": {
       "availability": "available",
-      "observedAt": "2026-09-29T15:11:57.996Z",
+      "observedAt": "2026-09-30T11:31:02.550Z",
       "data": {
         "count": 1,
         "maps": [
@@ -194,7 +224,7 @@
     },
     "importShim": {
       "availability": "available",
-      "observedAt": "2026-09-29T15:11:57.996Z",
+      "observedAt": "2026-09-30T11:31:02.550Z",
       "data": {
         "present": true,
         "valueType": "function",

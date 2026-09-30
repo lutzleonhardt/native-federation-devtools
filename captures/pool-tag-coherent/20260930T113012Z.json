@@ -1,9 +1,9 @@
 {
   "schemaVersion": "lab-lossless-capture/1",
-  "capturedAt": "2026-09-29T15:12:03.830Z",
+  "capturedAt": "2026-09-30T11:30:58.396Z",
   "scenario": {
-    "scenarioId": "pool-tag-orphan",
-    "orchestratorCommit": "8e5e0b3",
+    "scenarioId": "pool-tag-coherent",
+    "orchestratorCommit": "4.7.0",
     "ready": true,
     "readyError": null
   },
@@ -11,7 +11,7 @@
     "url": "http://localhost:4300/",
     "origin": "http://localhost:4300",
     "path": "/",
-    "title": "nf-lab pool-tag-orphan",
+    "title": "nf-lab pool-tag-coherent",
     "readyState": "complete"
   },
   "collector": {
@@ -21,7 +21,7 @@
   "channels": {
     "nativeFederationGlobals": {
       "availability": "available",
-      "observedAt": "2026-09-29T15:12:03.828Z",
+      "observedAt": "2026-09-30T11:30:58.395Z",
       "data": {
         "present": true,
         "valueType": "object",
@@ -45,7 +45,7 @@
               "exposes": [
                 {
                   "moduleName": "./main",
-                  "file": "main-L3GSUEES.js"
+                  "file": "main-DXLIHA7T.js"
                 }
               ]
             },
@@ -86,13 +86,15 @@
                         "strictVersion": true,
                         "cached": false,
                         "requiredVersion": "^1.0.0",
+                        "pool": "ui",
                         "entries": {
                           "@nf-lab/ui-core": "_nf_lab_ui_core.FGCSlTph3q.js"
                         }
                       }
                     ]
                   }
-                ]
+                ],
+                "poolName": "ui"
               },
               "@nf-lab/ui-dom": {
                 "dirty": false,
@@ -107,13 +109,32 @@
                         "strictVersion": true,
                         "cached": true,
                         "requiredVersion": "^1.0.0",
+                        "pool": "ui",
                         "entries": {
                           "@nf-lab/ui-dom": "_nf_lab_ui_dom.dFB1zhKPhR.js"
                         }
                       }
                     ]
+                  },
+                  {
+                    "tag": "1.0.0",
+                    "action": "skip",
+                    "host": false,
+                    "remotes": [
+                      {
+                        "name": "mfe2",
+                        "strictVersion": true,
+                        "cached": false,
+                        "requiredVersion": "^1.0.0",
+                        "pool": "ui",
+                        "entries": {
+                          "@nf-lab/ui-dom": "_nf_lab_ui_dom.LEdXNkv1m2.js"
+                        }
+                      }
+                    ]
                   }
-                ]
+                ],
+                "poolName": "ui"
               },
               "@nf-lab/utils": {
                 "dirty": false,
@@ -141,16 +162,41 @@
         }
       }
     },
+    "orchestratorGlobal": {
+      "availability": "available",
+      "observedAt": "2026-09-30T11:30:58.395Z",
+      "data": {
+        "present": true,
+        "valueType": "object",
+        "keys": [
+          "storage"
+        ],
+        "storage": {
+          "__NATIVE_FEDERATION__": {
+            "version": "4.7.0",
+            "type": "globalThis",
+            "namespace": "__NATIVE_FEDERATION__",
+            "keys": [
+              "remotes",
+              "shared-externals",
+              "scoped-externals",
+              "shared-chunks"
+            ],
+            "hasGet": true
+          }
+        }
+      }
+    },
     "domImportMaps": {
       "availability": "available",
-      "observedAt": "2026-09-29T15:12:03.829Z",
+      "observedAt": "2026-09-30T11:30:58.395Z",
       "data": {
         "count": 1,
         "maps": [
           {
             "index": 0,
             "type": "importmap-shim",
-            "text": "{\"imports\":{\"@nf-lab/ui-core\":\"./mfe1/_nf_lab_ui_core.omKXFDLfPd.js\",\"@nf-lab/ui-dom\":\"./mfe1/_nf_lab_ui_dom.dFB1zhKPhR.js\",\"@nf-lab/utils\":\"./_nf_lab_utils.wMYw37SmBF.js\",\"mfe1/./main\":\"./mfe1/main-DXLIHA7T.js\",\"mfe2/./main\":\"./mfe2/main-L3GSUEES.js\"}}",
+            "text": "{\"imports\":{\"@nf-lab/ui-core\":\"./mfe1/_nf_lab_ui_core.omKXFDLfPd.js\",\"@nf-lab/ui-dom\":\"./mfe1/_nf_lab_ui_dom.dFB1zhKPhR.js\",\"@nf-lab/utils\":\"./_nf_lab_utils.wMYw37SmBF.js\",\"mfe1/./main\":\"./mfe1/main-DXLIHA7T.js\",\"mfe2/./main\":\"./mfe2/main-DXLIHA7T.js\"}}",
             "parsed": true,
             "map": {
               "imports": {
@@ -158,7 +204,7 @@
                 "@nf-lab/ui-dom": "./mfe1/_nf_lab_ui_dom.dFB1zhKPhR.js",
                 "@nf-lab/utils": "./_nf_lab_utils.wMYw37SmBF.js",
                 "mfe1/./main": "./mfe1/main-DXLIHA7T.js",
-                "mfe2/./main": "./mfe2/main-L3GSUEES.js"
+                "mfe2/./main": "./mfe2/main-DXLIHA7T.js"
               }
             }
           }
@@ -167,7 +213,7 @@
     },
     "importShim": {
       "availability": "available",
-      "observedAt": "2026-09-29T15:12:03.829Z",
+      "observedAt": "2026-09-30T11:30:58.396Z",
       "data": {
         "present": true,
         "valueType": "function",
@@ -178,7 +224,7 @@
             "@nf-lab/ui-dom": "http://localhost:4300/mfe1/_nf_lab_ui_dom.dFB1zhKPhR.js",
             "@nf-lab/utils": "http://localhost:4300/_nf_lab_utils.wMYw37SmBF.js",
             "mfe1/./main": "http://localhost:4300/mfe1/main-DXLIHA7T.js",
-            "mfe2/./main": "http://localhost:4300/mfe2/main-L3GSUEES.js"
+            "mfe2/./main": "http://localhost:4300/mfe2/main-DXLIHA7T.js"
           },
           "scopes": {},
           "integrity": {}

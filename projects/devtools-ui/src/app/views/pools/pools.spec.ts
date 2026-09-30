@@ -45,7 +45,7 @@ describe('PoolsView', () => {
   it('renders one card with the tag matrix and outcome lines', async () => {
     const el = await createView('pool-tag-anchored');
     expect(el.querySelectorAll('.pool-card').length).toBe(1);
-    expect(el.querySelector('.pool-name')?.textContent?.trim()).toBe('pool @nf-lab/ui-core');
+    expect(el.querySelector('.pool-name')?.textContent?.trim()).toBe('pool ui');
     expect(el.querySelectorAll('.pool-matrix tbody tr').length).toBe(2);
     expect(el.querySelectorAll('.pool-outcome').length).toBe(4);
     expect(el.querySelector('.pool-footnote')?.textContent).toContain('mfe3');

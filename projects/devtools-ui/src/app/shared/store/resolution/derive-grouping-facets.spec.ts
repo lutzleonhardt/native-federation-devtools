@@ -50,7 +50,7 @@ describe('copy share scope (T3-AC-01)', () => {
 });
 
 describe('tag pools and copy pools (T3-AC-02)', () => {
-  it('pool-tag-coherent: one pool named after its smallest member, formed by `ui`', () => {
+  it('pool-tag-coherent: one pool named as the orchestrator stored it (v4.7: its tag), formed by `ui`', () => {
     const { tagPools, orphanPoolTags } = projectionOf('pool-tag-coherent');
     expect(orphanPoolTags).toEqual([]);
     expect(
@@ -62,7 +62,7 @@ describe('tag pools and copy pools (T3-AC-02)', () => {
       })),
     ).toEqual([
       {
-        name: '@nf-lab/ui-core',
+        name: 'ui',
         shareScope: '__GLOBAL__',
         members: ['@nf-lab/ui-core', '@nf-lab/ui-dom'],
         remotes: ['mfe1', 'mfe2'],
@@ -75,7 +75,7 @@ describe('tag pools and copy pools (T3-AC-02)', () => {
 
     const facets = facetsByPackage('pool-tag-coherent');
     for (const f of facets.filter((f) => f.pkg?.startsWith('@nf-lab/ui-')))
-      expect(f.pool).toBe('@nf-lab/ui-core');
+      expect(f.pool).toBe('ui');
     expect(facets.find((f) => f.pkg === '@nf-lab/utils')?.pool).toBeNull();
   });
 
@@ -90,7 +90,7 @@ describe('tag pools and copy pools (T3-AC-02)', () => {
       (f) => f.disposition === 'scope-registration',
     );
     expect(facets.length).toBeGreaterThan(0);
-    expect(facets.every((f) => f.pool === '@nf-lab/ui-core')).toBe(true);
+    expect(facets.every((f) => f.pool === 'ui')).toBe(true);
   });
 
   it('pool-tag-orphan: a lone tag forms no pool and is reported', () => {

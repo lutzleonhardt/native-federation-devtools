@@ -25,7 +25,6 @@ import { LAB_CORPORA } from "./lab-corpora.mjs";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const CAPTURES_DIR = join(REPO_ROOT, "captures");
-const PROBE_PATH = join(REPO_ROOT, "scripts", "lab-capture-dump.js");
 
 const MANIFEST_SCHEMA = "lab-lossless-corpus/1";
 const CAPTURE_SCHEMA = "lab-lossless-capture/1";
@@ -68,6 +67,28 @@ const uiRows = (ns) => participantRows(ns).filter((row) => UI.includes(row.pkg))
 const noAnchors = (ns, loc) => {
   if (participantRows(ns).some((row) => "servedBy" in row.remote)) issue(loc, "expected no servedBy anchor");
 };
+// Orchestrator v4.7 pooling results (native-federation/orchestrator#87).
+const poolNames = (ns, pkgs) =>
+  pkgs.map((pkg) => ns["shared-externals"]?.["__GLOBAL__"]?.[pkg]?.poolName ?? "-").join(",");
+const expectPoolName = (ns, loc, pkgs, name) => {
+  const seen = poolNames(ns, pkgs);
+  if (seen !== pkgs.map(() => name).join(",")) issue(loc, `expected poolName '${name}' on ${pkgs.join(", ")}, saw ${seen}`);
+};
+const expectIsolated = (ns, loc, pkgs, remote) => {
+  const rows = participantRows(ns).filter((row) => pkgs.includes(row.pkg) && row.remote.name === remote);
+  if (rows.length !== pkgs.length || !rows.every((row) => row.action === "scope" && row.remote.poolCause === "incompatible"))
+    issue(loc, `expected every ${remote} copy of ${pkgs.join(", ")} scoped with poolCause 'incompatible'`);
+};
+const expectServedBy = (ns, loc, pkg, remotes, anchor) => {
+  const seen = participantRows(ns)
+    .filter((row) => row.pkg === pkg && "servedBy" in row.remote)
+    .map((row) => `${row.remote.name}:${row.remote.servedBy}`)
+    .sort();
+  const expected = remotes.map((remote) => `${remote}:${anchor}`).sort();
+  if (JSON.stringify(seen) !== JSON.stringify(expected))
+    issue(loc, `expected ${pkg} anchors ${expected.join(",")}, saw ${seen.join(",")}`);
+};
+
 const EVIDENCE = {
   "clean-skip": (ns, env, loc) => {
     const versions = sharedVersions(ns, "__GLOBAL__", "@nf-lab/conflict-lib");
@@ -307,6 +328,8 @@ const EVIDENCE = {
     if (sharedVersions(ns, "__GLOBAL__", "@nf-lab/ui-core").some((version) => version.action === "share"))
       issue(loc, "expected ui-core without a share row (scoped-only)");
     noAnchors(ns, loc);
+    expectPoolName(ns, loc, UI, "ui");
+    expectIsolated(ns, loc, UI, "mfe1");
   },
   // Gate 2: the family is anchored onto mfe1's build for every remote, untagged mfe3 included.
   "pool-tag-anchored": (ns, env, loc) => {
@@ -322,6 +345,31 @@ const EVIDENCE = {
     if (tagged.length !== 1 || tagged[0].pkg !== "@nf-lab/ui-core" || tagged[0].remote.name !== "mfe1")
       issue(loc, "expected exactly one pool tag: ui-core on mfe1");
     noAnchors(ns, loc);
+  },
+  // Four independent pools: ui redirected onto catalog, charts isolating catalog, form-kit one build
+  // under two tags (named after the alphabetically first of the tied tags), icons an orphan tag.
+  "pool-showcase": (ns, env, loc) => {
+    expectPoolName(ns, loc, UI, "ui");
+    expectPoolName(ns, loc, ["@nf-lab/chart-core", "@nf-lab/chart-dom"], "charts");
+    expectPoolName(ns, loc, ["@nf-lab/form-core", "@nf-lab/form-dom"], "form-kit");
+    expectPoolName(ns, loc, ["@nf-lab/icons"], "-");
+    // The anchor names itself too, as in pool-tag-anchored.
+    expectServedBy(ns, loc, "@nf-lab/ui-core", ["admin", "catalog", "checkout"], "catalog");
+    expectIsolated(ns, loc, ["@nf-lab/chart-core", "@nf-lab/chart-dom"], "catalog");
+  },
+  // One family across twelve remotes: four redirected onto orders, legacy isolated.
+  "pool-portfolio": (ns, env, loc) => {
+    const family = ["core", "common", "router", "forms", "animations"].map((name) => `@nf-lab/acme-${name}`);
+    expectPoolName(ns, loc, family, "acme");
+    // servedBy only where the build differs from the version's basis: on the host-shared members;
+    // forms and animations are shared from orders' build already.
+    const onOrders = ["contacts", "invoices", "onboarding", "orders", "reports"];
+    for (const pkg of family.slice(0, 3)) expectServedBy(ns, loc, pkg, onOrders, "orders");
+    expectServedBy(ns, loc, "@nf-lab/acme-forms", [], "orders");
+    expectIsolated(ns, loc, family, "legacy");
+    const onHost = ["products", "search", "settings", "profile", "cart"];
+    if (participantRows(ns).some((row) => onHost.includes(row.remote.name) && "servedBy" in row.remote))
+      issue(loc, "expected the host-build remotes without a servedBy anchor");
   },
 };
 
@@ -446,16 +494,18 @@ function validateCorpus(corpus) {
   if (JSON.stringify(manifest.expectedScenarios) !== JSON.stringify(EXPECTED_SCENARIOS))
     issue("manifest.expectedScenarios", "does not match the catalog");
 
-  // Probe drift: the manifest pins the probe that produced the corpus.
+  // Probe drift: the manifest pins the probe that produced the corpus. A corpus that can no longer be
+  // re-captured names a preserved copy (scripts/lab-capture-dump-v1.js) instead of the current probe.
+  const probeFile = manifest.source?.probe?.file ?? "scripts/lab-capture-dump.js";
   try {
-    const probeHash = sha256(readFileSync(PROBE_PATH));
+    const probeHash = sha256(readFileSync(join(REPO_ROOT, probeFile)));
     if (manifest.source?.probe?.sha256 !== probeHash)
       issue(
         "manifest.source.probe.sha256",
-        "does not match scripts/lab-capture-dump.js — probe changed since capture; re-capture or rebuild the manifest"
+        `does not match ${probeFile} — probe changed since capture; re-capture or rebuild the manifest`
       );
   } catch (error) {
-    issue("scripts/lab-capture-dump.js", `unreadable (${error.message})`);
+    issue(probeFile, `unreadable (${error.message})`);
   }
 
   // --- capture entries -----------------------------------------------------
@@ -522,6 +572,11 @@ function validateCorpus(corpus) {
       issue(loc, "namespace clone missing");
     } else {
       EVIDENCE[entry.scenario]?.(ns, env, loc);
+    }
+    // Captures from a v4.7+ lab carry the exposed version, and the probe stamps it.
+    if (manifest.source?.orchestratorCommit === "4.7.0") {
+      const exposed = env.channels?.orchestratorGlobal?.data?.storage?.["__NATIVE_FEDERATION__"]?.version;
+      if (exposed !== "4.7.0") issue(loc, `expected orchestratorGlobal version 4.7.0, saw ${exposed}`);
     }
   }
 

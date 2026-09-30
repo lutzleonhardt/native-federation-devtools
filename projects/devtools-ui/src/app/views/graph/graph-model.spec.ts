@@ -989,7 +989,7 @@ describe('buildGraphModel — group-by (grouping-and-pooling T4)', () => {
       `strict (${dependencyNodesOf(modelOf('strict-scope')).length})`,
     ]);
     expect(dependencyClusterLabels(groupedModel('pool-tag-coherent', 'pool'))).toEqual([
-      'pool @nf-lab/ui-core (2)',
+      'pool ui (2)',
       '(not pooled) (1)',
     ]);
     // Host-provided utils carries no bundle; mfe1's dense-lib entrypoints do.
@@ -1005,7 +1005,7 @@ describe('buildGraphModel — group-by (grouping-and-pooling T4)', () => {
 
   it('T4-AC-01: pool clusters explain themselves; only a remote build takes a hue', () => {
     const model = groupedModel('pool-tag-anchored', 'pool');
-    const pool = model.clusters.find((cluster) => cluster.label === 'pool @nf-lab/ui-core')!;
+    const pool = model.clusters.find((cluster) => cluster.label === 'pool ui')!;
     expect(pool.tooltip).toBe('formed by: mfe1 "ui", mfe2 "ui"');
     for (const groupBy of ['shareScope', 'pool'] as const) {
       const clusters = buildGraphModel(projectionOf('frankenstein-live'), {

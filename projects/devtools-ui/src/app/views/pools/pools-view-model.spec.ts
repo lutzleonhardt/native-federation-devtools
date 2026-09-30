@@ -2,7 +2,8 @@
  * Pools view model (grouping-and-pooling Task 6) against the wording
  * contract in docs/work/grouping-and-pooling/design/pools-explainer-mock.md.
  * Fixture cases are the contract's acceptance reference; the membership notes
- * no capture reaches run on hand-built projections.
+ * no capture reaches run on hand-built projections. The pool-tag fixtures are
+ * orchestrator 4.7.0 captures, pooling-anchor is 4.6.0.
  */
 import { describe, expect, it } from 'vitest';
 import { FIXTURES, NF_HOST, type FixtureId, type SnapshotV1 } from 'devtools-bridge';
@@ -12,8 +13,13 @@ import type { CanonicalResolutionProjection } from '../../shared/store/resolutio
 import { buildPoolsVm, hasPoolTags } from './pools-view-model';
 
 const projectionOf = (id: FixtureId) => ingestSnapshot(FIXTURES[id]).resolutionProjection;
-// The corpus is orchestrator v4.6.0, which publishes no version.
-const vmOf = (id: FixtureId) => buildPoolsVm(projectionOf(id), null);
+// Each fixture carries the version its page exposed: 4.7.0 for the nf-lab corpus, none for the v2
+// corpus (orchestrator 4.6.0) behind pooling-anchor.
+const vmOfSnapshot = (snapshot: SnapshotV1) => {
+  const model = ingestSnapshot(snapshot);
+  return buildPoolsVm(model.resolutionProjection, model.provenance.orchestratorVersion);
+};
+const vmOf = (id: FixtureId) => vmOfSnapshot(FIXTURES[id]);
 const sentences = (id: FixtureId) =>
   Object.fromEntries(vmOf(id).pools[0].outcomes.map((o) => [o.remote.name, o.sentence]));
 
@@ -45,13 +51,20 @@ describe('buildPoolsVm (grouping-and-pooling T6)', () => {
     );
   });
 
-  it('T6-AC-02: pool-tag-islanded — own copy of every package, unshared note', () => {
+  // Real 4.7.0 capture: gate 1 islands mfe1, which leaves mfe2's ui-core without a provider.
+  it('T6-AC-02: pool-tag-islanded — own copy of every package with its stored cause', () => {
     const [pool] = vmOf('pool-tag-islanded').pools;
-    expect(sentences('pool-tag-islanded')['mfe1']).toBe('own copy of every package (2)');
-    expect(pool.rows[0].cells.map((cell) => cell.text)).toEqual([
-      '1.1.0 (own copy)',
-      '1.0.0 (own copy)',
+    expect(pool.rows[0].cells.map((cell) => [cell.text, cell.causeNote])).toEqual([
+      [
+        '1.1.0 (own copy: version conflict)',
+        'version conflict: not all its packages accept the shared versions',
+      ],
+      ['1.0.0 (own copy: no shared copy)', 'no remote shares it any more'],
     ]);
+    expect(sentences('pool-tag-islanded')).toEqual({
+      mfe1: 'own copy of every package (2) — version conflict: not all its packages accept the shared versions (@nf-lab/ui-dom needs ^1.0.0, shared is 2.0.0)',
+      mfe2: 'every package from its own build — no remote shares @nf-lab/ui-core any more',
+    });
     expect(pool.notes).toEqual(['no remote shares @nf-lab/ui-core — 2 remotes run their own copy']);
   });
 
@@ -141,58 +154,38 @@ describe('buildPoolsVm (grouping-and-pooling T6)', () => {
   });
 
   // Orchestrator v4.7 stores `SharedExternal.poolName` and `SharedVersionMeta.poolCause`
-  // (native-federation/orchestrator#87). No v4.7 capture exists yet, so this adds the fields to
-  // the v4.6 islanded capture the way v4.7 would write them: mfe1 islanded by gate 1, which
-  // leaves mfe2's ui-core copy without a provider.
+  // (native-federation/orchestrator#87); the nf-lab corpus is captured on 4.7.0.
   describe('v4.7 stored pool name and causes', () => {
-    const withV47Fields = (causes: Record<string, string>): SnapshotV1 => {
+    // Variations on the real islanded capture, for states it doesn't reach on its own.
+    const islandedWith = (edit: (snapshot: SnapshotV1) => void) => {
       const snapshot: SnapshotV1 = structuredClone(FIXTURES['pool-tag-islanded']);
-      for (const external of Object.values(snapshot.runtime!.sharedExternals['__GLOBAL__'])) {
-        external.poolName = 'ui';
-        for (const version of external.versions) {
-          if (version.action !== 'scope') continue;
-          for (const remote of version.remotes) remote.poolCause = causes[remote.name];
-        }
-      }
-      return snapshot;
+      edit(snapshot);
+      return vmOfSnapshot(snapshot);
     };
-    const vmFrom = (snapshot: SnapshotV1) =>
-      buildPoolsVm(ingestSnapshot(snapshot).resolutionProjection, '4.7.0');
+    const mfe1DomCopy = (snapshot: SnapshotV1) =>
+      snapshot.runtime!.sharedExternals['__GLOBAL__']['@nf-lab/ui-dom'].versions.find(
+        (v) => v.action === 'scope',
+      )!.remotes[0];
 
-    it('names the pool as stored, keeping the pre-v4.7 pool ID', () => {
-      const [legacy] = vmOf('pool-tag-islanded').pools;
-      const [pool] = vmFrom(withV47Fields({ mfe1: 'incompatible', mfe2: 'unshared' })).pools;
-      expect(legacy.name).toBe('@nf-lab/ui-core');
-      expect(pool.name).toBe('ui');
-      expect(pool.id).toBe(legacy.id);
-    });
-
-    it('states the stored cause in the cells and outcome lines', () => {
-      const [pool] = vmFrom(withV47Fields({ mfe1: 'incompatible', mfe2: 'unshared' })).pools;
-      expect(pool.rows[0].cells.map((cell) => [cell.text, cell.causeNote])).toEqual([
-        [
-          '1.1.0 (own copy: version conflict)',
-          'version conflict: not all its packages accept the shared versions',
-        ],
-        ['1.0.0 (own copy: no shared copy)', 'no remote shares it any more'],
-      ]);
-      expect(Object.fromEntries(pool.outcomes.map((o) => [o.remote.name, o.sentence]))).toEqual({
-        mfe1: 'own copy of every package (2) — version conflict: not all its packages accept the shared versions (@nf-lab/ui-dom needs ^1.0.0, shared is 2.0.0)',
-        mfe2: 'every package from its own build — no remote shares @nf-lab/ui-core any more',
-      });
-      expect(pool.notes).toEqual([
-        'no remote shares @nf-lab/ui-core — 2 remotes run their own copy',
-      ]);
+    it('names the pool as stored; a pre-4.7 pool keeps its first-member name', () => {
+      expect(vmOf('pool-tag-islanded').pools[0].name).toBe('ui');
+      expect(vmOf('pooling-anchor').pools[0].name).toBe('@nf-lab/conflict-lib');
     });
 
     it('shows a cause it does not know raw', () => {
-      const [pool] = vmFrom(withV47Fields({ mfe1: 'future', mfe2: 'unshared' })).pools;
+      const [pool] = islandedWith((snapshot) => {
+        mfe1DomCopy(snapshot).poolCause = 'future';
+        const core = snapshot.runtime!.sharedExternals['__GLOBAL__']['@nf-lab/ui-core'];
+        for (const version of core.versions)
+          for (const remote of version.remotes)
+            if (remote.name === 'mfe1') remote.poolCause = 'future';
+      }).pools;
       expect(pool.outcomes.find((o) => o.remote.name === 'mfe1')!.sentence).toBe(
         'own copy of every package (2) — pooling cause "future"',
       );
     });
 
-    // mfe1's ui-dom copy (strict ^1.0.0 against the shared 2.0.0) is the fixture's one real conflict.
+    // mfe1's ui-dom copy (strict ^1.0.0 against the shared 2.0.0) is the capture's one real conflict.
     // A package is only named when its strict range certainly rejects the shared tag; otherwise the
     // line falls back to the generic reason rather than blame a package that may be fine.
     it.each([
@@ -200,10 +193,9 @@ describe('buildPoolsVm (grouping-and-pooling T6)', () => {
       ['a range it cannot read', { requiredVersion: 'latest' }],
       ['a non-strict copy', { strictVersion: false }],
     ])('names no package for %s', (_case, override) => {
-      const snapshot = withV47Fields({ mfe1: 'incompatible', mfe2: 'unshared' });
-      const dom = snapshot.runtime!.sharedExternals['__GLOBAL__']['@nf-lab/ui-dom'];
-      Object.assign(dom.versions.find((v) => v.action === 'scope')!.remotes[0], override);
-      const [pool] = vmFrom(snapshot).pools;
+      const [pool] = islandedWith((snapshot) =>
+        Object.assign(mfe1DomCopy(snapshot), override),
+      ).pools;
       expect(pool.outcomes.find((o) => o.remote.name === 'mfe1')!.sentence).toBe(
         'own copy of every package (2) — version conflict: not all its packages accept the shared versions',
       );
@@ -211,10 +203,9 @@ describe('buildPoolsVm (grouping-and-pooling T6)', () => {
   });
 
   describe('pre-4.7.0 warning', () => {
-    const warningOf = (
-      version: string | null,
-      snapshot: SnapshotV1 = FIXTURES['pool-tag-islanded'],
-    ) => buildPoolsVm(ingestSnapshot(snapshot).resolutionProjection, version).versionWarning;
+    // pooling-anchor is from the v2 corpus (orchestrator 4.6.0): no version, no stored pool state.
+    const warningOf = (version: string | null, snapshot: SnapshotV1 = FIXTURES['pooling-anchor']) =>
+      buildPoolsVm(ingestSnapshot(snapshot).resolutionProjection, version).versionWarning;
 
     it('warns once, at the top, for an older or unpublished version', () => {
       expect(warningOf(null)).toBe(
@@ -234,10 +225,8 @@ describe('buildPoolsVm (grouping-and-pooling T6)', () => {
 
     // The version is published by a best-effort write; a stored poolName proves v4.7 without it.
     it('does not warn when the record carries v4.7 pool state but no version was published', () => {
-      const snapshot: SnapshotV1 = structuredClone(FIXTURES['pool-tag-islanded']);
-      for (const external of Object.values(snapshot.runtime!.sharedExternals['__GLOBAL__']))
-        external.poolName = 'ui';
-      expect(warningOf(null, snapshot)).toBeNull();
+      expect(warningOf(null, FIXTURES['pool-tag-islanded'])).toBeNull();
+      expect(vmOf('pool-tag-islanded').versionWarning).toBeNull();
     });
   });
 });

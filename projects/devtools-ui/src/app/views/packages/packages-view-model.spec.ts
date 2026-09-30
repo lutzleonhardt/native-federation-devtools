@@ -1304,7 +1304,7 @@ describe('buildPackageDetail — pool chips (grouping-and-pooling T5)', () => {
       for (const { pool } of chips) {
         expect(pool).toEqual({
           tag: 'ui',
-          note: 'explicit pool tag declared by this remote (config: pool on the shared external) — member of pool @nf-lab/ui-core',
+          note: 'explicit pool tag declared by this remote (config: pool on the shared external) — member of pool ui',
           orphan: false,
           poolSelect: 'tag-pool:["__GLOBAL__","@nf-lab/ui-core",0]',
         });

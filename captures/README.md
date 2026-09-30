@@ -66,13 +66,20 @@ fallback-mode scenario keys.
 
 ## nf-lab scenario corpus (grouping-and-pooling)
 
-Seven scenarios witnessing explicit pool tags and the dense remoteEntry
+Nine scenarios witnessing explicit pool tags and the dense remoteEntry
 formats, listed in `captures/manifest-nf-lab.json` (own manifest: a
-different playground commit and collector than the V2 corpus). Same
-envelope, probe (unchanged, same sha256), orchestrator (v4.6.0,
-`8e5e0b3`) and serving origin as the V2 corpus; scenario ids are unique
-across both corpora because they share the `captures/` root. The corpus
-table lives in `scripts/lab-corpora.mjs`.
+different playground commit and collector than the V2 corpus). Captured
+on orchestrator **v4.7.0**, so the records carry `poolName`/`poolCause`
+and the `orchestratorGlobal` channel, and the probe stamps the exposed
+version (`4.7.0`) as `orchestratorCommit`. Same envelope and serving
+origin as the V2 corpus; scenario ids are unique across both corpora
+because they share the `captures/` root. The corpus table lives in
+`scripts/lab-corpora.mjs`.
+
+The V2 corpus cannot be re-captured (its runner is gone) and stays the
+pre-4.7 coverage (orchestrator v4.6.0, `8e5e0b3`). Its manifest pins
+`scripts/lab-capture-dump-v1.js`, a byte-identical copy of the probe that
+produced it; the validator hashes whichever probe file a manifest names.
 
 | Scenario | Witnesses |
 |---|---|
@@ -80,6 +87,8 @@ table lives in `scripts/lab-corpora.mjs`.
 | `pool-tag-islanded` | gate 1: one remote scoped across the whole family; a member left with no share row |
 | `pool-tag-anchored` | gate 2: `servedBy` onto one remote build, an untagged remote included |
 | `pool-tag-orphan` | a tag that joins nothing — no pool forms |
+| `pool-showcase` | four independent pools on one page: redirected, version conflict, one build under two tags, orphan tag |
+| `pool-portfolio` | one family across the host and eleven remotes: the host's build, a redirect group, one isolated remote strict on two packages |
 | `dense-chunking-only` | `bundle` + a `browser-shared` chunk list, flat entries |
 | `dense-externals-only` | one registration with a two-entry `entries` map, no bundle |
 | `dense-both` | both |

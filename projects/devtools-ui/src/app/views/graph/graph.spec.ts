@@ -341,7 +341,7 @@ describe('GraphView', () => {
     expect(buttons[2].getAttribute('aria-pressed')).toBe('true');
     expect(
       Array.from(el.querySelectorAll('.graph-cluster-label')).map((label) => textOf(label)),
-    ).toEqual(['pool @nf-lab/ui-core (2)', '(not pooled) (1)', 'host (1)', 'mfe1 (2)']);
+    ).toEqual(['pool ui (2)', '(not pooled) (1)', 'host (1)', 'mfe1 (2)']);
     expect(el.querySelector('.graph-cluster title')?.textContent?.trim()).toBe(
       'formed by: mfe1 "ui", mfe2 "ui"',
     );

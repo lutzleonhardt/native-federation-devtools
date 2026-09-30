@@ -22,6 +22,10 @@ import { deriveCaptureSnapshot } from '../projects/collector/src/testing/capture
 import type { SnapshotV1 } from '../projects/devtools-bridge/src/lib/snapshot-v1';
 import { LAB_CORPORA } from './lab-corpora.mjs';
 
+// The corpus stamp is the exposed version from v4.7 on, the pinned commit before (8e5e0b3 = v4.6.0).
+const orchestratorLabel = (stamp: string): string =>
+  /^\d+\.\d+\.\d+/.test(stamp) ? `v${stamp}` : stamp === '8e5e0b3' ? 'v4.6.0 (8e5e0b3)' : stamp;
+
 const MANIFEST_SCHEMA = 'lab-lossless-corpus/1';
 const ENVELOPE_SCHEMA = 'lab-lossless-capture/1';
 const FIXTURES_DIR = 'projects/devtools-bridge/src/lib/fixtures';
@@ -107,7 +111,7 @@ function deriveCorpus(manifestPath: string, withLive: boolean): void {
     const banner = [
       GENERATED_NOTE,
       `// Source: ${path} (corpus run ${manifest.runId}),`,
-      `// envelope ${ENVELOPE_SCHEMA}, orchestrator v4.6.0 (${manifest.source.orchestratorCommit}), observed`,
+      `// envelope ${ENVELOPE_SCHEMA}, orchestrator ${orchestratorLabel(manifest.source.orchestratorCommit)}, observed`,
       `// generation: ${snapshot.runtime?.generation ?? 'n/a'} — see captures/README.md for provenance.`,
       PIPELINE_NOTE,
     ].join('\n');

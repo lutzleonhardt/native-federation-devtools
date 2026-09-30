@@ -1,9 +1,9 @@
 {
   "schemaVersion": "lab-lossless-capture/1",
-  "capturedAt": "2026-09-29T15:11:31.088Z",
+  "capturedAt": "2026-09-30T11:30:16.948Z",
   "scenario": {
     "scenarioId": "dense-both",
-    "orchestratorCommit": "8e5e0b3",
+    "orchestratorCommit": "4.7.0",
     "ready": true,
     "readyError": null
   },
@@ -21,7 +21,7 @@
   "channels": {
     "nativeFederationGlobals": {
       "availability": "available",
-      "observedAt": "2026-09-29T15:11:31.087Z",
+      "observedAt": "2026-09-30T11:30:16.946Z",
       "data": {
         "present": true,
         "valueType": "object",
@@ -115,9 +115,34 @@
         }
       }
     },
+    "orchestratorGlobal": {
+      "availability": "available",
+      "observedAt": "2026-09-30T11:30:16.947Z",
+      "data": {
+        "present": true,
+        "valueType": "object",
+        "keys": [
+          "storage"
+        ],
+        "storage": {
+          "__NATIVE_FEDERATION__": {
+            "version": "4.7.0",
+            "type": "globalThis",
+            "namespace": "__NATIVE_FEDERATION__",
+            "keys": [
+              "remotes",
+              "shared-externals",
+              "scoped-externals",
+              "shared-chunks"
+            ],
+            "hasGet": true
+          }
+        }
+      }
+    },
     "domImportMaps": {
       "availability": "available",
-      "observedAt": "2026-09-29T15:11:31.088Z",
+      "observedAt": "2026-09-30T11:30:16.947Z",
       "data": {
         "count": 1,
         "maps": [
@@ -145,7 +170,7 @@
     },
     "importShim": {
       "availability": "available",
-      "observedAt": "2026-09-29T15:11:31.088Z",
+      "observedAt": "2026-09-30T11:30:16.948Z",
       "data": {
         "present": true,
         "valueType": "function",

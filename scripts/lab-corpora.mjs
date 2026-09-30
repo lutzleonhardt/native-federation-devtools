@@ -34,6 +34,8 @@ export const LAB_CORPORA = [
       "dense-both",
       "dense-chunking-only",
       "dense-externals-only",
+      "pool-portfolio",
+      "pool-showcase",
       "pool-tag-anchored",
       "pool-tag-coherent",
       "pool-tag-islanded",
