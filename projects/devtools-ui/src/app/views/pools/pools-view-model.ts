@@ -1,7 +1,11 @@
 import type {
   CanonicalResolutionProjection,
-  PoolConsumer,
+  PoolBuildBand,
+  PoolCellState,
   PoolFamily,
+  PoolStatusCell,
+  PoolStatusRow,
+  PoolVerdict,
   TagPool,
 } from '../../shared/store/resolution';
 import { GLOBAL_SCOPE, isHostRemote, participantDisplay } from '../../shared/view-conventions';
@@ -9,18 +13,22 @@ import { GLOBAL_SCOPE, isHostRemote, participantDisplay } from '../../shared/vie
 // Wording contract: docs/work/grouping-and-pooling/design/pools-explainer-mock.md.
 
 export const POOLS_DEFINITION =
-  'A pool is a set of packages that must come from the same build. Remotes opt packages in with a pool tag; the orchestrator then makes sure each remote gets all of them from one build.';
+  'A pool is a set of packages that must come from the same build. Each pool lists its builds and the remotes that load them.';
 export const POOLING_DOCS_URL = 'https://native-federation.com/docs/v4/orchestrator/pooling/';
 
-// The orchestrator's `PoolCause` (v4.7+): cell label and outcome explanation. An unknown value is shown raw.
-const POOL_CAUSES: Record<string, { label: string; text: string }> = {
-  incompatible: {
-    label: 'version conflict',
-    text: 'version conflict: not all its packages accept the shared versions',
-  },
-  uncovered: { label: 'not covered', text: 'no single build has every package it imports' },
-  torn: { label: 'would mix builds', text: 'the shared versions would mix builds' },
-  unshared: { label: 'no shared copy', text: 'no remote shares it any more' },
+export const POOL_LEGEND: readonly { state: PoolCellState; label: string }[] = [
+  { state: 'conflict', label: 'conflict' },
+  { state: 'isolated', label: 'isolated / not shared' },
+  { state: 'serves-others', label: 'build that serves other remotes' },
+  { state: 'unchanged', label: 'unchanged or redirected' },
+];
+
+// The orchestrator's `PoolCause` (v4.7+), as the short label a verdict leads with. An unknown value is shown raw.
+const CAUSE_LABELS: Record<string, string> = {
+  incompatible: 'version conflict',
+  uncovered: 'not covered',
+  torn: 'would mix builds',
+  unshared: 'no shared copy',
 };
 
 export interface PoolRemoteVm {
@@ -28,25 +36,42 @@ export interface PoolRemoteVm {
   host: boolean;
 }
 
+export interface PoolColumnVm {
+  packageName: string;
+  /** The name without the pool's shared npm scope. */
+  label: string;
+}
+
 export interface PoolCellVm {
-  /** Declared tag version, or `—` when the remote does not declare the member. */
+  /** The version the remote gets; `·` where it does not use the package. */
   text: string;
-  poolTag: string | null;
-  scoped: boolean;
-  /** Why pooling gave this copy its own build, when the runtime stored it (v4.7+). */
-  causeNote: string | null;
+  /** Null for a package the remote does not use, and while the pool is pending. */
+  state: PoolCellState | null;
+  tooltip: string | null;
 }
 
 export interface PoolRowVm {
-  packageName: string;
+  remote: PoolRemoteVm;
+  /** Its pool tag, `no tag`, or null for the host. */
+  tag: string | null;
+  redirected: boolean;
   cells: PoolCellVm[];
 }
 
-export interface PoolOutcomeVm {
-  remote: PoolRemoteVm;
-  sentence: string;
-  /** Coherence finding — pooling guarantees none; null on every healthy consumer. */
-  finding: string | null;
+export interface PoolBandVm {
+  label: string;
+  note: string | null;
+  rows: PoolRowVm[];
+}
+
+export interface PoolVerdictVm {
+  icon: string;
+  /** Only isolation and a torn combination are coloured. */
+  tone: 'isolated' | 'torn' | 'quiet';
+  type: string;
+  cause: string | null;
+  who: string;
+  why: string | null;
 }
 
 export interface PoolCardVm {
@@ -56,14 +81,15 @@ export interface PoolCardVm {
   /** Share scope when not the default one. */
   scopeLabel: string | null;
   counts: string;
-  formedBy: string;
-  remotes: PoolRemoteVm[];
-  rows: PoolRowVm[];
-  /** Replaces the outcome lines while a member record is pending re-election. */
+  tags: string;
+  /** The npm scope every column shares, shown once in the matrix corner. */
+  scopePrefix: string | null;
+  columns: PoolColumnVm[];
+  bands: PoolBandVm[];
+  /** Null while a member record is pending re-election. */
+  verdict: PoolVerdictVm | null;
   pendingNote: string | null;
-  outcomes: PoolOutcomeVm[];
   notes: string[];
-  footnote: string | null;
 }
 
 export interface PoolsVm {
@@ -79,9 +105,14 @@ export function buildPoolsVm(
   projection: CanonicalResolutionProjection,
   orchestratorVersion: string | null,
 ): PoolsVm {
-  const pools = projection.tagPools.map((pool, index) =>
-    poolCardOf(pool, projection.poolFamilies[index], projection.tagPools),
-  );
+  const pools = projection.tagPools
+    .map((pool, index) => ({
+      card: poolCardOf(pool, projection.poolFamilies[index], projection.tagPools),
+      rank: severity(projection.poolFamilies[index]),
+      index,
+    }))
+    .sort((a, b) => a.rank - b.rank || a.index - b.index)
+    .map(({ card }) => card);
   const orphans = projection.orphanPoolTags.flatMap((orphan) =>
     orphan.tags.map(
       (tag) =>
@@ -93,7 +124,7 @@ export function buildPoolsVm(
     versionWarning: hasContent ? versionWarningOf(projection, orchestratorVersion) : null,
     pools,
     orphans,
-    emptyNote: pools.length === 0 && orphans.length === 0 ? 'No pool tags in this capture.' : null,
+    emptyNote: hasContent ? null : 'No pool tags in this capture.',
   };
 }
 
@@ -102,11 +133,168 @@ export function hasPoolTags(projection: CanonicalResolutionProjection): boolean 
   return projection.tagPools.length > 0 || projection.orphanPoolTags.length > 0;
 }
 
-function poolCardOf(pool: TagPool, family: PoolFamily, allPools: readonly TagPool[]): PoolCardVm {
-  const remotes = pool.remotes.map((name) => ({ name, host: isHostRemote(name) }));
-  const tagStrings = [...new Set(pool.tags.map((tag) => tag.tag))].sort();
-  const untagged = pool.remotes.filter((remote) => !pool.tags.some((tag) => tag.remote === remote));
+// Problem pools first, in the verdict's own order.
+function severity(family: PoolFamily): number {
+  return ['torn', 'isolated', 'redirected', 'one-build'].indexOf(family.statusMatrix.verdict.kind);
+}
 
+function poolCardOf(pool: TagPool, family: PoolFamily, allPools: readonly TagPool[]): PoolCardVm {
+  const tagStrings = [...new Set(pool.tags.map((tag) => tag.tag))].sort();
+  const scopes = new Set(pool.members.map(npmScope));
+  const scopePrefix = scopes.size === 1 ? [...scopes][0] : null;
+  const pending = family.pending;
+
+  return {
+    id: pool.id,
+    name: pool.name,
+    scopeLabel: pool.shareScope === GLOBAL_SCOPE ? null : pool.shareScope,
+    counts: `${pool.members.length} packages · ${pool.remotes.length} remotes`,
+    tags: `${tagStrings.length === 1 ? 'tag' : 'tags'}: ${tagStrings.join(', ')}`,
+    scopePrefix,
+    columns: pool.members.map((packageName) => ({
+      packageName,
+      label: scopePrefix ? packageName.slice(scopePrefix.length + 1) : packageName,
+    })),
+    bands: family.statusMatrix.bands.map((band) => bandOf(band, pool.members, pending)),
+    verdict: pending ? null : verdictOf(family.statusMatrix.verdict),
+    pendingNote: pending ? 'pending re-election — outcomes not settled yet' : null,
+    notes: notesOf(pool, family, tagStrings, allPools),
+  };
+}
+
+function bandOf(band: PoolBuildBand, members: readonly string[], pending: boolean): PoolBandVm {
+  const note: string[] = [];
+  if (band.kind === 'isolated') note.push('isolated');
+  if (band.servesOthers > 0) note.push(`serves ${plural(band.servesOthers, 'other')}`);
+  if (band.redirected > 0) note.push(`${band.redirected} redirected`);
+  if (band.hostPrecedence) note.push('host precedence');
+  return {
+    label: band.owner === null ? 'Mixed builds' : `Build of ${participantDisplay(band.owner)}`,
+    note: note.length > 0 ? note.join(' · ') : null,
+    rows: band.rows.map((row) => rowOf(row, band, members, pending)),
+  };
+}
+
+function rowOf(
+  row: PoolStatusRow,
+  band: PoolBuildBand,
+  members: readonly string[],
+  pending: boolean,
+): PoolRowVm {
+  const host = isHostRemote(row.remote);
+  const conflicts = row.cells.filter((cell) => cell?.state === 'conflict').length;
+  return {
+    remote: { name: row.remote, host },
+    tag: row.tag ?? (host ? null : 'no tag'),
+    redirected: row.redirected,
+    cells: row.cells.map((cell, index) =>
+      cell === null
+        ? { text: '·', state: null, tooltip: null }
+        : {
+            text: cell.servedTag,
+            state: pending ? null : cell.state,
+            tooltip: pending
+              ? null
+              : `${participantDisplay(row.remote)} · ${members[index]} ${cell.servedTag}\n${cellText(cell, row, band, conflicts)}`,
+          },
+    ),
+  };
+}
+
+function cellText(
+  cell: PoolStatusCell,
+  row: PoolStatusRow,
+  band: PoolBuildBand,
+  conflicts: number,
+): string {
+  const owner = band.owner === null ? null : participantDisplay(band.owner);
+  switch (cell.state) {
+    case 'conflict':
+      return `Conflict: needs ${cell.requiredVersion}, shared is ${cell.sharedTag}`;
+    case 'isolated': {
+      const why =
+        conflicts > 0
+          ? `follows ${participantDisplay(row.remote)}'s ${conflicts === 1 ? 'conflict' : 'conflicts'}, since a pool comes from one build`
+          : 'runs the whole pool from its own build';
+      return `Isolated: ${why}.${rangeNote(cell)}`;
+    }
+    case 'not-shared':
+      return 'Not shared: no remote shares this package, so each loads its own';
+    case 'serves-others':
+      return `Serves ${plural(band.servesOthers, 'other remote')}`;
+    case 'unchanged':
+      if (owner === null) return 'Served by several builds';
+      if (row.redirected) return `Redirected to the build of ${owner}`;
+      return band.owner === row.remote
+        ? 'Unchanged: its own build'
+        : `Unchanged: the build of ${owner}`;
+  }
+}
+
+// For a copy that did not conflict itself: whether its own range would have blocked sharing.
+function rangeNote(cell: PoolStatusCell): string {
+  if (cell.sharedTag === null || cell.acceptsShared === null) return '';
+  if (cell.acceptsShared)
+    return ` Its range (${cell.requiredVersion}) accepts the shared ${cell.sharedTag}.`;
+  return cell.strictVersion
+    ? ''
+    : ` Its own range (${cell.requiredVersion}, not strict) wouldn't have blocked the shared ${cell.sharedTag}.`;
+}
+
+function verdictOf(verdict: PoolVerdict): PoolVerdictVm {
+  const redirect = verdict.redirected;
+  switch (verdict.kind) {
+    case 'torn':
+      return {
+        icon: '✕',
+        tone: 'torn',
+        type: 'Mixed builds',
+        cause: null,
+        who: names(verdict.torn),
+        why: 'no single build ships their combination',
+      };
+    case 'isolated': {
+      const isolated = verdict.isolated!;
+      const why = [
+        isolated.conflicts > 0 ? plural(isolated.conflicts, 'conflict') : null,
+        redirect ? `${plural(redirect.remotes.length, 'remote')} redirected` : null,
+      ].filter((part) => part !== null);
+      return {
+        icon: '✕',
+        tone: 'isolated',
+        type: 'Isolated',
+        cause: isolated.cause === null ? null : causeLabel(isolated.cause),
+        who: names(isolated.remotes),
+        why: why.length > 0 ? why.join(' · ') : null,
+      };
+    }
+    case 'redirected':
+      return {
+        icon: '↪',
+        tone: 'quiet',
+        type: 'Redirected',
+        cause: 'would mix builds',
+        who: `${names(redirect!.remotes)} → build of ${redirect!.anchors.map(participantDisplay).join(', ')}`,
+        why: `shared versions come from ${redirect!.mixes.map(participantDisplay).join(' and ')}`,
+      };
+    case 'one-build':
+      return {
+        icon: '✓',
+        tone: 'quiet',
+        type: verdict.builds.length === 1 ? 'One build' : 'Unchanged',
+        cause: null,
+        who: `${verdict.builds.length === 1 ? 'build' : 'builds'} of ${verdict.builds.map(participantDisplay).join(', ')}`,
+        why: null,
+      };
+  }
+}
+
+function notesOf(
+  pool: TagPool,
+  family: PoolFamily,
+  tagStrings: readonly string[],
+  allPools: readonly TagPool[],
+): string[] {
   const notes: string[] = [];
   if (pool.remotes.length < 2) {
     notes.push('only one remote declares its members — nothing to coordinate');
@@ -137,111 +325,27 @@ function poolCardOf(pool: TagPool, family: PoolFamily, allPools: readonly TagPoo
     if (member.followsPackage !== null) {
       notes.push(`${member.packageName} follows its package ${member.followsPackage}`);
     }
-    if (member.unshared && member.scopedRemotes.length > 1) {
-      notes.push(
-        `no remote shares ${member.packageName} — ${member.scopedRemotes.length} remotes run their own copy`,
-      );
-    }
   }
-
-  return {
-    id: pool.id,
-    name: pool.name,
-    scopeLabel: pool.shareScope === GLOBAL_SCOPE ? null : pool.shareScope,
-    counts: `${pool.members.length} packages · ${pool.remotes.length} remotes`,
-    formedBy: tagStrings.join(', '),
-    remotes,
-    rows: pool.members.map((packageName, row) => ({
-      packageName,
-      cells: family.matrix[row].map((cell) =>
-        cell.kind === 'not-declared'
-          ? { text: '—', poolTag: null, scoped: false, causeNote: null }
-          : {
-              text: cell.scoped
-                ? `${cell.tag} (own copy${cell.poolCause === null ? '' : `: ${causeLabel(cell.poolCause)}`})`
-                : cell.tag,
-              poolTag: cell.poolTag,
-              scoped: cell.scoped,
-              causeNote: cell.poolCause === null ? null : causeText(cell.poolCause),
-            },
-      ),
-    })),
-    pendingNote: family.pending ? 'pending re-election — outcomes not settled yet' : null,
-    outcomes: family.pending ? [] : family.consumers.map(outcomeOf),
-    notes,
-    footnote:
-      untagged.length > 0
-        ? `a tag pulls a package into the pool; every remote using that package takes part (${untagged.map(participantDisplay).join(', ')} ${untagged.length === 1 ? 'declares' : 'declare'} no tag)`
-        : null,
-  };
-}
-
-function outcomeOf(consumer: PoolConsumer): PoolOutcomeVm {
-  const builds = [...new Set(Object.values(consumer.servingBuilds))];
-  const own = builds.length === 1 && builds[0] === consumer.remote;
-  const fromBuilds =
-    builds.length === 1
-      ? `${participantDisplay(builds[0])}'s build`
-      : builds.map(participantDisplay).join(', ');
-  let sentence: string;
-  switch (consumer.outcome) {
-    case 'own-copy':
-      sentence = `own copy of every package (${Object.keys(consumer.servingBuilds).length})`;
-      break;
-    case 'redirected':
-      sentence = `redirected: every package from ${fromBuilds}`;
-      if (consumer.sharedCombinationMixes !== null) {
-        sentence += ` — the shared versions would have mixed ${consumer.sharedCombinationMixes.join(' + ')}`;
-      }
-      break;
-    case 'mixed-builds':
-      sentence = `packages from different builds: ${Object.entries(consumer.servingBuilds)
-        .map(([member, build]) => `${member} from ${participantDisplay(build)}`)
-        .join(', ')}`;
-      break;
-    case 'one-build':
-      sentence = own
-        ? `every package from its own build${consumer.host ? ' (host precedence)' : ''}`
-        : `every package from ${fromBuilds}`;
-      break;
-  }
-  const why = reasonOf(consumer);
-  if (why !== null) sentence += ` — ${why}`;
-  if (consumer.servesOthers.length > 0) {
-    sentence += ` · ${consumer.servesOthers.map(participantDisplay).join(', ')} ${consumer.servesOthers.length === 1 ? 'uses' : 'use'} this build`;
-  }
-  return {
-    remote: { name: consumer.remote, host: consumer.host },
-    sentence,
-    finding:
-      consumer.coherent === false
-        ? `no single build ships this combination: ${consumer.combination.join(' + ')}`
-        : null,
-  };
-}
-
-function reasonOf(consumer: PoolConsumer): string | null {
-  if (consumer.poolCauses.length === 0) return null;
-  return consumer.poolCauses
-    .map(({ cause, members }) => {
-      // Evidence, not attribution: the record doesn't say which conflict isolated the remote.
-      if (cause === 'incompatible' && consumer.conflicts.length > 0) {
-        return `${causeText(cause)} (${consumer.conflicts
-          .map((c) => `${c.member} needs ${c.requiredVersion}, shared is ${c.sharedTag}`)
-          .join('; ')})`;
-      }
-      if (cause === 'unshared') return `no remote shares ${members.join(', ')} any more`;
-      return causeText(cause);
-    })
-    .join('; ');
+  return notes;
 }
 
 function causeLabel(cause: string): string {
-  return POOL_CAUSES[cause]?.label ?? cause;
+  return CAUSE_LABELS[cause] ?? cause;
 }
 
-function causeText(cause: string): string {
-  return POOL_CAUSES[cause]?.text ?? `pooling cause "${cause}"`;
+// Up to two names; a longer list reads as a count, and the matrix shows who.
+function names(remotes: readonly string[]): string {
+  return remotes.length <= 2
+    ? remotes.map(participantDisplay).join(', ')
+    : plural(remotes.length, 'remote');
+}
+
+function plural(count: number, noun: string): string {
+  return `${count} ${noun}${count === 1 ? '' : 's'}`;
+}
+
+function npmScope(packageName: string): string | null {
+  return packageName.startsWith('@') ? packageName.split('/')[0] : null;
 }
 
 // Without a published version (it arrived in v4.7 too), stored pool results are the only evidence of v4.7.

@@ -28,14 +28,12 @@ describe('derivePoolFamilies — outcomes from stored rows', () => {
     });
     expect(consumer('pooling-anchor', 'mfe1')).toMatchObject({
       outcome: 'one-build',
-      servesOthers: ['mfe2'],
       coherent: true,
     });
     expect(consumer('pooling-anchor', 'mfe2')).toMatchObject({
       outcome: 'redirected',
       servingBuilds: { '@nf-lab/conflict-lib': 'mfe1', '@nf-lab/conflict-lib/extra': 'mfe1' },
       coherent: true,
-      sharedCombinationMixes: ['@nf-lab/conflict-lib/extra@1.0.0', '@nf-lab/conflict-lib@2.0.0'],
     });
   });
 
@@ -47,18 +45,14 @@ describe('derivePoolFamilies — outcomes from stored rows', () => {
       'mfe2:redirected',
       'mfe3:redirected',
     ]);
-    expect(consumer('pool-tag-anchored', 'mfe1').servesOthers).toEqual(['mfe2', 'mfe3']);
-    expect(consumer('pool-tag-anchored', 'mfe3').sharedCombinationMixes).toEqual([
-      '@nf-lab/ui-core@2.0.0',
-      '@nf-lab/ui-dom@1.0.0',
+    const [mfe1Build] = family.statusMatrix.bands;
+    expect(mfe1Build).toMatchObject({ owner: 'mfe1', servesOthers: 2, redirected: 2 });
+    expect(mfe1Build.rows.map((row) => `${row.remote}:${row.tag ?? '-'}`)).toEqual([
+      'mfe1:ui',
+      'mfe2:ui',
+      'mfe3:-',
     ]);
-    expect(family.matrix[0]).toEqual([
-      { kind: 'declared', tag: '2.0.0', poolTag: null, scoped: false, poolCause: null },
-      { kind: 'declared', tag: '1.0.0', poolTag: 'ui', scoped: false, poolCause: null },
-      { kind: 'declared', tag: '1.0.0', poolTag: 'ui', scoped: false, poolCause: null },
-      { kind: 'declared', tag: '1.0.0', poolTag: null, scoped: false, poolCause: null },
-    ]);
-    expect(family.matrix[1][0]).toEqual({ kind: 'not-declared' });
+    expect(family.statusMatrix.verdict.redirected).toMatchObject({ mixes: [NF_HOST, 'mfe1'] });
   });
 
   it('pool-tag-islanded: mfe1 runs its own copy of everything; ui-core is left unshared', () => {

@@ -11,6 +11,16 @@
     @if (vm.emptyNote) {
       <p class="view-observation">{{ vm.emptyNote }}</p>
     }
+    @if (vm.pools.length > 0) {
+      <ul class="pools-legend" aria-label="Cell colours">
+        @for (entry of legend; track entry.state) {
+          <li>
+            <span class="pools-swatch" [attr.data-state]="entry.state"></span>{{ entry.label }}
+          </li>
+        }
+        <li>· not used</li>
+      </ul>
+    }
     @for (pool of vm.pools; track pool.id) {
       <article
         class="pool-card"
@@ -26,7 +36,7 @@
               >{{ pool.scopeLabel }}</span
             >
           }
-          <span class="pool-meta">{{ pool.counts }} · formed by: {{ pool.formedBy }}</span>
+          <span class="pool-meta">{{ pool.counts }} · {{ pool.tags }}</span>
           <a
             class="pool-graph-link"
             [routerLink]="['/graph']"
@@ -34,58 +44,77 @@
             >show in Graph</a
           >
         </header>
-        <table class="pool-matrix">
-          <thead>
-            <tr>
-              <th scope="col"></th>
-              @for (remote of pool.remotes; track remote.name) {
-                <th scope="col">
-                  <nf-participant-chip [name]="remote.name" [host]="remote.host" />
-                </th>
-              }
-            </tr>
-          </thead>
-          <tbody>
-            @for (row of pool.rows; track row.packageName) {
+        <div class="pool-matrix-wrap">
+          <table class="pool-matrix">
+            <thead>
               <tr>
-                <th scope="row" class="mono">{{ row.packageName }}</th>
-                @for (cell of row.cells; track $index) {
-                  <td
-                    class="mono"
-                    [class.pool-cell-scoped]="cell.scoped"
-                    [attr.title]="cell.causeNote"
-                  >
-                    {{ cell.text }}
-                    @if (cell.poolTag) {
-                      <span class="pool-chip" title="pool tag declared by this remote">{{
-                        cell.poolTag
-                      }}</span>
-                    }
-                  </td>
+                <th scope="col" class="pool-scope-prefix mono">
+                  {{ pool.scopePrefix }}{{ pool.scopePrefix ? '/' : '' }}
+                </th>
+                @for (column of pool.columns; track column.packageName) {
+                  <th scope="col" class="mono" [title]="column.packageName">{{ column.label }}</th>
                 }
               </tr>
+            </thead>
+            @for (band of pool.bands; track band.label) {
+              <tbody>
+                <tr class="pool-band">
+                  <th scope="rowgroup" [attr.colspan]="pool.columns.length + 1">
+                    {{ band.label }}
+                    @if (band.note) {
+                      <span class="pool-band-note">· {{ band.note }}</span>
+                    }
+                  </th>
+                </tr>
+                @for (row of band.rows; track row.remote.name) {
+                  <tr>
+                    <th scope="row">
+                      <span class="pool-remote">
+                        <nf-participant-chip [name]="row.remote.name" [host]="row.remote.host" />
+                        @if (row.tag) {
+                          <span class="pool-tag mono">{{ row.tag }}</span>
+                        }
+                        @if (row.redirected) {
+                          <span class="pool-redirected">↪ redirected</span>
+                        }
+                      </span>
+                    </th>
+                    @for (cell of row.cells; track $index) {
+                      <td
+                        class="mono"
+                        [attr.data-state]="cell.state"
+                        [attr.tabindex]="cell.tooltip ? 0 : null"
+                        [attr.title]="cell.tooltip"
+                        [attr.aria-label]="cell.tooltip"
+                      >
+                        {{ cell.text }}
+                      </td>
+                    }
+                  </tr>
+                }
+              </tbody>
             }
-          </tbody>
-        </table>
+          </table>
+        </div>
+        @if (pool.verdict; as verdict) {
+          <p class="pool-verdict" [attr.data-tone]="verdict.tone" role="status">
+            <span class="pool-verdict-type"
+              ><span aria-hidden="true">{{ verdict.icon }}</span> {{ verdict.type
+              }}{{ verdict.cause ? ' · ' + verdict.cause : '' }}</span
+            >
+            <span class="pool-verdict-detail"
+              >{{ verdict.who }}
+              @if (verdict.why) {
+                <span class="pool-verdict-why"> · {{ verdict.why }}</span>
+              }
+            </span>
+          </p>
+        }
         @if (pool.pendingNote) {
           <p class="view-observation">{{ pool.pendingNote }}</p>
         }
-        <ul class="pool-outcomes">
-          @for (outcome of pool.outcomes; track outcome.remote.name) {
-            <li class="pool-outcome">
-              <nf-participant-chip [name]="outcome.remote.name" [host]="outcome.remote.host" />
-              <span class="pool-sentence">{{ outcome.sentence }}</span>
-              @if (outcome.finding) {
-                <span class="pool-finding">{{ outcome.finding }}</span>
-              }
-            </li>
-          }
-        </ul>
         @for (note of pool.notes; track note) {
           <p class="pool-note">{{ note }}</p>
-        }
-        @if (pool.footnote) {
-          <p class="pool-footnote">{{ pool.footnote }}</p>
         }
       </article>
     }

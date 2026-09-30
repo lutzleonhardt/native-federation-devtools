@@ -8,7 +8,6 @@ import type {
   PoolConsumerOutcome,
   PoolFamily,
   PoolFamilyMember,
-  PoolMatrixCell,
   PoolStatusCell,
   PoolStatusMatrix,
   PoolStatusRow,
@@ -127,21 +126,6 @@ export function derivePoolFamilies(
       };
     });
 
-    const matrix: PoolMatrixCell[][] = pool.members.map((member) =>
-      pool.remotes.map((remote): PoolMatrixCell => {
-        const row = rowOf(remote, member);
-        return row === undefined
-          ? { kind: 'not-declared' }
-          : {
-              kind: 'declared',
-              tag: row.tag,
-              poolTag: row.poolTag,
-              scoped: row.action === 'scope',
-              poolCause: row.poolCause,
-            };
-      }),
-    );
-
     const consumers: PoolConsumer[] = pool.remotes.map((remote) => {
       const consumed = pool.members.flatMap((member) => {
         const row = rowOf(remote, member);
@@ -151,14 +135,9 @@ export function derivePoolFamilies(
         consumed.map(({ member, row }) => [member, servingBuildOf(row, member)]),
       );
       const combination = new Map<string, string>();
-      const sharedCombination = new Map<string, string>();
       for (const { member, row } of consumed) {
         const servedTag = rowOf(servingBuilds[member], member)?.tag ?? row.tag;
-        const basis = basisByMember.get(member);
-        for (const specifier of row.specifiers) {
-          combination.set(specifier, servedTag);
-          if (basis !== undefined) sharedCombination.set(specifier, basis.tag);
-        }
+        for (const specifier of row.specifiers) combination.set(specifier, servedTag);
       }
       const outcome = outcomeOf(
         remote,
@@ -171,34 +150,15 @@ export function derivePoolFamilies(
         host,
         outcome,
         poolCauses: causesOf(consumed),
-        // `determine`'s objector: only a strict copy whose range rejects the shared tag keeps its own build.
-        conflicts: consumed.flatMap(({ member, row }) => {
-          const basis = basisByMember.get(member);
-          return basis !== undefined &&
-            row.strictVersion &&
-            satisfiesRange(basis.tag, row.requiredVersion) === false
-            ? [{ member, requiredVersion: row.requiredVersion, sharedTag: basis.tag }]
-            : [];
-        }),
         servingBuilds,
-        servesOthers: pool.remotes
-          .filter((other) => other !== remote)
-          .filter((other) =>
-            pool.members.some((member) => rowOf(other, member)?.servedBy === remote),
-          ),
         coherent: host ? null : combination.size === 0 || shipped(combination),
         combination: listOf(combination),
-        sharedCombinationMixes:
-          outcome === 'redirected' && sharedCombination.size > 0 && !shipped(sharedCombination)
-            ? listOf(sharedCombination)
-            : null,
       };
     });
 
     return {
       poolId: pool.id,
       members,
-      matrix,
       statusMatrix: statusMatrixOf(pool, members, consumers, rowOf, basisByMember),
       consumers,
       pending: externals.some((external) => external.dirty),

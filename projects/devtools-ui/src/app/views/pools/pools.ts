@@ -4,12 +4,17 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 
 import { ParticipantChip } from '../../shared/kit/participant-chip';
 import { FederationStore } from '../../shared/store/federation-store';
-import { POOLING_DOCS_URL, POOLS_DEFINITION, PoolsVm, buildPoolsVm } from './pools-view-model';
+import {
+  POOLING_DOCS_URL,
+  POOLS_DEFINITION,
+  POOL_LEGEND,
+  PoolsVm,
+  buildPoolsVm,
+} from './pools-view-model';
 
 /**
- * Pools tab — one card per explicit-tag pool: the tag matrix that shows why
- * the packages belong together, and one outcome line per remote read off the
- * stored rows, with the orchestrator's `poolCause` where it stored one (v4.7+).
+ * Pools tab — one card per explicit-tag pool: a matrix of every remote's copy
+ * of every member, grouped by the build it loads, and one verdict under it.
  */
 @Component({
   selector: 'nf-pools-view',
@@ -32,6 +37,7 @@ export class PoolsView {
 
   protected readonly definition = POOLS_DEFINITION;
   protected readonly docsUrl = POOLING_DOCS_URL;
+  protected readonly legend = POOL_LEGEND;
 
   protected readonly vm = computed<PoolsVm | null>(() => {
     const model = this.store.model();
