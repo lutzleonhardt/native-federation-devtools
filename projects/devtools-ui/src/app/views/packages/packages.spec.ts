@@ -125,13 +125,14 @@ describe('PackagesView', () => {
     expect(toggles[2].querySelector('.chip .dot')?.classList.contains('dot-2')).toBe(true);
     expect(hostToggle.querySelector('.dot')).toBeNull();
 
-    // T7.6-AC-01: buttons + chips form one left filter zone with a visible
-    // divider between them; the scopes summary sits outside the zone and is
-    // pushed to the right edge via its auto margin.
+    // T7.6-AC-01: buttons + chips form one filter zone with a visible divider
+    // between them; the scopes summary ends the zone's last line, pushed to
+    // the right edge via its auto margin (packages-verdicts T7: inside the
+    // zone, so a wrapped toolbar stays two lines).
     const zone = el.querySelector<HTMLElement>('.filter-zone')!;
     expect(zone.querySelector('.filter-group')).not.toBeNull();
     expect(zone.querySelector('.participant-filter')).not.toBeNull();
-    expect(zone.querySelector('.scopes-summary')).toBeNull();
+    expect(zone.lastElementChild?.classList.contains('scopes-summary')).toBe(true);
     expect(getComputedStyle(el.querySelector('.participant-filter')!).borderLeftWidth).toBe('1px');
     expect(getComputedStyle(el.querySelector('.scopes-summary')!).marginLeft).toBe('auto');
 

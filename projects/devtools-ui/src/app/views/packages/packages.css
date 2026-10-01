@@ -16,6 +16,7 @@
 /* All/Conflicts + participant chips form one left-hand filter zone; the
  * scopes summary is passive info and keeps to the right edge. */
 .filter-zone {
+  flex: 1 1 auto;
   display: inline-flex;
   align-items: baseline;
   gap: 12px;

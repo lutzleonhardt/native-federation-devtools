@@ -364,10 +364,10 @@ tbody.dive td {
 }
 
 .shipped li {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) max-content max-content;
-  gap: 10px;
+  display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
+  gap: 2px 10px;
 }
 
 .verdict {

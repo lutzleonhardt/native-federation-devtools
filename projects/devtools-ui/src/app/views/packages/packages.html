@@ -31,6 +31,14 @@
             </button>
           }
         </div>
+        <label class="packages-sort">
+          sort
+          <select id="packages-sort" [value]="sort()" (change)="setSort($any($event.target).value)">
+            <option value="name">name</option>
+            <option value="copies">copies</option>
+            <option value="remotes">remotes</option>
+          </select>
+        </label>
         @if (vm.participants.length > 0) {
           <div class="participant-filter" role="group" aria-label="filter by participant">
             @for (participant of vm.participants; track participant.name) {
@@ -47,28 +55,20 @@
             }
           </div>
         }
+        <ul class="scopes-summary" aria-label="share scopes">
+          @for (scope of vm.scopes; track scope.scope) {
+            <li class="scope-item">
+              <span
+                class="scope-name"
+                [class.tip]="scope.label !== scope.scope"
+                [attr.title]="scope.label === scope.scope ? null : scope.scope"
+                >{{ scope.label }}</span
+              >
+              <span class="scope-count">{{ scope.packageCount }}</span>
+            </li>
+          }
+        </ul>
       </div>
-      <ul class="scopes-summary" aria-label="share scopes">
-        @for (scope of vm.scopes; track scope.scope) {
-          <li class="scope-item">
-            <span
-              class="scope-name"
-              [class.tip]="scope.label !== scope.scope"
-              [attr.title]="scope.label === scope.scope ? null : scope.scope"
-              >{{ scope.label }}</span
-            >
-            <span class="scope-count">{{ scope.packageCount }}</span>
-          </li>
-        }
-      </ul>
-      <label class="packages-sort">
-        sort
-        <select id="packages-sort" [value]="sort()" (change)="setSort($any($event.target).value)">
-          <option value="name">name</option>
-          <option value="copies">copies</option>
-          <option value="remotes">remotes</option>
-        </select>
-      </label>
     </div>
 
     @if (vm.emptyNote) {
