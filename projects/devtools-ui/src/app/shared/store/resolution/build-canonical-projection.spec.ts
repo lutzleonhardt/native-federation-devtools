@@ -14,6 +14,7 @@ import { buildCanonicalProjection } from './build-canonical-projection';
 import { attachBundleClaimIds, deriveBundleClaims } from './derive-bundle-claims';
 import { deriveChunkGroups } from './derive-chunk-groups';
 import { deriveCopyGroupingFacets, deriveTagPools } from './derive-grouping-facets';
+import { derivePackageVerdicts } from './derive-package-verdicts';
 import { derivePoolFamilies } from './derive-pool-families';
 import { deriveResolutionClaims } from './derive-declaration-claims';
 import * as resolutionBarrel from './index';
@@ -180,6 +181,11 @@ function project(snapshot: SnapshotV1): CanonicalResolutionProjection {
       tagPools.tagPools,
     ),
     poolFamilies: derivePoolFamilies(evidence, tagPools.tagPools, NF_HOST),
+    packageScopeVerdicts: derivePackageVerdicts(
+      evidence,
+      declarationResolutionClaims,
+      attachedCopies,
+    ),
   });
 }
 
@@ -198,6 +204,7 @@ describe('buildCanonicalProjection — raw-free surface (T6-AC-04)', () => {
       'observedTargetProviders',
       'orphanPoolTags',
       'packageMeasures',
+      'packageScopeVerdicts',
       'poolFamilies',
       'registryServingSlotClaims',
       'remotes',
@@ -511,6 +518,7 @@ describe('resolution layer surface (T6-AC-06)', () => {
       'deriveBundleClaims',
       'deriveChunkGroups',
       'deriveCopyGroupingFacets',
+      'derivePackageVerdicts',
       'derivePoolFamilies',
       'deriveResolutionClaims',
       'deriveTagPools',

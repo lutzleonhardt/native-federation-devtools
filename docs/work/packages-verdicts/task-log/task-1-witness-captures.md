@@ -60,10 +60,11 @@ Devtools:
 | `merged-entrypoints` | one 1.2.0 `share` row, remotes host (1 entry) and mfe1 (3 entries, same `kit` file name); `kit/table` and `kit/dialog` mapped to `/mfe1/` |
 | `multi-scope` | `share` in `__GLOBAL__` 1.4.0 (mfe1 1.2.0 `skip`), `team-a` 1.3.0 (mfe3 1.2.0 `skip`, scoped to mfe2's file), `strict` 2.0.0 and 1.3.0 |
 
-Finding for Task 3: in `merged-entrypoints` the secondaries come from the
-non-first copy's build, which the claim pipeline may classify like a
-self-fill. Torn must therefore require a filling tag different from the
-elected one; same-tag fills are merged.
+Finding for Task 3 (checked in Task 2 against the claim pipeline): in
+`merged-entrypoints` mfe1's secondaries resolve `own-selected` to mfe1's
+copy, and both 1.2.0 copies are `ordinary-shared` — merged is not
+mistaken for a self-fill. Torn is the `self-filled` claim state onto a
+copy of another tag (`torn-many`).
 
 ### Acceptance Coverage
 
