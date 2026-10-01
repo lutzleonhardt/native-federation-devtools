@@ -63,4 +63,4 @@ committed it. UI 594, bridge 93, collector 96, guards 68 green;
 
 ### Git State
 
-- Branch `grouping-and-pooling`, committed as `task-8`.
+- Branch `share-pools`, committed as `task-8`.

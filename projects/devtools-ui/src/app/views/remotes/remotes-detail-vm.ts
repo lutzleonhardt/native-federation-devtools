@@ -313,7 +313,7 @@ const PINNED_TAG_NOTE =
 
 // Chunk lists and `bundle` are both written only under `features.denseChunking`; a multi-entry map
 // can come from `features.denseExternals` or host-side `convertFlatSharedInfo`, so that note claims
-// neither (see docs/work/grouping-and-pooling/plan.md, persisted-evidence table).
+// neither (see docs/work/share-pools/plan.md, persisted-evidence table).
 function capabilitiesOf(remote: RemoteEntity, model: FederationModel): CapabilityVm[] {
   const capabilities: CapabilityVm[] = [];
   const evidence = model.registryEvidence;

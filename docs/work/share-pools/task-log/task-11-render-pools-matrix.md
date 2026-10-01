@@ -68,4 +68,4 @@ sideways page scroll, no console errors.
 
 ### Git State
 
-- Branch `grouping-and-pooling`, committed as `task-11`.
+- Branch `share-pools`, committed as `task-11`.

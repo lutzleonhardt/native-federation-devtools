@@ -19,7 +19,7 @@
  */
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { LAB_CORPORA } from "./lab-corpora.mjs";
 
@@ -722,10 +722,11 @@ function validateCorpus(corpus) {
 const summaries = LAB_CORPORA.map((corpus) => [corpus, validateCorpus(corpus)]);
 
 // --- stray files: everything under captures/ must be accounted for ------
-const onDisk = readdirSync(CAPTURES_DIR, { recursive: true, encoding: "utf8" })
-  .filter((f) => f.endsWith(".json"))
-  .map((f) => f.replaceAll("\\", "/"));
+const onDisk = readdirSync(CAPTURES_DIR, { recursive: true, withFileTypes: true })
+  .filter((d) => d.isFile())
+  .map((d) => relative(CAPTURES_DIR, join(d.parentPath, d.name)).replaceAll("\\", "/"));
 for (const file of onDisk) {
+  if (file === "README.md") continue;
   if (LAB_CORPORA.some((corpus) => corpus.manifest === file)) continue;
   if (file.startsWith("frankenstein/")) continue; // research-corpus subset, own provenance
   if (!manifestPaths.has(file)) issue(`captures/${file}`, "not listed in the manifest (stray capture)");

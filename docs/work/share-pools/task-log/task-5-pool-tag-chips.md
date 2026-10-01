@@ -52,4 +52,4 @@ typecheck and Prettier clean.
 
 ### Git State
 
-- Branch `grouping-and-pooling`, committed as `task-5`.
+- Branch `share-pools`, committed as `task-5`.

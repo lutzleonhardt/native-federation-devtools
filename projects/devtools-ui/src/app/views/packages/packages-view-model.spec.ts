@@ -1159,9 +1159,9 @@ describe('buildPackagesVm — grounded annotations and purity (T7.5-AC-06)', () 
   });
 });
 
-// grouping-and-pooling T5: a declaration's explicit pool tag renders as a
+// share-pools T5: a declaration's explicit pool tag renders as a
 // chip; an orphan tag (joined nothing) is flagged. Untagged rows get none.
-describe('buildPackageDetail — pool chips (grouping-and-pooling T5)', () => {
+describe('buildPackageDetail — pool chips (share-pools T5)', () => {
   const chipsOf = (fixture: keyof typeof FIXTURES, pkg: string) => {
     const detail = vmOf(fixture, { selectedId: `__GLOBAL__|${pkg}` }).detail!;
     return detail.blocks

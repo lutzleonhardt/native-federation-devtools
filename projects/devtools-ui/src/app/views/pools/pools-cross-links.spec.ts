@@ -1,5 +1,5 @@
 /**
- * Pools ↔ Graph ↔ detail cross-links (grouping-and-pooling Task 7), driven
+ * Pools ↔ Graph ↔ detail cross-links (share-pools Task 7), driven
  * through the real routes with RouterTestingHarness so query params arrive
  * exactly as a click would deliver them.
  */
@@ -46,7 +46,7 @@ async function harnessAt(id: FixtureId, url: string) {
 
 const hrefOf = (el: Element | null) => decodeURIComponent(el?.getAttribute('href') ?? '');
 
-describe('pool cross-links (grouping-and-pooling T7)', () => {
+describe('pool cross-links (share-pools T7)', () => {
   it('T7-AC-01: Pools → Graph lands on Pool grouping with the pool emphasised', async () => {
     const pools = await harnessAt('pool-tag-coherent', '/pools');
     const link = pools.routeNativeElement!.querySelector('.pool-graph-link');

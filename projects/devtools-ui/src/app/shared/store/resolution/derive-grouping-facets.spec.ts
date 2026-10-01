@@ -1,5 +1,5 @@
 /**
- * Grouping facets (grouping-and-pooling Task 3): tag pools mirrored from the
+ * Grouping facets (share-pools Task 3): tag pools mirrored from the
  * orchestrator's `groupByMembership` with tag edges only, and per-copy share
  * scope / pool / bundle keys read off the copy's evidenced source.
  *

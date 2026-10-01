@@ -51,4 +51,4 @@ in Graph → explain), no console errors.
 
 ### Git State
 
-- Branch `grouping-and-pooling`, committed as `task-7`.
+- Branch `share-pools`, committed as `task-7`.

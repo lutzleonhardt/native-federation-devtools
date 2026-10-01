@@ -1,6 +1,6 @@
 /**
- * Pools view model (grouping-and-pooling Stage 2, Task 11) against the wording
- * contract in docs/work/grouping-and-pooling/design/pools-explainer-mock.md and
+ * Pools view model (share-pools Stage 2, Task 11) against the wording
+ * contract in docs/work/share-pools/design/pools-explainer-mock.md and
  * the mock-up design/pools-matrix-mock.html. The pool-showcase, pool-portfolio
  * and pool-tag-* fixtures are orchestrator 4.7.0 captures; pooling-anchor is
  * 4.6.0. States no capture reaches (torn, pending, the rarer membership notes)
@@ -41,7 +41,7 @@ const allCells = (card: PoolCardVm) => card.bands.flatMap((b) => b.rows).flatMap
 const tooltip = (card: PoolCardVm, remote: string, column: number) =>
   card.bands.flatMap((b) => b.rows).find((r) => r.remote.name === remote)!.cells[column].tooltip;
 
-describe('buildPoolsVm (grouping-and-pooling T11)', () => {
+describe('buildPoolsVm (share-pools T11)', () => {
   it('T11-AC-01: pool-showcase — problem pools first, orphan section, no warning', () => {
     const vm = vmOf('pool-showcase');
     expect(vm.pools.map((pool) => pool.name)).toEqual(['charts', 'ui', 'form-kit']);

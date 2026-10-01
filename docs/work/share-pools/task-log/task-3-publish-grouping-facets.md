@@ -30,7 +30,7 @@ collector 82, guards 68 — all green.
 - Specs: new `derive-grouping-facets.spec.ts`;
   `build-canonical-projection.spec.ts` (pipeline helper, shape and
   barrel pins); graph `seededProjection` helpers (empty facets).
-- `docs/work/grouping-and-pooling/plan.md` — Task 3 rule wording.
+- `docs/work/share-pools/plan.md` — Task 3 rule wording.
 
 ### Key Decisions
 
@@ -93,4 +93,4 @@ collector 82, guards 68 — all green.
 
 ### Git State
 
-- Branch `grouping-and-pooling`, committed as `task-3`.
+- Branch `share-pools`, committed as `task-3`.

@@ -64,7 +64,7 @@ timestamps). The manifest pins the *current* probe (regeneration
 contract); the validator additionally rejects any lab capture carrying
 fallback-mode scenario keys.
 
-## nf-lab scenario corpus (grouping-and-pooling)
+## nf-lab scenario corpus (share-pools)
 
 Nine scenarios witnessing explicit pool tags and the dense remoteEntry
 formats, listed in `captures/manifest-nf-lab.json` (own manifest: a
