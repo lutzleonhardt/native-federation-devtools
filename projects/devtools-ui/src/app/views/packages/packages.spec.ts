@@ -250,11 +250,19 @@ describe('PackagesView', () => {
 
   // T7.5-AC-03 (DOM half): two blocks under the multiplicity header; the
   // row compresses to the ⚠ glyph with the rule in its tooltip.
-  it('renders strict-split as two blocks under the ⚠ 2 resolved versions header', async () => {
+  it('renders strict-split as two versions with their notes and two copy blocks', async () => {
     const { fixture } = await createView({ fixture: 'strict-split', select: CONFLICT_LIB });
     const el = fixture.nativeElement as HTMLElement;
 
-    expect(el.querySelector('.detail-conflict')?.textContent).toBe('⚠ 2 resolved versions');
+    const versions = Array.from(el.querySelectorAll<HTMLElement>('tbody.version'));
+    expect(versions.map((v) => v.querySelector('.version-tag')?.textContent)).toEqual([
+      '2.0.0',
+      '1.0.0',
+    ]);
+    expect(
+      Array.from(versions[1].querySelectorAll('.version-note')).map((n) => n.textContent),
+    ).toEqual(['mfe1 out of range', 'mfe3 own copy']);
+    expect(versions[0].querySelectorAll('.version-note')).toHaveLength(0);
     const blocks = Array.from(el.querySelectorAll<HTMLElement>('.copy-block'));
     expect(blocks).toHaveLength(2);
     expect(blocks[0].querySelector('.copy-tag')?.textContent).toBe('2.0.0');
@@ -272,11 +280,9 @@ describe('PackagesView', () => {
     ).toEqual(['files', 'declared by', 'chunks']);
     expect(blocks[1].querySelectorAll('.consumer-row')).toHaveLength(1);
     expect(blocks[1].querySelector('.chunk-list')).toBeNull();
-    // T7.6-AC-05: the conflict header keeps its warning color; STRICT stays
-    // muted alongside the declared range.
+    // T7.6-AC-05: STRICT stays muted alongside the declared range.
     const strictColor = getComputedStyle(el.querySelector('.consumer-strict')!).color;
     expect(strictColor).toBe(getComputedStyle(el.querySelector('.consumer-declared')!).color);
-    expect(strictColor).not.toBe(getComputedStyle(el.querySelector('.detail-conflict')!).color);
 
     // Row: one mark per deviation with its reason, and the copy count.
     const marks = Array.from(el.querySelectorAll<HTMLElement>('.pkg-marks .mark-dot'));
@@ -284,10 +290,10 @@ describe('PackagesView', () => {
       'mark-dot mark-out-of-range',
       'mark-dot mark-isolated',
     ]);
-    expect(marks[1].title).toBe('mfe3 loads its own copy');
+    expect(marks[1].title).toBe('mfe3 keeps its own copy');
     const copies = el.querySelector<HTMLElement>('.pkg-copies')!;
     expect(copies.textContent).toBe('2 copies');
-    expect(copies.title).toBe('2 copies downloaded: 2.0.0 (global), 1.0.0 (global)');
+    expect(copies.title).toBe('2 copies mapped: 2.0.0 (global), 1.0.0 (global)');
 
     const multiButton = Array.from(el.querySelectorAll<HTMLButtonElement>('.filter-button')).find(
       (button) => button.textContent?.includes('Multiple versions'),
@@ -413,7 +419,9 @@ describe('PackagesView', () => {
     // T7.10-AC-04 (carriers 2 + 3): tooltips only — visible text unchanged.
     const name = el.querySelector<HTMLElement>('.detail-name-text')!;
     expect(name.textContent).toBe('@nf-lab/split-lib');
-    expect(name.title).toBe('registry key in share scope __GLOBAL__');
+    expect(el.querySelector<HTMLElement>('.scope-tag')?.title).toBe(
+      'the default share scope — no shareScope configured',
+    );
     const declaredByLabels = Array.from(el.querySelectorAll<HTMLElement>('.group-label')).filter(
       (label) => label.textContent === 'declared by',
     );
@@ -493,32 +501,22 @@ describe('PackagesView', () => {
     expect(strictEl.querySelector<HTMLElement>('.pkg-strict')?.title).toBe(
       "shareScope: 'strict' · no election, every exact version is shared side by side",
     );
-    expect(strictEl.querySelector<HTMLElement>('.detail-strict')?.title).toContain(
-      "shareScope: 'strict'",
+    const scopeTag = strictEl.querySelector<HTMLElement>('.scope-tag')!;
+    expect(scopeTag.textContent).toBe('strict');
+    expect(scopeTag.title).toContain("shareScope: 'strict'");
+    // The strict scope elects nothing — the head says so instead of "shares X".
+    expect(strictEl.querySelector('.scope-elected')?.textContent?.trim()).toBe(
+      'every exact version shared',
     );
-    expect(strictEl.querySelector<HTMLElement>('.detail-scope .mono')?.title).toBe(
-      'configured via shareScope: strict',
-    );
-    // T7.6-AC-02: label and value joined by a colon.
-    expect(strictEl.querySelector('.detail-scope')?.textContent?.replace(/\s+/g, ' ').trim()).toBe(
-      'share scope: strict',
-    );
-    // T7.6-AC-05: pinned scope is a configuration fact — muted like the meta
-    // line, tooltip verbatim.
-    expect(getComputedStyle(strictEl.querySelector('.detail-strict')!).color).toBe(
-      getComputedStyle(strictEl.querySelector('.detail-scope')!).color,
-    );
+    expect(strictEl.querySelector('.range-check')).toBeNull();
   });
 
   it('marks the global scope as the unconfigured default in the detail tooltip', async () => {
     const { fixture } = await createView({ fixture: 'clean-skip', select: CONFLICT_LIB });
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector<HTMLElement>('.detail-scope .mono')?.title).toBe(
-      '__GLOBAL__ — the default share scope (no shareScope configured)',
-    );
-    expect(el.querySelector('.detail-scope')?.textContent?.replace(/\s+/g, ' ').trim()).toBe(
-      'share scope: global',
-    );
+    const scopeTag = el.querySelector<HTMLElement>('.scope-tag')!;
+    expect(scopeTag.textContent).toBe('global');
+    expect(scopeTag.title).toBe('the default share scope — no shareScope configured');
   });
 
   // T7.6-AC-03: the copy-head connective reads 'from' for every disposition;
@@ -562,11 +560,11 @@ describe('PackagesView', () => {
       select: '__GLOBAL__|@nf-lab/conflict-lib/extra',
     });
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector('.detail-name')?.textContent).toContain('/extra');
+    expect(el.querySelector('.detail-name-text')?.textContent).toContain('/extra');
 
     queryParams.next(convertToParamMap({ select: CONFLICT_LIB }));
     fixture.detectChanges();
-    expect(el.querySelector('.detail-name')?.textContent?.trim()).toBe('@nf-lab/conflict-lib');
+    expect(el.querySelector('.detail-name-text')?.textContent?.trim()).toBe('@nf-lab/conflict-lib');
   });
 
   // Wording rules (T7): resolution-honest vocabulary only — "mapped",
@@ -637,6 +635,52 @@ describe('PackagesView', () => {
     for (const selector of ['.pkg-strict', '.pkg-copies']) {
       expect(getComputedStyle(el.querySelector(selector)!).flexShrink).toBe('0');
     }
+  });
+
+  // T6-AC-03: a version row opens its deep dive inline (click or Enter), one
+  // per scope block, and closes again; focus stays on the row.
+  it('opens one version deep dive at a time per scope, by click and keyboard', async () => {
+    const { fixture } = await createView({
+      fixture: 'out-of-range-nonstrict',
+      select: '__GLOBAL__|@nf-lab/kit',
+    });
+    const el = fixture.nativeElement as HTMLElement;
+    const rows = () => Array.from(el.querySelectorAll<HTMLElement>('tbody.version'));
+    expect(el.querySelector('tbody.dive')).toBeNull();
+    expect(rows().every((row) => row.tabIndex === 0)).toBe(true);
+
+    rows()[0].click();
+    fixture.detectChanges();
+    expect(rows()[0].getAttribute('aria-expanded')).toBe('true');
+    expect(el.querySelectorAll('tbody.dive')).toHaveLength(1);
+    expect(el.querySelector('tbody.dive .facts')?.textContent).toContain(
+      'for every remote in this scope',
+    );
+
+    // Enter on another row moves the single open dive there.
+    rows()[2].focus();
+    rows()[2].dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    fixture.detectChanges();
+    expect(rows()[0].getAttribute('aria-expanded')).toBe('false');
+    expect(rows()[2].getAttribute('aria-expanded')).toBe('true');
+    expect(document.activeElement).toBe(rows()[2]);
+    expect(el.querySelector('tbody.dive .shipped')?.textContent).toContain('out of range');
+
+    rows()[2].click();
+    fixture.detectChanges();
+    expect(el.querySelector('tbody.dive')).toBeNull();
+  });
+
+  it('links the torn banner to the docs in a new tab', async () => {
+    const { fixture } = await createView({
+      fixture: 'torn-many',
+      select: '__GLOBAL__|@nf-lab/kit',
+    });
+    const el = fixture.nativeElement as HTMLElement;
+    const link = el.querySelector<HTMLAnchorElement>('.torn-banner a')!;
+    expect(link.href).toContain('version-resolver/#entrypoint-coverage-and-tearing');
+    expect(link.target).toBe('_blank');
+    expect(el.querySelector<HTMLElement>('.torn-word')?.title).toContain('Torn:');
   });
 
   it('renders an honest observation when no snapshot is captured', async () => {

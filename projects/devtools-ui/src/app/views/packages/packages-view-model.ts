@@ -24,11 +24,12 @@ import type { TreeTableRow } from '../../shared/kit/tree-table';
 import type { FederationModel } from '../../shared/store/federation-model';
 import type { PackageScopeVerdicts, SharedExternalId } from '../../shared/store/resolution';
 import { PackageDetailVm, buildDetail } from './packages-detail-vm';
+import { PackageViewVm, buildPackageView } from './packages-version-vm';
 import {
   PackageEntry,
   PackagesRowPayload,
   buildRows,
-  downloadedVersionsOf,
+  mappedVersionsOf,
   marksOf,
 } from './packages-row-vm';
 import {
@@ -63,6 +64,8 @@ export type {
   UnresolvedRowVm,
 } from './packages-detail-vm';
 export type { ChunkClaimVm } from './packages-chunk-vm';
+export type * from './packages-version-vm';
+export { TORN_DOCS_URL } from './packages-version-vm';
 
 export type PackagesFilter = 'all' | 'multi' | 'out-of-range' | 'isolated' | 'torn';
 export type PackagesSort = 'name' | 'copies' | 'remotes';
@@ -114,6 +117,9 @@ export interface PackagesVm {
   rows: TreeTableRow<PackagesRowPayload>[];
   /** The selected package's row key; null without a selection. */
   selectedPackage: string | null;
+  /** The selected package across its scopes; null without a selection. */
+  packageView: PackageViewVm | null;
+  /** The per-copy view of the focused scope (the link's scope, else the first). */
   detail: PackageDetailVm | null;
   /** Honest empty note; null while the list has rows. */
   emptyNote: string | null;
@@ -137,12 +143,12 @@ const FILTERS: { id: PackagesFilter; label: string; note: string | null }[] = [
   {
     id: 'out-of-range',
     label: 'Out of range',
-    note: 'a non-strict remote runs a shared version its range rejects',
+    note: 'a non-strict remote resolves to a shared version its range rejects',
   },
   {
     id: 'isolated',
     label: 'Isolated',
-    note: 'a strict remote rejects the shared version and loads its own copy',
+    note: 'a strict remote rejects the shared version and keeps its own copy',
   },
   { id: 'torn', label: 'Torn', note: 'entrypoints run a different version than their package' },
 ];
@@ -189,7 +195,6 @@ export function buildPackagesVm(model: FederationModel, ui: PackagesUiState): Pa
   const selection = parseSelection(ui.selectedId);
   const selectedEntry =
     selection === null ? undefined : entries.find((e) => e.packageName === selection.packageName);
-  // Until the detail is per package (T5), it shows the focused scope's group.
   const focusedGroup =
     selectedEntry?.groups.find((group) => group.scope === selection?.scope) ??
     selectedEntry?.groups[0];
@@ -215,6 +220,10 @@ export function buildPackagesVm(model: FederationModel, ui: PackagesUiState): Pa
     participants,
     rows,
     selectedPackage: selectedEntry?.packageName ?? null,
+    packageView:
+      selectedEntry === undefined
+        ? null
+        : buildPackageView(selectedEntry, groups, indexes, selection?.scope ?? null),
     detail,
     emptyNote,
   };
@@ -224,8 +233,7 @@ function sorter(sort: PackagesSort): (a: PackageEntry, b: PackageEntry) => numbe
   const byName = (a: PackageEntry, b: PackageEntry) =>
     a.packageName < b.packageName ? -1 : a.packageName > b.packageName ? 1 : 0;
   if (sort === 'copies') {
-    return (a, b) =>
-      downloadedVersionsOf(b).length - downloadedVersionsOf(a).length || byName(a, b);
+    return (a, b) => mappedVersionsOf(b).length - mappedVersionsOf(a).length || byName(a, b);
   }
   if (sort === 'remotes') {
     return (a, b) => b.involved.size - a.involved.size || byName(a, b);

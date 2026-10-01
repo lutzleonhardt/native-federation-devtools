@@ -23,11 +23,11 @@ export type DeclarationVerdict =
 
 /**
  * - `shared` / `scoped`: some row of the tag carries action `share` / `scope`
- * - `partly-loaded`: neither, yet a copy of the tag materializes (it fills another version's
+ * - `partly-mapped`: neither, yet a copy of the tag materializes (it fills another version's
  *   entrypoints)
- * - `not-loaded`: no copy of the tag materializes
+ * - `not-mapped`: no copy of the tag materializes
  */
-export type VersionStatus = 'shared' | 'scoped' | 'partly-loaded' | 'not-loaded';
+export type VersionStatus = 'shared' | 'scoped' | 'partly-mapped' | 'not-mapped';
 
 export interface DeclarationVerdictRecord {
   declarationId: ParticipantDeclarationId;
@@ -39,6 +39,10 @@ export interface DeclarationVerdictRecord {
   acceptsElected: boolean | null;
   /** Tag of the copy the package's own specifier resolves to; null when it resolves nowhere. */
   runsTag: string | null;
+  requiredVersion: string;
+  strictVersion: boolean;
+  /** Whether `requiredVersion` accepts each registered tag of the scope (semver descending); null when unreadable. */
+  acceptance: { tag: string; accepts: boolean | null }[];
 }
 
 /** One mapped entry file of a build. */

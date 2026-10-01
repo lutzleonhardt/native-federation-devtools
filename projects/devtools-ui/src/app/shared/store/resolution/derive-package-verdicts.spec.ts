@@ -103,8 +103,8 @@ describe('derivePackageVerdicts — version statuses', () => {
     const kit = entry('torn-many', '__GLOBAL__', KIT);
     expect(kit.versions.map((v) => `${v.tag}:${v.status}`)).toEqual([
       '1.4.0:shared',
-      '1.3.0:partly-loaded',
-      '1.2.0:partly-loaded',
+      '1.3.0:partly-mapped',
+      '1.2.0:partly-mapped',
     ]);
     expect(byRemote(kit)).toMatchObject({
       mfe1: { verdict: 'reuses-shared', runsTag: '1.4.0' },
@@ -142,7 +142,7 @@ describe('derivePackageVerdicts — version statuses', () => {
     expect(kit.versions.map((v) => `${v.tag}:${v.status}`)).toEqual([
       '2.0.0:shared',
       '1.3.0:scoped',
-      '1.2.0:not-loaded',
+      '1.2.0:not-mapped',
     ]);
   });
 });

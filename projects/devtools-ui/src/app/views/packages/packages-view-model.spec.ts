@@ -340,9 +340,9 @@ describe('buildPackagesVm — conflict = visibly two blocks (T7.5-AC-03, strict-
     expect(row.marks).toEqual([
       {
         kind: 'out-of-range',
-        note: 'mfe1 runs a shared version its range rejects (not strict)',
+        note: 'mfe1 resolves to a shared version its range rejects (not strict)',
       },
-      { kind: 'isolated', note: 'mfe3 loads its own copy' },
+      { kind: 'isolated', note: 'mfe3 keeps its own copy' },
     ]);
     expect(countOf(vm, 'multi')).toBe(1);
   });
@@ -762,7 +762,7 @@ describe('buildPackagesVm — ambiguous scope attribution stays ambiguous', () =
     expect(row.copies).toEqual({
       count: 1,
       label: '1 copy',
-      note: '1 copy downloaded: 1 copy without a uniquely evidenced source tag',
+      note: '1 copy mapped: 1 copy without a uniquely evidenced source tag',
     });
     expect(vm.detail!.diagnostics).toEqual([
       {
@@ -1209,7 +1209,7 @@ describe('buildPackagesVm — one row per package (packages-verdicts T4)', () =>
     expect(row.copies).toEqual({
       count: 4,
       label: '4 copies',
-      note: '4 copies downloaded: 1.4.0 (global), 1.3.0 (team-a), 2.0.0 (strict), 1.3.0 (strict)',
+      note: '4 copies mapped: 1.4.0 (global), 1.3.0 (team-a), 2.0.0 (strict), 1.3.0 (strict)',
     });
   });
 

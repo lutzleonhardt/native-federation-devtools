@@ -6,7 +6,7 @@ import { MasterDetail } from '../../shared/kit/master-detail';
 import { ParticipantChip } from '../../shared/kit/participant-chip';
 import { TreeTable, TreeTableRow } from '../../shared/kit/tree-table';
 import { FederationStore } from '../../shared/store/federation-store';
-import { PackageDetail } from './package-detail';
+import { PackageVersions } from './package-versions';
 import {
   PackagesFilter,
   PackagesRowPayload,
@@ -27,7 +27,7 @@ import {
  */
 @Component({
   selector: 'nf-packages-view',
-  imports: [TreeTable, MasterDetail, ParticipantChip, PackageDetail],
+  imports: [TreeTable, MasterDetail, ParticipantChip, PackageVersions],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './packages.html',
   styleUrl: './packages.css',

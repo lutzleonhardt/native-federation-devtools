@@ -78,6 +78,7 @@ export function derivePackageVerdicts(
       return claim?.copyId ? (copyById.get(claim.copyId)?.resolvedTag ?? null) : null;
     };
 
+    const tags = [...new Set(registrations.map((r) => r.tag))].sort((a, b) => compareSemver(b, a));
     const declarations: DeclarationVerdictRecord[] = registrations.flatMap((registration) =>
       registration.participantDeclarationIds.map((id, index) => {
         const declaration = declarationById.get(id)!;
@@ -90,11 +91,16 @@ export function derivePackageVerdicts(
           verdict: verdictOf(registration, declaration, index, electedTag, acceptsElected),
           acceptsElected,
           runsTag: runsTagOf(declaration),
+          requiredVersion: declaration.requiredVersion,
+          strictVersion: declaration.strictVersion,
+          acceptance: tags.map((tag) => ({
+            tag,
+            accepts: satisfiesRange(tag, declaration.requiredVersion),
+          })),
         };
       }),
     );
 
-    const tags = [...new Set(registrations.map((r) => r.tag))].sort((a, b) => compareSemver(b, a));
     const versions: VersionVerdict[] = tags.map((tag) => {
       const rows = registrations.filter((r) => r.tag === tag);
       const tagCopies = scopeCopies.filter((copy) => copy.resolvedTag === tag);
@@ -108,8 +114,8 @@ export function derivePackageVerdicts(
         : rows.some((r) => r.action === 'scope')
           ? 'scoped'
           : tagCopies.length > 0
-            ? 'partly-loaded'
-            : 'not-loaded';
+            ? 'partly-mapped'
+            : 'not-mapped';
       return {
         tag,
         status,

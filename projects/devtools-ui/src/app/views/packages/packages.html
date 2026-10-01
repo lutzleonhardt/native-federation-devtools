@@ -22,7 +22,9 @@
               [attr.title]="option.note"
               (click)="setFilter(option.id)"
             >
-              @if (option.id === 'out-of-range' || option.id === 'isolated' || option.id === 'torn') {
+              @if (
+                option.id === 'out-of-range' || option.id === 'isolated' || option.id === 'torn'
+              ) {
                 <span [class]="'mark-dot mark-' + option.id" aria-hidden="true"></span>
               }
               {{ option.label }} ({{ option.count }})
@@ -113,7 +115,7 @@
         </nf-tree-table>
 
         <div nfDetail class="pkg-detail">
-          <nf-package-detail [detail]="vm.detail" />
+          <nf-package-versions [view]="vm.packageView" [detail]="vm.detail" />
         </div>
       </nf-master-detail>
     }

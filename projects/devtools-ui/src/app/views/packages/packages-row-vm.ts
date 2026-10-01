@@ -3,7 +3,7 @@
  * share scopes (packages-verdicts T4). A row is the package name, status
  * marks for the deviations the projection publishes (out of range,
  * isolated, torn), a `strict` tag when any scope is `strict`, and how many
- * copies the page downloads. Scope names, versions and entrypoints live in
+ * copies the import map materializes. Scope names, versions and entrypoints live in
  * the detail.
  *
  * Flat-build secondaries that are their own registry keys stay their own
@@ -30,7 +30,7 @@ export interface PackageRowVm {
   marks: PackageMarkVm[];
   /** Present when one of the package's scopes is `strict`. */
   strict: { note: string } | null;
-  /** Versions the page downloads, summed over scopes. */
+  /** Copies the import map materializes, summed over scopes. */
   copies: { count: number; label: string; note: string };
   linked: { parentPackage: string; rule: 'name-derived' } | null;
 }
@@ -57,7 +57,7 @@ export interface PackageEntry {
 const scopeLabel = (scope: string) => (scope === GLOBAL_SCOPE ? 'global' : scope);
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
-export function downloadedVersionsOf(entry: PackageEntry): { tag: string; scope: string }[] {
+export function mappedVersionsOf(entry: PackageEntry): { tag: string; scope: string }[] {
   return entry.verdicts.flatMap((verdicts) =>
     verdicts.versions
       .filter((version) => version.copyIds.length > 0)
@@ -75,31 +75,31 @@ export function marksOf(entry: PackageEntry): PackageMarkVm[] {
   if (outOfRange.length > 0) {
     marks.push({
       kind: 'out-of-range',
-      note: `${outOfRange.join(', ')} ${outOfRange.length === 1 ? 'runs' : 'run'} a shared version ${outOfRange.length === 1 ? 'its' : 'their'} range rejects (not strict)`,
+      note: `${outOfRange.join(', ')} ${outOfRange.length === 1 ? 'resolves' : 'resolve'} to a shared version ${outOfRange.length === 1 ? 'its' : 'their'} range rejects (not strict)`,
     });
   }
   const isolated = names('own-copy');
   if (isolated.length > 0) {
     marks.push({
       kind: 'isolated',
-      note: `${isolated.join(', ')} ${isolated.length === 1 ? 'loads its' : 'load their'} own copy`,
+      note: `${isolated.join(', ')} ${isolated.length === 1 ? 'keeps its' : 'keep their'} own copy`,
     });
   }
   const torn = entry.verdicts.flatMap((v) => v.torn);
   if (torn.length > 0) {
     marks.push({
       kind: 'torn',
-      note: `${plural(torn.length, 'entrypoint runs', 'entrypoints run')} a different version than the package`,
+      note: `${plural(torn.length, 'entrypoint resolves', 'entrypoints resolve')} to a different version than the package`,
     });
   }
   return marks;
 }
 
 function rowOf(entry: PackageEntry, linked: { parentPackage: string } | null): PackageRowVm {
-  const downloaded = downloadedVersionsOf(entry);
-  const count = downloaded.length + entry.unknownTagCopies;
+  const mapped = mappedVersionsOf(entry);
+  const count = mapped.length + entry.unknownTagCopies;
   const listed = [
-    ...downloaded.map((d) => `${d.tag} (${scopeLabel(d.scope)})`),
+    ...mapped.map((d) => `${d.tag} (${scopeLabel(d.scope)})`),
     ...(entry.unknownTagCopies > 0
       ? [
           `${plural(entry.unknownTagCopies, 'copy', 'copies')} without a uniquely evidenced source tag`,
@@ -120,7 +120,7 @@ function rowOf(entry: PackageEntry, linked: { parentPackage: string } | null): P
       note:
         count === 0
           ? entry.noCopyNote
-          : `${plural(count, 'copy', 'copies')} downloaded: ${listed.join(', ')}`,
+          : `${plural(count, 'copy', 'copies')} mapped: ${listed.join(', ')}`,
     },
     linked: linked ? { parentPackage: linked.parentPackage, rule: 'name-derived' } : null,
   };
