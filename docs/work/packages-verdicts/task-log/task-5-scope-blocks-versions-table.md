@@ -53,9 +53,10 @@ multi-scope.
   text (`--nf-color-conflict-contrast` is white in both themes, so it
   can't be a background).
 - **Range check** only with an election and two or more versions.
-- **Docs link opens with `target="_blank"`.** Not verified inside the
-  real devtools panel (no live extension session here); if Chrome blocks
-  it there, switch to `chrome.tabs.create`.
+- **Docs link opens with `target="_blank"`** — verified in the real
+  devtools panel (unpacked `dist/extension`, lab `torn-many`): it opens a
+  new tab that lands on the "Entrypoint coverage and tearing" section, so
+  no `chrome.tabs.create` is needed.
 
 ### Acceptance Coverage
 
@@ -63,7 +64,9 @@ multi-scope.
   on 1.3.0 (`mfe2 own copy`) and 1.2.0 (`mfe1 out of range`); shippers
   partition the declarations.
 - **T5-AC-02** — the range check's rejecting rows equal the verdict notes.
-- **T5-AC-03** — DOM: banner link `href` and `target="_blank"`; real-panel
-  check still open (see above).
+- **T5-AC-03** — DOM: banner link `href` and `target="_blank"`; in the real
+  panel the link opens the docs in a new tab, scrolled to the section
+  (checked by hand; an automated Claude-in-Chrome tab didn't scroll to the
+  anchor, a normal tab does).
 - **T5-AC-04** — every declaration of four fixtures (all scopes) renders as
   a shipper; every block keeps its bindings.
