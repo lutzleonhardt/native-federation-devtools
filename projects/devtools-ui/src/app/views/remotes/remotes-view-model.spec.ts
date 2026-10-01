@@ -153,10 +153,10 @@ describe('buildRemoteDetail — identity, selection, capabilities', () => {
   });
 });
 
-// grouping-and-pooling T1: `bundle` is a denseChunking facet (core
+// share-pools T1: `bundle` is a denseChunking facet (core
 // `bundle-shared.ts`), and a multi-entry `entries` map is the only stored trace
 // of denseExternals — shared with host-side `convertFlatSharedInfo`.
-describe('buildRemoteDetail — dense capabilities (grouping-and-pooling T1)', () => {
+describe('buildRemoteDetail — dense capabilities (share-pools T1)', () => {
   const labelsOf = (fixture: keyof typeof FIXTURES, remote: string) =>
     detailOf(fixture, remote).capabilities.map((capability) => capability.label);
 
@@ -177,7 +177,7 @@ describe('buildRemoteDetail — dense capabilities (grouping-and-pooling T1)', (
     expect(labelsOf('synthetic-dense-entries', 'mfe-dense')).not.toContain('dense chunking');
   });
 
-  // Real witnesses from the nf-lab corpus (grouping-and-pooling T2): each build flag alone, and both.
+  // Real witnesses from the nf-lab corpus (share-pools T2): each build flag alone, and both.
   it.each([
     ['dense-chunking-only', ['dense chunking']],
     ['dense-externals-only', ['multi-entry registrations']],
@@ -1175,8 +1175,8 @@ describe('buildRemoteDetail — private claim states ground on mappingState (T8-
   });
 });
 
-// grouping-and-pooling T5: pool chips in the remote's provides / consumes rows.
-describe('buildRemoteDetail — pool chips (grouping-and-pooling T5)', () => {
+// share-pools T5: pool chips in the remote's provides / consumes rows.
+describe('buildRemoteDetail — pool chips (share-pools T5)', () => {
   const tagsOf = (fixture: keyof typeof FIXTURES, remote: string) => {
     const detail = detailOf(fixture, remote);
     const rows = [

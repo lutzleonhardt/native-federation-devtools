@@ -155,7 +155,7 @@ describe('App', () => {
     expect(el.querySelectorAll('.strip-entry')).toHaveLength(0);
   });
 
-  // grouping-and-pooling T6-AC-04/06: the Pools tab appears only for a
+  // share-pools T6-AC-04/06: the Pools tab appears only for a
   // capture carrying pool tags (a pool or an orphan tag).
   it('shows the Pools tab only when the capture carries pool tags', async () => {
     const navOf = async (id: FixtureId) => {

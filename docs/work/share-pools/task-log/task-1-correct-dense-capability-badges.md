@@ -36,7 +36,7 @@ repository suite is green (UI 508, bridge 79, collector 75, guards 53).
 - `projects/devtools-ui/src/app/views/kit-demo.html` (modified) — demo
   badge renamed to `multi-entry registrations`.
 - Specs: `remotes-view-model.spec.ts` (live host expectation + new
-  `dense capabilities (grouping-and-pooling T1)` block),
+  `dense capabilities (share-pools T1)` block),
   `remotes.spec.ts` (DOM capability words), `derivations.spec.ts`
   (badge matrix, new multi-entry case, rule matrix).
 
@@ -117,5 +117,5 @@ repository suite is green (UI 508, bridge 79, collector 75, guards 53).
 
 ### Git State
 
-- Branch `grouping-and-pooling` (from `main` at `7ec977a`); `b0d9c08`
+- Branch `share-pools` (from `main` at `7ec977a`); `b0d9c08`
   graph spec fix; this task committed as `task-1`.

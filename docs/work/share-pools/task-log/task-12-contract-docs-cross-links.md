@@ -42,4 +42,4 @@ UI 606 green; the Pools and cross-link specs (27) pass unchanged.
 
 ### Git State
 
-- Branch `grouping-and-pooling`, committed as `task-12`.
+- Branch `share-pools`, committed as `task-12`.

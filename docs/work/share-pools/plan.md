@@ -1,6 +1,6 @@
 # Native Federation DevTools — Dependency Grouping & Federation Feature Coverage Plan
 
-Branch scope: grouping-and-pooling (from main)
+Branch scope: share-pools (from main)
 Upstream verified against: orchestrator `ccd98f4` (2026-09-28), native-federation-core `28a037d` (2026-09-23), docs `native-federation.com/docs/v4` (pooling, core/artifacts).
 Prior art: `topicusonderwijs/par-ticle-mfe-devtools` `0d051b6` — `src/tag-picker/tabs/federation-graph.ts` (`GroupBy = 'bundle' | 'shareScope' | 'provider'`, provider sub-clustered `provider → pool`).
 
@@ -226,7 +226,7 @@ Why tag pools are derivable: the orchestrator does not persist pools — it reco
 ### Instructions
 
 - First write the presentation contract
-  `docs/work/grouping-and-pooling/design/pools-explainer-mock.md`
+  `docs/work/share-pools/design/pools-explainer-mock.md`
   (style of `docs/work/resolution-model/design/*-mock.md`) and get it
   reviewed before building. It fixes the wording and layout below,
   worked through on `pooling-anchor` plus the Task 2 pool captures.
@@ -304,7 +304,7 @@ Why tag pools are derivable: the orchestrator does not persist pools — it reco
 - new `views/pools/`, `app.routes.ts`, `app.html` (nav), `app.spec.ts`
 - `shared/store/resolution/` (derivation in the pipeline, published via
   the projection)
-- new `docs/work/grouping-and-pooling/design/pools-explainer-mock.md`
+- new `docs/work/share-pools/design/pools-explainer-mock.md`
 - read-only upstream: `pool-graph.ts`, `pool-shared-externals.ts`
   (`rebuildMember`, `findTornRemotes`, `warnIfScopedOnly`)
 

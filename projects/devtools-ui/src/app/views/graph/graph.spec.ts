@@ -317,7 +317,7 @@ describe('GraphView', () => {
     }
   });
 
-  // grouping-and-pooling T4: the switch re-clusters in place and keeps the
+  // share-pools T4: the switch re-clusters in place and keeps the
   // forbidden vocabulary out of every grouping's labels and tooltips.
   it('switches the dependency grouping from the toolbar', async () => {
     const forbidden = /\b(loaded|downloaded|fetched|executed|wire cost|byte size|cache hit)\b/i;

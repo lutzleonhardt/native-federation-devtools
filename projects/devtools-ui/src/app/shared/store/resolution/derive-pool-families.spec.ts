@@ -1,5 +1,5 @@
 /**
- * Pool families (grouping-and-pooling Task 6): per tag pool, who serves each
+ * Pool families (share-pools Task 6): per tag pool, who serves each
  * consumer each member and whether the result is one some single build
  * shipped — read off the rows pooling wrote back. Expectations follow the
  * stored rows of each capture (see the Task 2 log's evidence table).

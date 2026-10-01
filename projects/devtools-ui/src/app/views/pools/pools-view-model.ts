@@ -10,7 +10,7 @@ import type {
 } from '../../shared/store/resolution';
 import { GLOBAL_SCOPE, isHostRemote, participantDisplay } from '../../shared/view-conventions';
 
-// Wording contract: docs/work/grouping-and-pooling/design/pools-explainer-mock.md.
+// Wording contract: docs/work/share-pools/design/pools-explainer-mock.md.
 
 export const POOLS_DEFINITION =
   'A pool is a set of packages that must come from the same build. Each pool lists its builds and the remotes that load them.';

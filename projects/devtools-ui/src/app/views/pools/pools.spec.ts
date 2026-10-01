@@ -1,5 +1,5 @@
 /**
- * Pools DOM (grouping-and-pooling Stage 2, Task 11): each card renders the
+ * Pools DOM (share-pools Stage 2, Task 11): each card renders the
  * status matrix with the verdict under it, coloured cells carry a reachable
  * tooltip, and no delivery-claiming vocabulary reaches the page.
  */

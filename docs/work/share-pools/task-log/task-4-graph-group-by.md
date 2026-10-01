@@ -93,7 +93,7 @@ errors.
 
 ### Git State
 
-- Branch `grouping-and-pooling`, committed as `task-4`.
+- Branch `share-pools`, committed as `task-4`.
 
 ### Amendment (after Task 7): Bundle → Build
 

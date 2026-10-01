@@ -35,7 +35,13 @@ Devtools:
   (`v4.7.0`, or `v4.6.0 (8e5e0b3)`), no longer a hard-coded v4.6.0.
 - `captures/` — nf-lab run `20260930T113012Z` replaces `20260929T151127Z`;
   `manifest-nf-lab.json` rebuilt; `manifest.json` (v2) points at
-  `lab-capture-dump-v1.js`; README section rewritten.
+  `lab-capture-dump-v1.js`; README section rewritten. The runner's
+  `<capture>.console.log` side files (all empty, half of them from the
+  run `20260930T112604Z`, which kept no captures) were committed by
+  mistake and removed afterwards.
+- `scripts/validate-lab-corpus.mjs` — the stray-file check covers every
+  file under `captures/` (except `README.md`), not only `*.json`, so
+  side files like those logs fail validation.
 - `devtools-bridge/src/lib/fixtures/` — nf-lab fixtures re-derived,
   `pool-showcase` and `pool-portfolio` added and registered.
 - Specs — drift count 20 → 22; pool-name expectations `@nf-lab/ui-core` →
@@ -80,4 +86,4 @@ Devtools:
 
 ### Git State
 
-- Branch `grouping-and-pooling`, committed as `task-9`.
+- Branch `share-pools`, committed as `task-9`.

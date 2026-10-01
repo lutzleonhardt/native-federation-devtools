@@ -62,4 +62,4 @@ reads the old `matrix`/outcomes until Task 11. UI 600 green (5 new).
 
 ### Git State
 
-- Branch `grouping-and-pooling`, committed as `task-10`.
+- Branch `share-pools`, committed as `task-10`.

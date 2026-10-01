@@ -15,7 +15,7 @@ guards 68 green; typecheck clean. Verified live (headless Chromium on
 
 ### Files Modified
 
-- `docs/work/grouping-and-pooling/design/pools-explainer-mock.md` (new)
+- `docs/work/share-pools/design/pools-explainer-mock.md` (new)
   — presentation contract (wording, layout, acceptance reference).
 - `shared/store/resolution/pool-family-model.ts`,
   `derive-pool-families.ts` (new) — `PoolFamily` per tag pool: members
@@ -83,4 +83,4 @@ guards 68 green; typecheck clean. Verified live (headless Chromium on
 
 ### Git State
 
-- Branch `grouping-and-pooling`, committed as `task-6`.
+- Branch `share-pools`, committed as `task-6`.

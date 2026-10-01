@@ -967,9 +967,9 @@ describe('graphAdjacencyOf', () => {
   });
 });
 
-// grouping-and-pooling Task 4: the group-by switch re-clusters the dependency
+// share-pools Task 4: the group-by switch re-clusters the dependency
 // column from the projection's `copyGroupingFacets`; nothing else may move.
-describe('buildGraphModel — group-by (grouping-and-pooling T4)', () => {
+describe('buildGraphModel — group-by (share-pools T4)', () => {
   const GROUPINGS = ['provider', 'shareScope', 'pool', 'build'] as const;
   const dependencyClusterLabels = (model: GraphModel) =>
     model.clusters

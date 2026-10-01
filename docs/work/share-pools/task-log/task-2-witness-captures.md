@@ -51,7 +51,7 @@ Devtools:
   fixtures.
 - `projects/devtools-ui/src/app/views/remotes/remotes-view-model.spec.ts`
   — Task 1 capabilities pinned on the three real dense fixtures.
-- `docs/work/grouping-and-pooling/plan.md` — Task 2 lab location; pool
+- `docs/work/share-pools/plan.md` — Task 2 lab location; pool
   scenario package names in Tasks 2/3.
 
 ### Key Decisions
@@ -121,5 +121,5 @@ Devtools:
 
 ### Git State
 
-- Devtools: branch `grouping-and-pooling`, committed as `task-2`.
+- Devtools: branch `share-pools`, committed as `task-2`.
 - Playground: branch `lab/grouping-and-pooling`, `2973777` (local).
