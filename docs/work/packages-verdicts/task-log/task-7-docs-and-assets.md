@@ -27,7 +27,7 @@ UI 638, bridge 105, collector 102, guards 81 green.
 ### Key Decisions
 
 - **No store listing assets on this branch.** `docs/assets/store/` exists
-  on `main` (Chrome Web Store prep) but not on `grouping-and-pooling`, so
+  on `main` (Chrome Web Store prep) but not on `share-pools`, so
   there is no `screenshot-2-packages.png` to re-shoot here; redo it after
   this branch merges with `main`.
 - **Same fixture and framing as before**, so the README image swaps

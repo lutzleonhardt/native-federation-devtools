@@ -1,12 +1,12 @@
 # Native Federation DevTools — Packages Tab: Versions & Verdicts Plan
 
-Branch scope: packages-verdicts (from grouping-and-pooling — needs its pool facts, `semver-range.ts` and the Graph's "see usage details" link)
+Branch scope: packages-verdicts (from share-pools — needs its pool facts, `semver-range.ts` and the Graph's "see usage details" link)
 Upstream verified against: orchestrator `0d2ad3f` (v4.7.0), docs `native-federation.com/docs/v4` (version-resolver: step 2, secondary entrypoints, entrypoint coverage and tearing).
 Design: `docs/work/packages-verdicts/design/packages-verdicts-mock.html` (published as https://claude.ai/artifact/U1WGGtdx1jCRCGRXffCEFf). The mock-up's example data and its in-page semver check are illustration only; every fact below comes from the projection.
 
 Goal: turn the Packages tab from "what resolved" into "what was decided, and why". One list row per package; the detail shows, per share scope, every available version with the resolver's verdict per remote, and a per-version deep dive (shipped by, entrypoints, files). New findings: **out of range** (a non-strict remote runs a shared version its range rejects), **torn** (entrypoints served from another version) and **merged** (one version assembled from several builds — not a problem, lightly marked).
 
-Hard constraints (inherited from docs/work/graph-view/plan.md and grouping-and-pooling, unchanged): views consume only `CanonicalResolutionProjection` and derive no domain facts; every rendered identity is a canonical ID; wording is resolution-honest and never delivery-claiming; the collector stays passive. Unresolved declarations and the diagnostics footer of today's detail are kept — the redesign moves them, it never drops a declaration.
+Hard constraints (inherited from docs/work/graph-view/plan.md and share-pools, unchanged): views consume only `CanonicalResolutionProjection` and derive no domain facts; every rendered identity is a canonical ID; wording is resolution-honest and never delivery-claiming; the collector stays passive. Unresolved declarations and the diagnostics footer of today's detail are kept — the redesign moves them, it never drops a declaration.
 
 What the stored data supports (governs every task):
 
