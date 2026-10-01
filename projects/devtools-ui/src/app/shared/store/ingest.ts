@@ -131,13 +131,14 @@ export function ingestSnapshot(snapshot: SnapshotV1): FederationModel {
   );
   const resolvedCopies = attachBundleClaimIds(materializedCopies, bundleClaims);
   const tagPools = deriveTagPools(registryEvidence);
+  const projectedRemotes = remotes.map(({ name, isHost, scopeUrl, resolvedScopeUrl }) => ({
+    name,
+    isHost,
+    scopeUrl,
+    resolvedScopeUrl,
+  }));
   const resolutionProjection = buildCanonicalProjection({
-    remotes: remotes.map(({ name, isHost, scopeUrl, resolvedScopeUrl }) => ({
-      name,
-      isHost,
-      scopeUrl,
-      resolvedScopeUrl,
-    })),
+    remotes: projectedRemotes,
     resolutions: effectiveConsumerResolutions,
     claims: { ...resolutionClaims, declarationResolutionClaims },
     copies: resolvedCopies,
@@ -156,11 +157,14 @@ export function ingestSnapshot(snapshot: SnapshotV1): FederationModel {
       tagPools.tagPools,
     ),
     poolFamilies: derivePoolFamilies(registryEvidence, tagPools.tagPools, NF_HOST),
-    packageScopeVerdicts: derivePackageVerdicts(
-      registryEvidence,
-      declarationResolutionClaims,
-      resolvedCopies,
-    ),
+    packageScopeVerdicts: derivePackageVerdicts(registryEvidence, {
+      claims: declarationResolutionClaims,
+      copies: resolvedCopies,
+      resolutions: effectiveConsumerResolutions,
+      bundleClaims,
+      chunkGroups: canonicalChunkGroups,
+      remotes: projectedRemotes,
+    }),
   });
 
   const scopedPackages: ScopedPackageRow[] = [];

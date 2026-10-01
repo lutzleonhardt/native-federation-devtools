@@ -41,6 +41,41 @@ export interface DeclarationVerdictRecord {
   runsTag: string | null;
 }
 
+/** One mapped entry file of a build. */
+export interface BuildEntryFile {
+  specifier: string;
+  url: string;
+  /** The mapped target carries an SRI hash in the effective map. */
+  hasIntegrity: boolean;
+}
+
+/** A recorded chunk file of a build's bundle, resolved against its emitter's scope. */
+export interface BuildChunkFile {
+  file: string;
+  url: string | null;
+}
+
+/** One build (copy) serving a version: its remote, the specifiers it serves, its files. */
+export interface VersionBuild {
+  copyId: ResolvedDependencyCopyId;
+  /** The remote whose build the copy is; null for a target-only copy. */
+  sourceRemote: string | null;
+  specifiers: string[];
+  entryFiles: BuildEntryFile[];
+  /** Chunks of the copy's `mapped-source` bundle claims, registry order. */
+  chunkFiles: BuildChunkFile[];
+}
+
+/** A specifier the elected version's copies lack, served from another version's build (a tear). */
+export interface TornEntrypoint {
+  specifier: string;
+  fillingTag: string;
+  fillingRemote: string | null;
+  copyId: ResolvedDependencyCopyId;
+  /** Consumers whose claim for the specifier is self-filled, sorted. */
+  consumerRemotes: string[];
+}
+
 export interface VersionVerdict {
   tag: string;
   status: VersionStatus;
@@ -49,6 +84,10 @@ export interface VersionVerdict {
   declarationIds: ParticipantDeclarationId[];
   /** Copies of this tag that materialize in this scope. */
   copyIds: ResolvedDependencyCopyId[];
+  /** The copies as builds: the one serving the package's own specifier first, then copy order. */
+  builds: VersionBuild[];
+  /** A shared version assembled from more than one build (docs: "Copies of one version always merge"). */
+  merged: boolean;
 }
 
 /** The resolver's decisions for one registry key (share scope, package). */
@@ -65,4 +104,6 @@ export interface PackageScopeVerdicts {
   versions: VersionVerdict[];
   /** Every declaration, registry order. */
   declarations: DeclarationVerdictRecord[];
+  /** Torn specifiers, sorted; empty without an election. */
+  torn: TornEntrypoint[];
 }

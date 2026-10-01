@@ -1,32 +1,48 @@
 import { compareSemver } from '../semver-compare';
 import { satisfiesRange } from '../semver-range';
+import type { BundleClaim, ChunkGroupProjection } from './bundle-claims-model';
 import type { DeclarationResolutionClaim } from './claims-model';
 import type { ResolvedDependencyCopy } from './copies-model';
 import { registryEvidenceId } from './ids';
 import type {
   CanonicalRegistryEvidence,
+  EffectiveConsumerResolution,
   ParticipantDeclaration,
   SharedExternalId,
   VersionRegistration,
 } from './model';
+import type { RemoteProjection } from './projection-model';
 import type {
+  BuildChunkFile,
   DeclarationVerdict,
   DeclarationVerdictRecord,
   PackageScopeVerdicts,
+  TornEntrypoint,
+  VersionBuild,
   VersionStatus,
   VersionVerdict,
 } from './verdict-model';
 
 const STRICT_SCOPE = 'strict';
 
+export interface PackageVerdictInputs {
+  /** Declaration claims with attached copy IDs. */
+  claims: readonly DeclarationResolutionClaim[];
+  copies: readonly ResolvedDependencyCopy[];
+  resolutions: readonly EffectiveConsumerResolution[];
+  bundleClaims: readonly BundleClaim[];
+  chunkGroups: readonly ChunkGroupProjection[];
+  remotes: readonly RemoteProjection[];
+}
+
 export function derivePackageVerdicts(
   evidence: CanonicalRegistryEvidence,
-  claims: readonly DeclarationResolutionClaim[],
-  copies: readonly ResolvedDependencyCopy[],
+  { claims, copies, resolutions, bundleClaims, chunkGroups, remotes }: PackageVerdictInputs,
 ): PackageScopeVerdicts[] {
   const registrationById = new Map(evidence.versionRegistrations.map((r) => [r.id, r]));
   const declarationById = new Map(evidence.participantDeclarations.map((d) => [d.id, d]));
   const copyById = new Map(copies.map((copy) => [copy.id, copy]));
+  const buildOf = buildFactory(resolutions, bundleClaims, chunkGroups, remotes);
 
   const copiesByExternal = new Map<SharedExternalId, ResolvedDependencyCopy[]>();
   for (const copy of copies) {
@@ -82,6 +98,11 @@ export function derivePackageVerdicts(
     const versions: VersionVerdict[] = tags.map((tag) => {
       const rows = registrations.filter((r) => r.tag === tag);
       const tagCopies = scopeCopies.filter((copy) => copy.resolvedTag === tag);
+      // The copy serving the package's own specifier leads; the rest keep copy order.
+      const builds = [
+        ...tagCopies.filter((copy) => external.packageName in copy.entrypoints),
+        ...tagCopies.filter((copy) => !(external.packageName in copy.entrypoints)),
+      ].map(buildOf);
       const status: VersionStatus = rows.some((r) => r.action === 'share')
         ? 'shared'
         : rows.some((r) => r.action === 'scope')
@@ -95,6 +116,8 @@ export function derivePackageVerdicts(
         registrationIds: rows.map((r) => r.id),
         declarationIds: rows.flatMap((r) => r.participantDeclarationIds),
         copyIds: tagCopies.map((copy) => copy.id),
+        builds,
+        merged: status === 'shared' && builds.length > 1,
       };
     });
 
@@ -111,6 +134,7 @@ export function derivePackageVerdicts(
       electedDeclarationId: elected?.participantDeclarationIds[0] ?? null,
       versions,
       declarations,
+      torn: tornOf(external.packageName, electedTag, scopeCopies, claims),
     };
   });
 }
@@ -139,4 +163,98 @@ function verdictOf(
     default:
       return 'unknown';
   }
+}
+
+function sourceRemoteOf(copy: ResolvedDependencyCopy): string | null {
+  switch (copy.source.kind) {
+    case 'shared-declaration':
+      return copy.source.participant;
+    case 'private-registration':
+      return copy.source.ownerRemote;
+    default:
+      return null;
+  }
+}
+
+function buildFactory(
+  resolutions: readonly EffectiveConsumerResolution[],
+  bundleClaims: readonly BundleClaim[],
+  chunkGroups: readonly ChunkGroupProjection[],
+  remotes: readonly RemoteProjection[],
+): (copy: ResolvedDependencyCopy) => VersionBuild {
+  const resolutionById = new Map(resolutions.map((r) => [r.id, r]));
+  const claimById = new Map(bundleClaims.map((claim) => [claim.id, claim]));
+  const groupById = new Map(chunkGroups.map((group) => [group.id, group]));
+  const scopeUrlByRemote = new Map(remotes.map((r) => [r.name, r.resolvedScopeUrl]));
+  // Chunk files are recorded relative to the emitter's scope, as the orchestrator resolves them.
+  const chunkUrl = (emitter: string, file: string): string | null => {
+    const scope = scopeUrlByRemote.get(emitter);
+    if (scope === undefined) return null;
+    try {
+      return new URL(file, scope).href;
+    } catch {
+      return null;
+    }
+  };
+  return (copy) => {
+    const integrityByTarget = new Map<string, boolean>();
+    for (const id of copy.effectiveResolutionIds) {
+      const resolution = resolutionById.get(id);
+      if (resolution?.status === 'mapped') {
+        integrityByTarget.set(resolution.targetUrl, resolution.hasIntegrity);
+      }
+    }
+    const chunkFiles: BuildChunkFile[] = [];
+    for (const claimId of copy.bundleClaimIds) {
+      const claim = claimById.get(claimId);
+      if (claim?.status !== 'mapped-source') continue;
+      for (const group of claim.chunkGroupIds.map((id) => groupById.get(id))) {
+        for (const file of group?.files ?? []) {
+          chunkFiles.push({ file, url: chunkUrl(group!.emitterRemote, file) });
+        }
+      }
+    }
+    return {
+      copyId: copy.id,
+      sourceRemote: sourceRemoteOf(copy),
+      specifiers: Object.keys(copy.entrypoints),
+      entryFiles: Object.entries(copy.entrypoints).map(([specifier, url]) => ({
+        specifier,
+        url,
+        hasIntegrity: integrityByTarget.get(url) ?? false,
+      })),
+      chunkFiles,
+    };
+  };
+}
+
+// A tear is a self-filled claim onto a copy of another tag; a same-tag fill is a merged build.
+function tornOf(
+  packageName: string,
+  electedTag: string | null,
+  scopeCopies: readonly ResolvedDependencyCopy[],
+  claims: readonly DeclarationResolutionClaim[],
+): TornEntrypoint[] {
+  if (electedTag === null) return [];
+  const copyById = new Map(scopeCopies.map((copy) => [copy.id, copy]));
+  const bySpecifier = new Map<string, TornEntrypoint>();
+  for (const claim of claims) {
+    if (claim.mappingState !== 'self-filled' || claim.copyId === null) continue;
+    if (claim.consumerRegistryPackage !== packageName) continue;
+    const copy = copyById.get(claim.copyId);
+    if (copy === undefined || copy.resolvedTag === null || copy.resolvedTag === electedTag)
+      continue;
+    const entry = bySpecifier.get(claim.specifier) ?? {
+      specifier: claim.specifier,
+      fillingTag: copy.resolvedTag,
+      fillingRemote: sourceRemoteOf(copy),
+      copyId: copy.id,
+      consumerRemotes: [],
+    };
+    if (!entry.consumerRemotes.includes(claim.consumerRemote)) {
+      entry.consumerRemotes = [...entry.consumerRemotes, claim.consumerRemote].sort();
+    }
+    bySpecifier.set(claim.specifier, entry);
+  }
+  return [...bySpecifier.values()].sort((a, b) => (a.specifier < b.specifier ? -1 : 1));
 }

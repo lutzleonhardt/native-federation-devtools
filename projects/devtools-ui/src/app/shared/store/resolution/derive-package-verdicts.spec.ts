@@ -146,3 +146,68 @@ describe('derivePackageVerdicts — version statuses', () => {
     ]);
   });
 });
+
+describe('derivePackageVerdicts — build surface', () => {
+  it('T3-AC-01 merged-entrypoints: two builds, each listing only its own specifiers', () => {
+    const [version] = entry('merged-entrypoints', '__GLOBAL__', KIT).versions;
+    expect(version.merged).toBe(true);
+    expect(version.builds.map((b) => [b.sourceRemote, [...b.specifiers].sort()])).toEqual([
+      [NF_HOST, [KIT]],
+      ['mfe1', [`${KIT}/dialog`, `${KIT}/table`]],
+    ]);
+  });
+
+  it('T3-AC-02 torn-many: every self-filled specifier once, with its filling version', () => {
+    const kit = entry('torn-many', '__GLOBAL__', KIT);
+    expect(
+      kit.torn.map(
+        (t) => `${t.specifier.slice(KIT.length + 1)}@${t.fillingTag}:${t.fillingRemote}`,
+      ),
+    ).toEqual([
+      'charts@1.3.0:mfe2',
+      'charts/legend@1.3.0:mfe2',
+      'date-picker@1.3.0:mfe2',
+      'dialog@1.2.0:mfe1',
+      'forms@1.2.0:mfe1',
+      'table@1.2.0:mfe1',
+      'table/paginator@1.2.0:mfe1',
+      'table/sort@1.2.0:mfe1',
+    ]);
+    // A tear is never a merge: each filling version is one build of its own tag.
+    expect(kit.versions.every((v) => !v.merged)).toBe(true);
+  });
+
+  it('T3-AC-03 self-fill: a flat secondary is its own registry key, so nothing is torn', () => {
+    // The V2 capture predates `entries` maps: `/extra` registers as its own package and
+    // resolves on its own, which is not a tear of `@nf-lab/conflict-lib`.
+    const all = verdictsOf(FIXTURES['self-fill']);
+    expect(all.map((v) => v.packageName).sort()).toEqual([
+      '@nf-lab/conflict-lib',
+      '@nf-lab/conflict-lib/extra',
+    ]);
+    expect(all.flatMap((v) => v.torn)).toEqual([]);
+  });
+
+  it('T3-AC-04 SRI per entry file follows the effective map', () => {
+    const projection = ingestSnapshot(FIXTURES['frankenstein-live']).resolutionProjection;
+    const files = projection.packageScopeVerdicts.flatMap((v) =>
+      v.versions.flatMap((version) => version.builds.flatMap((b) => b.entryFiles)),
+    );
+    expect(files.length).toBeGreaterThan(0);
+    const mapped = new Map<string, boolean>();
+    for (const copy of projection.copies) {
+      for (const url of Object.values(copy.entrypoints)) mapped.set(url, false);
+    }
+    for (const file of files) expect(mapped.has(file.url)).toBe(true);
+    expect(files.some((f) => f.hasIntegrity)).toBe(true);
+  });
+
+  it('dense-chunking-only: the bundle chunks ride with their build, resolved to URLs', () => {
+    const builds = verdictsOf(FIXTURES['dense-chunking-only']).flatMap((v) =>
+      v.versions.flatMap((version) => version.builds),
+    );
+    const chunks = builds.flatMap((b) => b.chunkFiles);
+    expect(chunks.length).toBeGreaterThan(0);
+    expect(chunks.every((c) => c.url?.startsWith('http://localhost:4300/'))).toBe(true);
+  });
+});

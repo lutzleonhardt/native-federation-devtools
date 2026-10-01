@@ -156,13 +156,16 @@ function project(snapshot: SnapshotV1): CanonicalResolutionProjection {
   const bundleClaims = deriveBundleClaims(evidence, claims, copies, chunkGroups);
   const attachedCopies = attachBundleClaimIds(copies, bundleClaims);
   const tagPools = deriveTagPools(evidence);
-  return buildCanonicalProjection({
-    remotes: Object.entries(snapshot.runtime?.remotes ?? {}).map(([name, remote]) => ({
+  const projectedRemotes = Object.entries(snapshot.runtime?.remotes ?? {}).map(
+    ([name, remote]) => ({
       name,
       isHost: name === NF_HOST,
       scopeUrl: remote.scopeUrl,
       resolvedScopeUrl: resolveUrl(remote.scopeUrl, pageUrl),
-    })),
+    }),
+  );
+  return buildCanonicalProjection({
+    remotes: projectedRemotes,
     resolutions,
     claims: { ...claims, declarationResolutionClaims },
     copies: attachedCopies,
@@ -181,11 +184,14 @@ function project(snapshot: SnapshotV1): CanonicalResolutionProjection {
       tagPools.tagPools,
     ),
     poolFamilies: derivePoolFamilies(evidence, tagPools.tagPools, NF_HOST),
-    packageScopeVerdicts: derivePackageVerdicts(
-      evidence,
-      declarationResolutionClaims,
-      attachedCopies,
-    ),
+    packageScopeVerdicts: derivePackageVerdicts(evidence, {
+      claims: declarationResolutionClaims,
+      copies: attachedCopies,
+      resolutions,
+      bundleClaims,
+      chunkGroups,
+      remotes: projectedRemotes,
+    }),
   });
 }
 
