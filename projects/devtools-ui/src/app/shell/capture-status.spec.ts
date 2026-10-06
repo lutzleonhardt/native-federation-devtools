@@ -1,4 +1,10 @@
-import { ChannelsV1, FIXTURES, FixtureId } from 'devtools-bridge';
+import {
+  ChannelsV1,
+  FIXTURES,
+  FixtureId,
+  RuntimeSourceV1,
+  SnapshotGenerationV1,
+} from 'devtools-bridge';
 
 import { deriveFederation } from '../shared/store/derivations';
 import { EffectiveMap, MapMode } from '../shared/store/federation-model';
@@ -31,9 +37,28 @@ const NON_EMPTY_MAP: EffectiveMap = {
 };
 const EMPTY_MAP: EffectiveMap = { imports: {}, scopes: {}, integrity: {} };
 
+const INFERRED_TOOLTIP =
+  'Orchestrator generation inferred from the registry format (snapshot provenance)';
+const REPORTED_TOOLTIP = 'Orchestrator version reported by the runtime (snapshot provenance)';
+const INFERRED_V45 = { label: 'v4.5', tooltip: INFERRED_TOOLTIP };
+
+const DESCRIPTOR_SOURCE: RuntimeSourceV1 = {
+  storage: 'globalThis',
+  namespace: '__NATIVE_FEDERATION__',
+  discovery: 'descriptor',
+  orchestratorVersion: '4.7.0',
+  otherNamespaces: [],
+};
+
 /** SEEDED captured source; overrides on top of a healthy shim-mode page. */
 function seeded(
-  overrides: Partial<{ channels: ChannelsV1; mapMode: MapMode; effectiveMap: EffectiveMap }>,
+  overrides: Partial<{
+    channels: ChannelsV1;
+    mapMode: MapMode;
+    effectiveMap: EffectiveMap;
+    generation: SnapshotGenerationV1;
+    runtimeSource: RuntimeSourceV1;
+  }>,
 ): CaptureStatusSource {
   return {
     status: 'captured',
@@ -50,12 +75,12 @@ describe('buildCaptureStatus', () => {
   // renders the Import Map channel quietly: no partial, no warning.
   it('keeps the whole strip quiet for the healthy native fixture', () => {
     const vm = buildCaptureStatus(capturedSource('dynamic-init-native'));
-    expect(vm).toEqual({ noFederation: null, entries: [], generation: 'v4.5', source: null });
+    expect(vm).toEqual({ noFederation: null, entries: [], generation: INFERRED_V45, source: null });
   });
 
   it('keeps the whole strip quiet for the healthy shim fixture', () => {
     const vm = buildCaptureStatus(capturedSource('dynamic-init-shim'));
-    expect(vm).toEqual({ noFederation: null, entries: [], generation: 'v4.5', source: null });
+    expect(vm).toEqual({ noFederation: null, entries: [], generation: INFERRED_V45, source: null });
   });
 
   // T8-AC-04 (SEEDED): shim tags present but the shim yielded nothing —
@@ -165,8 +190,7 @@ describe('buildCaptureStatus', () => {
     // joined verbatim in the tooltip).
     expect(emptyPage).toEqual({
       noFederation: {
-        tooltip:
-          'window.__NATIVE_FEDERATION__ is not defined; no import-map script tags observed',
+        tooltip: 'window.__NATIVE_FEDERATION__ is not defined; no import-map script tags observed',
       },
       entries: [],
       generation: null,
@@ -180,9 +204,36 @@ describe('buildCaptureStatus', () => {
   // T8-AC-08: the generation badge is provenance surfaced by the shell —
   // v4 live, v4.5 lab, and 'unknown' suppresses the badge.
   it('passes the generation badge through and suppresses unknown', () => {
-    expect(buildCaptureStatus(capturedSource('frankenstein-live'))?.generation).toBe('v4');
-    expect(buildCaptureStatus(capturedSource('clean-skip'))?.generation).toBe('v4.5');
+    expect(buildCaptureStatus(capturedSource('frankenstein-live'))?.generation).toEqual({
+      label: 'v4',
+      tooltip: INFERRED_TOOLTIP,
+    });
+    expect(buildCaptureStatus(capturedSource('clean-skip'))?.generation).toEqual(INFERRED_V45);
     expect(buildCaptureStatus(capturedSource('synthetic-empty-page'))?.generation).toBeNull();
+  });
+
+  // The registry-format generation is the pre-4.7 inference; a version the
+  // runtime reports in its storage descriptor replaces it on the badge.
+  it('prefers the reported orchestrator version over the inferred generation', () => {
+    expect(buildCaptureStatus(seeded({ runtimeSource: DESCRIPTOR_SOURCE }))?.generation).toEqual({
+      label: '4.7.0',
+      tooltip: REPORTED_TOOLTIP,
+    });
+    // Reported version without any participant: the badge no longer stays hidden.
+    expect(buildCaptureStatus(capturedSource('synthetic-local-storage'))?.generation).toEqual({
+      label: '4.7.0',
+      tooltip: REPORTED_TOOLTIP,
+    });
+  });
+
+  it('keeps a mixed registry format visible in the tooltip when the version wins', () => {
+    const vm = buildCaptureStatus(
+      seeded({ generation: 'mixed', runtimeSource: DESCRIPTOR_SOURCE }),
+    );
+    expect(vm?.generation).toEqual({
+      label: '4.7.0',
+      tooltip: `${REPORTED_TOOLTIP}; registry format is mixed across participants`,
+    });
   });
 
   // Storage discovery: the default global renders quietly; any other
@@ -191,7 +242,7 @@ describe('buildCaptureStatus', () => {
     expect(buildCaptureStatus(capturedSource('synthetic-local-storage'))?.source).toEqual({
       label: 'localStorage',
       tooltip:
-        'Runtime state read from localStorage (__NATIVE_FEDERATION__.*); orchestrator 4.7.0; ' +
+        'Runtime state read from localStorage (__NATIVE_FEDERATION__.*); ' +
         'other namespaces on this page, not captured: __ADMIN_NF__',
       stale: false,
     });
@@ -207,7 +258,7 @@ describe('buildCaptureStatus', () => {
   it('names a custom globalThis namespace', () => {
     expect(buildCaptureStatus(capturedSource('synthetic-custom-namespace'))?.source).toEqual({
       label: '__MY_NF__',
-      tooltip: 'Runtime state read from window.__MY_NF__; orchestrator 4.7.0',
+      tooltip: 'Runtime state read from window.__MY_NF__',
       stale: false,
     });
   });

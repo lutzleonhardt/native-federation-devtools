@@ -28,6 +28,12 @@ export interface RuntimeSourceBadge {
   stale: boolean;
 }
 
+export interface GenerationBadgeVm {
+  /** Exact version (`4.7.0`) or registry-format generation (`v4.5`). */
+  label: string;
+  tooltip: string;
+}
+
 export interface CaptureStatusVm {
   /**
    * Single summary replacing all per-tab entries when no channel carries
@@ -37,8 +43,8 @@ export interface CaptureStatusVm {
   noFederation: { tooltip: string } | null;
   /** Non-quiet indicators in nav order; empty when every channel is healthy. */
   entries: StripEntry[];
-  /** Generation label from snapshot provenance; null suppresses the badge. */
-  generation: SnapshotGenerationV1 | null;
+  /** Orchestrator badge from snapshot provenance; null suppresses it. */
+  generation: GenerationBadgeVm | null;
   /**
    * Where the runtime state was read from; null for the default
    * `window.__NATIVE_FEDERATION__`, which renders quietly.
@@ -81,7 +87,7 @@ export function buildCaptureStatus(source: CaptureStatusSource): CaptureStatusVm
   const runtimeSource = source.runtimeSource ?? null;
   const globals = globalsIndicator(source.channels.nativeFederationGlobals, runtimeSource);
   const importMap = importMapIndicator(source.channels, source.mapMode, source.effectiveMap);
-  const generation = source.generation === 'unknown' ? null : source.generation;
+  const generation = generationBadge(source.generation, runtimeSource);
   const sourceBadge = runtimeSourceBadge(runtimeSource);
 
   if (globals?.kind === 'off' && importMap?.kind === 'off') {
@@ -126,6 +132,33 @@ function globalsIndicator(
   }
 }
 
+/**
+ * One badge, one evidence: the registry-format generation is the pre-4.7
+ * inference; from orchestrator 4.7 on, the version the runtime reports in
+ * its storage descriptor (`runtimeSource.orchestratorVersion`) is preferred.
+ */
+function generationBadge(
+  generation: SnapshotGenerationV1,
+  runtimeSource: RuntimeSourceV1 | null,
+): GenerationBadgeVm | null {
+  const version = runtimeSource?.orchestratorVersion ?? null;
+  if (version !== null) {
+    return {
+      label: version,
+      tooltip:
+        'Orchestrator version reported by the runtime (snapshot provenance)' +
+        (generation === 'mixed' ? '; registry format is mixed across participants' : ''),
+    };
+  }
+  if (generation === 'unknown') {
+    return null;
+  }
+  return {
+    label: generation,
+    tooltip: 'Orchestrator generation inferred from the registry format (snapshot provenance)',
+  };
+}
+
 const DEFAULT_NAMESPACE = '__NATIVE_FEDERATION__';
 
 function runtimeSourceBadge(source: RuntimeSourceV1 | null): RuntimeSourceBadge | null {
@@ -143,7 +176,6 @@ function runtimeSourceBadge(source: RuntimeSourceV1 | null): RuntimeSourceBadge 
       : `${source.storage} (${source.namespace}.*)`;
   const parts = [
     `Runtime state read from ${where}`,
-    source.orchestratorVersion === null ? null : `orchestrator ${source.orchestratorVersion}`,
     stale
       ? 'found without an orchestrator storage descriptor — may be left over from an earlier visit'
       : null,

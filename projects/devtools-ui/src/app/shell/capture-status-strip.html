@@ -29,8 +29,8 @@
       href="https://native-federation.com/"
       target="_blank"
       rel="noopener noreferrer"
-      title="Orchestrator generation (snapshot provenance) — opens the Native Federation site"
-      >{{ generation }}</a
+      [title]="generation.tooltip + ' — opens the Native Federation site'"
+      >{{ generation.label }}</a
     >
   }
 }
