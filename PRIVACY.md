@@ -1,6 +1,6 @@
 # Privacy Policy — Native Federation DevTools
 
-_Last updated: 2026-09-29_
+_Last updated: 2026-10-06_
 
 **Short version: the extension collects nothing. No data ever leaves your
 machine.**
@@ -25,18 +25,22 @@ Native Federation panel, the extension reads:
   `<namespace>.remotes`, `<namespace>.shared-externals`,
   `<namespace>.scoped-externals` and `<namespace>.shared-chunks`, nothing else
 - the import maps present in the page's DOM
-- whether an `importShim` global is present
+- whether an `importShim` global is present and, if so, the effective import
+  map it reports
 
-That is the complete list. The read is performed by one fixed expression that
-ships inside the extension bundle
-([`passive-probe.ts`](projects/collector/src/lib/passive-probe.ts)); the
-inspected page never contributes executable text to it, and the probe performs
-descriptor-level reads only — it never calls page functions and never writes
-page state. The four web-storage entries are read by a separate fixed
-expression ([`storage-probe.ts`](projects/collector/src/lib/storage-probe.ts))
-that runs only when the registry lives in web storage. It reads those entries
-by name, never lists or modifies storage, and never calls `getItem` or any
-other storage method.
+That is the complete list. The reads are performed by three fixed expressions
+that ship inside the extension bundle; the inspected page never contributes
+executable text to any of them, and none of them writes page state:
+
+- [`passive-probe.ts`](projects/collector/src/lib/passive-probe.ts) performs
+  descriptor-level reads only — it never calls page functions.
+- [`shim-map-probe.ts`](projects/collector/src/lib/shim-map-probe.ts) makes
+  the one sanctioned page call, `importShim.getImportMap()`, and only when
+  an `importShim` global is present.
+- [`storage-probe.ts`](projects/collector/src/lib/storage-probe.ts) runs only
+  when the registry lives in web storage. It reads the four entries above by
+  name, never lists or modifies storage, and never calls `getItem` or any
+  other storage method.
 
 ## What the extension does not do
 

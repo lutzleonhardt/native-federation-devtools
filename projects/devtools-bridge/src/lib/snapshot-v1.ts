@@ -2,11 +2,11 @@
  * SnapshotV1 — versioned, JSON-serializable projection of the passive
  * federation evidence a page exposes.
  *
- * Layering rule: `runtime` (resolver outcome from the page global
- * `__NATIVE_FEDERATION__`) and `importMaps` (import-map resolution) are
- * separate evidence layers and must never be merged into one interpreted
- * structure. Missing evidence is an explicit channel state with a reason —
- * never an invented default.
+ * Layering rule: `runtime` (resolver outcome from the orchestrator's
+ * runtime storage, see `runtimeSource`) and `importMaps` (import-map
+ * resolution) are separate evidence layers and must never be merged into
+ * one interpreted structure. Missing evidence is an explicit channel state
+ * with a reason — never an invented default.
  *
  * Field names inside the runtime projection follow the page repositories
  * verbatim (as projected by the collector) to keep the Task-7 collector
@@ -29,7 +29,10 @@ export interface CaptureMetaV1 {
 }
 
 export interface ChannelsV1 {
-  /** The page global `__NATIVE_FEDERATION__` (feeds `runtime`). */
+  /**
+   * The orchestrator's runtime storage — a page global or web storage, see
+   * `runtimeSource` (feeds `runtime`). Key kept for export compatibility.
+   */
   nativeFederationGlobals: ChannelStateV1;
   /** Import-map script tags in the document (feeds `importMaps.documentMaps`). */
   domImportMaps: ChannelStateV1;
@@ -147,7 +150,8 @@ export type ScopedExternalsV1 = Record<string, Record<string, ScopedPackageV1>>;
 export const NF_HOST = '__NF-HOST__';
 
 /**
- * Projection of the four repositories on `__NATIVE_FEDERATION__`.
+ * Projection of the four repositories of the runtime storage (default
+ * `__NATIVE_FEDERATION__`, see `runtimeSource`).
  * Non-null only when the channel is available: at least one repository key
  * was present and every present one was readable (otherwise the channel is
  * 'not-recognized'). The runtime's storage creates ALL repository keys

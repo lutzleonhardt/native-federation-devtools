@@ -41,9 +41,11 @@ flowchart LR
   projection --> views["Views and any future graph"]
 ```
 
-1. **Observe** — the collector probe reads the Native Federation globals and
-   document import maps and stores them as a `SnapshotV1`: sanitized, but
-   never interpreted. What was absent stays absent.
+1. **Observe** — the collector probes read the Native Federation registry
+   from wherever the orchestrator keeps it (a page global or web storage,
+   recorded as `runtimeSource`) plus the document import maps and store them
+   as a `SnapshotV1`: sanitized, but never interpreted. What was absent
+   stays absent.
 2. **Order** — ingest normalizes the raw repositories into
    `CanonicalRegistryEvidence`: every raw row gets a deterministic ID and
    provenance. Nothing is merged, de-duplicated, or decided here.

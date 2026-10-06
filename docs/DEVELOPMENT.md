@@ -38,8 +38,11 @@ layer behind them is in place — the views are not.
 ## Design constraints
 
 **Read-only by construction.** The extension inspects without invoking getters
-or triggering side effects — it never mutates the application it is pointed
-at. This is enforced by tests in `guards/`, not by convention.
+or triggering side effects, apart from two sanctioned, isolated exceptions
+(the shim's `getImportMap()` call and the native web-storage getter, see
+[Probes](#probes)) — it never mutates the application it is pointed at. This
+is enforced by tests in `guards/` and the collector's probe-source specs, not
+by convention.
 
 **Explicit about what it cannot know.** Where the runtime data proves
 resolution but not intent, the UI says so instead of inferring. Derived values
@@ -82,8 +85,9 @@ npm test         # UI, bridge, collector, and guard suites
 
 The dev panel can replay captured scenarios without a running application via
 `?fixture=<id>` — strict share scopes, split versions across remotes, scope
-isolation, dynamic initialization, and a live capture of a deployed
-Angular/React host.
+isolation, dynamic initialization, a live capture of a deployed Angular/React
+host, and synthetic storage-discovery states (web storage, custom namespace,
+custom adapter).
 
 ## Probes
 

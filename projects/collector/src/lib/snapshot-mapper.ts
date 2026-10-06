@@ -1,14 +1,14 @@
 /**
  * Maps raw probe results to `SnapshotV1`.
  *
- * Both inputs are untrusted: they crossed the eval boundary out of the
- * inspected page, so on a hostile page they are attacker-shaped
- * regardless of what the probes intended to return. Everything is read
- * defensively, re-projected through the schema allowlist (which sanitizes
- * every URL), and reduced to the DTO shape — document import-map tags are
- * parsed here and their content rides the same allowlist projection as the
- * shim map; the raw tag text itself never reaches the snapshot. Channel
- * states follow the honest-state rules of the DTO:
+ * Every input is untrusted: it crossed the eval boundary out of the
+ * inspected page, so on a hostile page it is attacker-shaped regardless
+ * of what the probes intended to return. Everything is read defensively,
+ * re-projected through the schema allowlist (which sanitizes every URL),
+ * and reduced to the DTO shape — document import-map tags and web-storage
+ * items are parsed here and their content rides the same allowlist
+ * projection as the shim map; the raw text itself never reaches the
+ * snapshot. Channel states follow the honest-state rules of the DTO:
  * missing evidence is an explicit state with a reason, never an invented
  * default, and an unrecognized shape yields `not-recognized` with no raw
  * data copied.
