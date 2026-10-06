@@ -145,7 +145,7 @@ describe('orchestratorGlobal channel', () => {
 
   it('derives the exposed orchestrator version into the snapshot', () => {
     const snapshot = deriveCaptureSnapshot(withOrchestratorGlobal());
-    expect(snapshot.runtime!.orchestratorVersion).toBe('4.7.0');
+    expect(snapshot.runtimeSource!.orchestratorVersion).toBe('4.7.0');
     expect(snapshot.errors).toEqual([]);
   });
 

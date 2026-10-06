@@ -13,7 +13,7 @@ export const mergedEntrypointsFixture: SnapshotV1 = {
     "pageUrl": "http://localhost:4300/",
     "capturedAt": "2026-10-01T16:45:32.807Z",
     "mode": "passive",
-    "collectorVersion": "nf-devtools-collector/3"
+    "collectorVersion": "nf-devtools-collector/4"
   },
   "channels": {
     "nativeFederationGlobals": {
@@ -25,6 +25,13 @@ export const mergedEntrypointsFixture: SnapshotV1 = {
     "importShim": {
       "state": "available"
     }
+  },
+  "runtimeSource": {
+    "storage": "globalThis",
+    "namespace": "__NATIVE_FEDERATION__",
+    "discovery": "descriptor",
+    "orchestratorVersion": "4.7.0",
+    "otherNamespaces": []
   },
   "runtime": {
     "remotes": {
@@ -108,8 +115,7 @@ export const mergedEntrypointsFixture: SnapshotV1 = {
       }
     },
     "sharedChunks": {},
-    "generation": "v4.5",
-    "orchestratorVersion": "4.7.0"
+    "generation": "v4.5"
   },
   "importMaps": {
     "documentMaps": [

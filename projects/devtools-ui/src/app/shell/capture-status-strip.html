@@ -18,14 +18,19 @@
       }
     </span>
   }
+  @if (vm.source; as source) {
+    <span class="strip-source" [class.strip-source-stale]="source.stale" [title]="source.tooltip">{{
+      source.label
+    }}</span>
+  }
   @if (vm.generation; as generation) {
     <a
       class="strip-generation"
       href="https://native-federation.com/"
       target="_blank"
       rel="noopener noreferrer"
-      title="Orchestrator generation (snapshot provenance) — opens the Native Federation site"
-      >{{ generation }}</a
+      [title]="generation.tooltip + ' — opens the Native Federation site'"
+      >{{ generation.label }}</a
     >
   }
 }

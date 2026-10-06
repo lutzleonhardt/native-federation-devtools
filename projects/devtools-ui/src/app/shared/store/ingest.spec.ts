@@ -764,18 +764,17 @@ describe('ingestSnapshot — provenance carry', () => {
       schemaVersion: 1,
       pageUrl: 'https://lutzleonhardt.de/frankenstein-meeting-room/',
       capturedAt: '2026-08-11T11:56:25.504Z',
-      collectorVersion: 'nf-devtools-collector/3',
+      collectorVersion: 'nf-devtools-collector/4',
       generation: 'v4',
-      // Captured before orchestrator v4.7 published __NF_ORCHESTRATOR__.
-      orchestratorVersion: null,
+      runtimeSource: {
+        storage: 'globalThis',
+        namespace: '__NATIVE_FEDERATION__',
+        discovery: 'default',
+        orchestratorVersion: null,
+        otherNamespaces: [],
+      },
     });
     expect(model.channels).toEqual(FIXTURES['frankenstein-live'].channels);
-  });
-
-  it('carries the orchestrator version the runtime published', () => {
-    const snapshot = structuredClone(FIXTURES['frankenstein-live']);
-    snapshot.runtime!.orchestratorVersion = '4.7.0';
-    expect(ingestSnapshot(snapshot).provenance.orchestratorVersion).toBe('4.7.0');
   });
 });
 

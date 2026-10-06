@@ -41,8 +41,11 @@ layer behind them is in place — the views are not.
 ## Design constraints
 
 **Read-only by construction.** The extension inspects without invoking getters
-or triggering side effects — it never mutates the application it is pointed
-at. This is enforced by tests in `guards/`, not by convention.
+or triggering side effects, apart from two sanctioned, isolated exceptions
+(the shim's `getImportMap()` call and the native web-storage getter, see
+[Probes](#probes)) — it never mutates the application it is pointed at. This
+is enforced by tests in `guards/` and the collector's probe-source specs, not
+by convention.
 
 **Explicit about what it cannot know.** Where the runtime data proves
 resolution but not intent, the UI says so instead of inferring. Derived values
@@ -85,8 +88,25 @@ npm test         # UI, bridge, collector, and guard suites
 
 The dev panel can replay captured scenarios without a running application via
 `?fixture=<id>` — strict share scopes, split versions across remotes, scope
-isolation, dynamic initialization, and a live capture of a deployed
-Angular/React host.
+isolation, dynamic initialization, a live capture of a deployed Angular/React
+host, and synthetic storage-discovery states (web storage, custom namespace,
+custom adapter).
+
+## Probes
+
+The collector evaluates up to three fixed expressions in the inspected page,
+each one a single template literal with no page-derived text:
+
+| Source | Runs | Reads |
+| --- | --- | --- |
+| `passive-probe.ts` | always | page metadata, the orchestrator storage descriptor (`__NF_ORCHESTRATOR__`), the globalThis registry it points at, DOM import maps; descriptor-level reads only |
+| `shim-map-probe.ts` | `importShim` is a data property | `importShim.getImportMap()`, the one sanctioned page-function call |
+| `storage-probe.ts` | the descriptor names web storage, or a descriptor-less page has no default global | the four `<namespace>.<key>` items from `localStorage` / `sessionStorage`, as named own properties (never `getItem`) |
+
+The gate for the storage probe (`storageProbeIndicated`) is shared by the
+bridge and the fixture pipeline. Custom storage adapters are reported as
+unsupported; the descriptor's `get` is never called. Background and design:
+[`work/storage-discovery/plan.md`](work/storage-discovery/plan.md).
 
 ## Repository layout
 

@@ -43,6 +43,9 @@ export class PoolsView {
     const model = this.store.model();
     return model === null
       ? null
-      : buildPoolsVm(model.resolutionProjection, model.provenance.orchestratorVersion);
+      : buildPoolsVm(
+          model.resolutionProjection,
+          model.provenance.runtimeSource?.orchestratorVersion ?? null,
+        );
   });
 }

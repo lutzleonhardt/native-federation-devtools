@@ -126,6 +126,18 @@ Regeneration, from the playground `lab/`:
 3. `node scripts/validate-lab-corpus.mjs`,
 4. `node scripts/derive-fixtures.mjs`.
 
+Coverage note (storage discovery): every scenario in every corpus keeps its
+registry on the default `globalThis.__NATIVE_FEDERATION__`. The current lab probe
+records the orchestrator storage descriptor (`__NF_ORCHESTRATOR__`,
+orchestrator >= 4.7) as the `orchestratorGlobal` channel; the web-storage
+variants (`localStorageEntry` / `sessionStorageEntry`, custom namespaces,
+custom adapters) are witnessed only by hand-written `synthetic-*` fixtures.
+`scripts/lab-capture-dump.js` does not capture the four `<namespace>.<key>`
+storage items yet; extending the dump, teaching `buildCapturePage` to rebuild
+storage, and capturing one real `localStorageEntry` scenario is the open
+follow-up recorded in
+`docs/work/storage-discovery/task-log/task-4-fixtures-panel-docs.md`.
+
 ## Frankenstein-live captures (V2, rows 12–16)
 
 `frankenstein-live/<runstamp>-<phase>.json` — lossless phase captures
@@ -171,9 +183,10 @@ bump it:
 | `lab-capture-dump/1` | producer version | `collector.probe` in capture envelopes: which lab probe produced the file | the probe's observable output changes (also re-pins `source.probe.sha256` in the manifest via the builder) |
 | `lab-lossless-capture/1` | envelope id (wire contract) | structure of a capture file under `captures/` (lab and live) | the envelope structure changes — the validator and `scripts/derive-fixtures.mjs` gate on it |
 | `lab-lossless-corpus/1` | envelope id (wire contract) | structure of `captures/manifest.json` | the manifest structure changes |
-| `passive-probe/3` | probe↔mapper contract | result schema of the product's passive probe; the mapper rejects other stamps | the probe/mapper schemas change — probe string and `runtime-schema.ts` are hand-synced and ship in lockstep |
+| `passive-probe/4` | probe↔mapper contract | result schema of the product's passive probe (since `/4`: orchestrator storage descriptor and the chosen runtime source); the mapper rejects other stamps | the probe/mapper schemas change — probe string and `runtime-schema.ts` are hand-synced and ship in lockstep |
 | `shim-map-probe/1` | probe↔mapper contract | result schema of the shim map probe | its result schema changes |
-| `nf-devtools-collector/3` | producer version | `COLLECTOR_VERSION`, recorded as `SnapshotV1.capture.collectorVersion` | projection semantics change (bumped with `passive-probe/*`) |
+| `storage-probe/1` | probe↔mapper contract | result schema of the storage probe (the four web-storage items, read by name); the mapper rejects other stamps and consumes it only when `storageProbeIndicated` holds | its result schema changes |
+| `nf-devtools-collector/4` | producer version | `COLLECTOR_VERSION`, recorded as `SnapshotV1.capture.collectorVersion` | projection semantics change (bumped with `passive-probe/*`) |
 | `SnapshotV1.schemaVersion: 1` | DTO wire contract | snapshot shape consumed by UI, export, and fixtures | only on a breaking DTO change — V2 grew it additively and kept `1` |
 | v4.5 / v4 | observed registry-format generations | registry-format generations in the corpus, named by the release that introduced the format: v4.5 (`entries` map since v4.5.0, commit `a424249`; the lab scenarios run the released v4.6.0, commit `8e5e0b3`) vs. v4 (`file` string; frankenstein-live) | never bumped by us — a newly observed generation means new captures plus shape re-validation |
 
@@ -196,8 +209,8 @@ nf/playground (branch lab/v2-scenarios)          lutzleonhardt.de/frankenstein-m
                      │                     losslessness + live-evidence predicates)
                      ▼
         scripts/derive-fixtures.mjs      → reads manifest + capture envelopes, runs the REAL
-                     │                     collector pipeline (passive-probe/3, shim-map-probe/1,
-                     │                     mapper → nf-devtools-collector/3)
+                     │                     collector pipeline (passive-probe/4, shim-map-probe/1,
+                     │                     storage-probe/1 when indicated, mapper → nf-devtools-collector/4)
                      ▼
         projects/devtools-bridge/src/lib/fixtures/<id>.fixture.ts   (SnapshotV1, schemaVersion 1)
                      │
