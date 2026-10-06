@@ -1,6 +1,6 @@
 # Privacy Policy — Native Federation DevTools
 
-_Last updated: 2026-08-31_
+_Last updated: 2026-10-06_
 
 **Short version: the extension collects nothing. No data ever leaves your
 machine.**
@@ -17,17 +17,30 @@ Native Federation panel, the extension reads:
 
 - `location.origin`, `location.pathname`, and `document.readyState` of the
   inspected page
-- the Native Federation registry the runtime keeps in the page
-  (`window.__NATIVE_FEDERATION__`)
+- the Native Federation registry the runtime keeps in the page: by default
+  `window.__NATIVE_FEDERATION__`, or wherever the orchestrator's storage
+  descriptor (`window.__NF_ORCHESTRATOR__`) says it lives
+- when the application stores that registry in `localStorage` or
+  `sessionStorage`: exactly the four orchestrator entries
+  `<namespace>.remotes`, `<namespace>.shared-externals`,
+  `<namespace>.scoped-externals` and `<namespace>.shared-chunks`, nothing else
 - the import maps present in the page's DOM
-- whether an `importShim` global is present
+- whether an `importShim` global is present and, if so, the effective import
+  map it reports
 
-That is the complete list. The read is performed by one fixed expression that
-ships inside the extension bundle
-([`passive-probe.ts`](projects/collector/src/lib/passive-probe.ts)); the
-inspected page never contributes executable text to it, and the probe performs
-descriptor-level reads only — it never calls page functions and never writes
-page state.
+That is the complete list. The reads are performed by three fixed expressions
+that ship inside the extension bundle; the inspected page never contributes
+executable text to any of them, and none of them writes page state:
+
+- [`passive-probe.ts`](projects/collector/src/lib/passive-probe.ts) performs
+  descriptor-level reads only — it never calls page functions.
+- [`shim-map-probe.ts`](projects/collector/src/lib/shim-map-probe.ts) makes
+  the one sanctioned page call, `importShim.getImportMap()`, and only when
+  an `importShim` global is present.
+- [`storage-probe.ts`](projects/collector/src/lib/storage-probe.ts) runs only
+  when the registry lives in web storage. It reads the four entries above by
+  name, never lists or modifies storage, and never calls `getItem` or any
+  other storage method.
 
 ## What the extension does not do
 
@@ -37,8 +50,10 @@ page state.
   crash or error reporting, no update pings.
 - It loads and executes **no remote code**. Everything it runs is in the
   package you installed.
-- It does not read cookies, browser storage, form input, credentials, browsing
-  history, or page content beyond the fields listed above.
+- It does not read cookies, form input, credentials, browsing history, other
+  browser-storage entries, or page content beyond the fields listed above.
+- It does not read custom storage adapters: when the orchestrator reports one,
+  the panel says it is not supported.
 - It never modifies the inspected page.
 
 ## Where the data goes

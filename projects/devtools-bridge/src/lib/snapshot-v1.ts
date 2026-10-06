@@ -2,11 +2,11 @@
  * SnapshotV1 — versioned, JSON-serializable projection of the passive
  * federation evidence a page exposes.
  *
- * Layering rule: `runtime` (resolver outcome from the page global
- * `__NATIVE_FEDERATION__`) and `importMaps` (import-map resolution) are
- * separate evidence layers and must never be merged into one interpreted
- * structure. Missing evidence is an explicit channel state with a reason —
- * never an invented default.
+ * Layering rule: `runtime` (resolver outcome from the orchestrator's
+ * runtime storage, see `runtimeSource`) and `importMaps` (import-map
+ * resolution) are separate evidence layers and must never be merged into
+ * one interpreted structure. Missing evidence is an explicit channel state
+ * with a reason — never an invented default.
  *
  * Field names inside the runtime projection follow the page repositories
  * verbatim (as projected by the collector) to keep the Task-7 collector
@@ -29,7 +29,10 @@ export interface CaptureMetaV1 {
 }
 
 export interface ChannelsV1 {
-  /** The page global `__NATIVE_FEDERATION__` (feeds `runtime`). */
+  /**
+   * The orchestrator's runtime storage — a page global or web storage, see
+   * `runtimeSource` (feeds `runtime`). Key kept for export compatibility.
+   */
   nativeFederationGlobals: ChannelStateV1;
   /** Import-map script tags in the document (feeds `importMaps.documentMaps`). */
   domImportMaps: ChannelStateV1;
@@ -147,7 +150,8 @@ export type ScopedExternalsV1 = Record<string, Record<string, ScopedPackageV1>>;
 export const NF_HOST = '__NF-HOST__';
 
 /**
- * Projection of the four repositories on `__NATIVE_FEDERATION__`.
+ * Projection of the four repositories of the runtime storage (default
+ * `__NATIVE_FEDERATION__`, see `runtimeSource`).
  * Non-null only when the channel is available: at least one repository key
  * was present and every present one was readable (otherwise the channel is
  * 'not-recognized'). The runtime's storage creates ALL repository keys
@@ -224,10 +228,35 @@ export interface CollectionErrorV1 {
   detail?: CollectionErrorDetailV1;
 }
 
+/** Storage type as the orchestrator names it (`StorageType`, orchestrator >= 4.7). */
+export type RuntimeStorageV1 = 'globalThis' | 'localStorage' | 'sessionStorage' | 'custom';
+
+/**
+ * Where the runtime repositories were read from. `descriptor` means the
+ * orchestrator published `globalThis.__NF_ORCHESTRATOR__` (>= 4.7);
+ * `default` means it did not and the collector found the state under the
+ * default namespace, so web-storage state may be left over from an
+ * earlier visit.
+ */
+export interface RuntimeSourceV1 {
+  storage: RuntimeStorageV1;
+  namespace: string;
+  discovery: 'descriptor' | 'default';
+  /** Version the descriptor entry reports; null without a descriptor. */
+  orchestratorVersion: string | null;
+  /** Further descriptor namespaces on the page, not captured. */
+  otherNamespaces: string[];
+}
+
 export interface SnapshotV1 {
   schemaVersion: 1;
   capture: CaptureMetaV1;
   channels: ChannelsV1;
+  /**
+   * Absent in snapshots from older collectors, and when neither a
+   * descriptor nor state under the default namespace was found.
+   */
+  runtimeSource?: RuntimeSourceV1;
   /** Runtime resolver outcome; null when nativeFederationGlobals is not available. */
   runtime: RuntimeRepositoriesV1 | null;
   /** Import-map evidence; null when neither import-map channel yielded data. */
