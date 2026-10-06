@@ -38,10 +38,15 @@ guesses.
 - 🛰️ **Remotes** — each participant from its own point of view: what it
   exposes, what it declares, and where every single dependency really
   resolves.
-- 🕸️ **Graph** — remotes, dependency copies, and chunks as one traceable
-  picture. Hover to trace, click to filter.
+- 🕸️ **Graph** — remotes, dependency copies, and build files as one
+  traceable picture. Hover to trace, tick remotes to include or exclude
+  them, group the dependency column by provider, share scope, pool, or build.
 - 🗺️ **Import Map** — the effective map, row by row, each entry attributed
   to its package, its provider, and the chunk bundle that serves it.
+- 🧩 **Pools** — one matrix per explicit pool tag: which build each remote
+  loads the family from, which copies pooling redirected or isolated, and
+  the reason the orchestrator stored. Appears only when the capture carries
+  pool tags.
 - 📤 **Export JSON** — freeze the entire snapshot to a file. Doubles as a
   reproducible bug report.
 - 🔒 **Read-only, zero permissions** — no host permissions, no content

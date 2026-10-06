@@ -5,8 +5,8 @@ detail, the design constraints the code enforces, and how to build, run, and
 test the extension.
 
 **Status:** pre-release, under active development. The Packages, Remotes,
-Import Map, and Graph tabs are implemented; the Diagnostics tab is hidden
-until its view lands.
+Import Map, Graph, and Pools tabs are implemented; the Diagnostics tab is
+hidden until its view lands.
 
 ## What it shows
 
@@ -24,13 +24,24 @@ with their mapped targets, the remote's own dependency declarations and where
 each one resolves, capability evidence (SRI, dense chunking), chunk
 attribution, and scoped externals.
 
-**Graph** — remotes, dependencies, and chunks as one traceable picture:
-click remotes to filter, hover to trace a resolution path, dashed nodes mark
-isolated copies, dotted edges mark borrowed dependencies.
+**Graph** — remotes, dependencies, and build files as one traceable picture:
+tick remotes to include or exclude their consumers, hover to trace a
+resolution path, expand a dependency for its secondary entrypoints or a build
+for its files. The dependency column groups by provider (default), share
+scope, pool, or build; dashed nodes mark isolated copies, dotted edges mark
+borrowed dependencies.
 
 **Import Map** — the raw evidence view: sectioned tables in map order with
 owner-consensus headers, each row attributed to its package, provider, and
 chunk bundle — with honest outcomes where attribution cannot be proven.
+
+**Pools** — one card per explicit pool tag (`pool` on a shared external): a
+matrix of every remote's copy of every member, grouped by the build it loads,
+and one verdict per pool (one build, redirected, isolated, torn). Membership
+is rebuilt from the stored tags exactly as the orchestrator forms it; the
+outcomes are read off the rows pooling wrote back (`servedBy`, `scope`) and
+the stored `poolCause` (orchestrator 4.7+). The tab appears only when the
+capture carries a pool tag.
 
 Any snapshot can be exported as JSON, which doubles as a reproducible bug
 report.
@@ -88,9 +99,11 @@ npm test         # UI, bridge, collector, and guard suites
 
 The dev panel can replay captured scenarios without a running application via
 `?fixture=<id>` — strict share scopes, split versions across remotes, scope
-isolation, dynamic initialization, a live capture of a deployed Angular/React
-host, and synthetic storage-discovery states (web storage, custom namespace,
-custom adapter).
+isolation, dynamic initialization, explicit pool tags (coherent, islanded,
+anchored, orphan, a four-pool showcase, a twelve-remote portfolio), the dense
+remoteEntry formats, a live capture of a deployed Angular/React host, and
+synthetic storage-discovery states (web storage, custom namespace, custom
+adapter).
 
 ## Probes
 
@@ -114,7 +127,7 @@ unsupported; the descriptor's `get` is never called. Background and design:
 | --- | --- |
 | `extension/` | MV3 manifest and DevTools page |
 | `projects/` | collector, bridge, and UI libraries |
-| `captures/` | raw runtime captures and the corpus manifest |
+| `captures/` | raw runtime captures and the corpus manifests (one per lab corpus) |
 | `guards/` | invariant tests, including the privacy scan |
 | `docs/` | specs and validation reports |
 | `scripts/` | capture, fixture derivation, and build tooling |
