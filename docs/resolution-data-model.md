@@ -31,6 +31,7 @@ flowchart LR
     copies["ResolvedDependencyCopy<br/>how many material copies exist?"]
     bundles["Bundle and chunk claims<br/>which chunks belong to them?"]
     pools["Tag pools and pool families<br/>which packages travel together, and what did pooling do?"]
+    verdicts["Package scope verdicts<br/>what did the resolver decide per version and declaration?"]
   end
   subgraph publish ["4 · Publish"]
     projection["CanonicalResolutionProjection<br/>one raw-free read surface"]
@@ -38,7 +39,7 @@ flowchart LR
 
   page["Page runtime +<br/>import maps"] --> snapshot
   snapshot --> evidence
-  evidence --> resolutions --> claims --> copies --> bundles --> pools --> projection
+  evidence --> resolutions --> claims --> copies --> bundles --> pools --> verdicts --> projection
   projection --> views["Views and any future graph"]
 ```
 
@@ -50,15 +51,18 @@ flowchart LR
 2. **Order** — ingest normalizes the raw repositories into
    `CanonicalRegistryEvidence`: every raw row gets a deterministic ID and
    provenance. Nothing is merged, de-duplicated, or decided here.
-3. **Derive** — a chain of pure functions computes the answer in five
+3. **Derive** — a chain of pure functions computes the answer in six
    sub-questions: the import-map outcome per consumer and specifier (the
    atomic truth, with honest `mapped | unmapped | blocked | unknown`
    states), the claim explanations of every registry row against that
    outcome, the materially resolved dependency copies, the bundle/chunk
-   attribution, and the explicit-tag pools — membership rebuilt from the
+   attribution, the explicit-tag pools — membership rebuilt from the
    stored `pool` tags as the orchestrator forms it, and per pool what
-   pooling did to each remote's copy, read off the rows it wrote back.
-   Nothing at this stage guesses: ambiguity stays visible as data.
+   pooling did to each remote's copy, read off the rows it wrote back —
+   and the resolver's verdicts per registry key: the elected version, the
+   status of every registered version, and what each declaration got
+   (provides, reuses the shared copy, own copy, out of range). Nothing at
+   this stage guesses: ambiguity stays visible as data.
 4. **Publish** — one raw-free `CanonicalResolutionProjection` on the store
    model is the single surface views (and any future graph) read. No view
    re-derives winners, copy counts, or chunk ownership.
@@ -120,6 +124,7 @@ fourth, and the published canonical projection fifth.
 | Tag pools              | Registry evidence: `pool` tags and stored `poolName`    | `TagPool[]`, `OrphanPoolTag[]`  |
 | Grouping facets        | Copies, bundle claims, registry evidence, tag pools     | `CopyGroupingFacets[]`          |
 | Pool families          | Registry rows written back by pooling, tag pools        | `PoolFamily[]`                  |
+| Package verdicts       | Registry evidence, claims, copies, bundle claims, chunks | `PackageScopeVerdicts[]`        |
 | Canonical projection   | Every canonical layer above                             | `CanonicalResolutionProjection` |
 | Existing view contract | Registry evidence plus canonical results                | `SharedParticipantRow[]`        |
 
@@ -531,7 +536,7 @@ executed the target.
 This view answers _what do views (and any future graph) read?_ Ingest runs
 the complete canonical pipeline — claims, copies with attached `copyId`
 links, chunk groups, bundle claims, package measures, tag pools, grouping
-facets, pool families — and publishes one
+facets, pool families, package verdicts — and publishes one
 raw-free `CanonicalResolutionProjection` on the store model
 (`buildCanonicalProjection`). The projection never exposes `SnapshotV1`, the
 raw repositories, or the compatibility `sharedRows`; its
@@ -560,7 +565,30 @@ classDiagram
     +OrphanPoolTag[] orphanPoolTags
     +PoolFamily[] poolFamilies
     +CopyGroupingFacets[] copyGroupingFacets
+    +PackageScopeVerdicts[] packageScopeVerdicts
     +ResolutionCompleteness completeness
+  }
+  class PackageScopeVerdicts {
+    +SharedExternalId sharedExternalId
+    +string shareScope
+    +string packageName
+    +string? electedTag
+    +VersionVerdict[] versions
+    +DeclarationVerdictRecord[] declarations
+    +TornEntrypoint[] torn
+  }
+  class VersionVerdict {
+    +string tag
+    +VersionStatus status
+    +ResolvedDependencyCopyId[] copyIds
+    +VersionBuild[] builds
+    +boolean merged
+  }
+  class DeclarationVerdictRecord {
+    +ParticipantDeclarationId declarationId
+    +DeclarationVerdict verdict
+    +boolean? acceptsElected
+    +string? runsTag
   }
   class TagPool {
     +string name
@@ -630,6 +658,10 @@ classDiagram
   CanonicalResolutionProjection "1" *-- "0..*" CopyGroupingFacets
   PoolFamily "1" --> "1" TagPool : poolId, same order
   CopyGroupingFacets "1" --> "1" ResolvedDependencyCopy : copyId, same order
+  CanonicalResolutionProjection "1" *-- "0..*" PackageScopeVerdicts
+  PackageScopeVerdicts "1" *-- "1..*" VersionVerdict : semver descending
+  PackageScopeVerdicts "1" *-- "0..*" DeclarationVerdictRecord : registry order
+  VersionVerdict "1" --> "0..*" ResolvedDependencyCopy : copyIds
   CanonicalResolutionProjection "1" *-- "1" ResolutionCompleteness
   ResolutionCompleteness "1" *-- "0..*" IncompleteConsumerResolution
   ConsumerCopyRelation "0..*" --> "1" ResolvedDependencyCopy : copyId
@@ -682,6 +714,21 @@ single build ships marks a torn consumer. A stored `poolCause` is published
 as is, never inferred. `copyGroupingFacets` (one per copy, same order) names
 each copy's share scope, tag pool, and build outputs; the Graph's share-scope,
 pool, and build groupings read nothing else.
+
+Package verdicts restate the resolver's own decisions per registry key
+(share scope, package), the Packages tab's read surface. The elected tag is
+the `share` row (none in the `strict` scope); each declaration's verdict is
+read off its row action — first participant of the `share` row `provides`,
+a `scope` row is an `own-copy`, a `skip` row `reuses-shared` — and the one
+computation is again the `semver` range check, which tells `reuses-shared`
+from `out-of-range` (a non-strict declaration the orchestrator left on a
+plain `skip` although its range rejects the elected tag). Each registered
+version carries its status (`shared`, `scoped`, `partly-mapped`,
+`not-mapped`) and its builds, the copies that materialize it with their
+entry and chunk files; `merged` marks a version assembled from several
+builds, observed from the map. `torn` lists specifiers the elected version's
+copies lack and another version self-fills. An unreadable range or a
+missing election yields `unknown`, never a guess.
 
 Completeness counts each unique binding once: `total` reports unknown,
 unmapped, and blocked bindings plus ambiguous source claims without double
