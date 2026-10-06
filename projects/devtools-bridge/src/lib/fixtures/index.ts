@@ -1,13 +1,25 @@
 import { SnapshotV1 } from '../snapshot-v1';
 import { cleanSkipFixture } from './clean-skip.fixture';
 import { coDeclaredShareFixture } from './co-declared-share.fixture';
+import { denseBothFixture } from './dense-both.fixture';
+import { denseChunkingOnlyFixture } from './dense-chunking-only.fixture';
+import { denseExternalsOnlyFixture } from './dense-externals-only.fixture';
 import { dynamicInitNativeFixture } from './dynamic-init-native.fixture';
 import { dynamicInitShimFixture } from './dynamic-init-shim.fixture';
 import { dynamicOverrideFixture } from './dynamic-override.fixture';
 import { exportedPlaygroundCheckoutFixture } from './exported-playground-checkout.fixture';
 import { frankensteinLiveFixture } from './frankenstein-live.fixture';
+import { mergedEntrypointsFixture } from './merged-entrypoints.fixture';
+import { multiScopeFixture } from './multi-scope.fixture';
 import { nonDenseFixture } from './non-dense.fixture';
+import { outOfRangeNonstrictFixture } from './out-of-range-nonstrict.fixture';
 import { poolingAnchorFixture } from './pooling-anchor.fixture';
+import { poolPortfolioFixture } from './pool-portfolio.fixture';
+import { poolShowcaseFixture } from './pool-showcase.fixture';
+import { poolTagAnchoredFixture } from './pool-tag-anchored.fixture';
+import { poolTagCoherentFixture } from './pool-tag-coherent.fixture';
+import { poolTagIslandedFixture } from './pool-tag-islanded.fixture';
+import { poolTagOrphanFixture } from './pool-tag-orphan.fixture';
 import { scopeIsolationFixture } from './scope-isolation.fixture';
 import { scopedFixture } from './scoped.fixture';
 import { selfFillFixture } from './self-fill.fixture';
@@ -25,6 +37,7 @@ import { syntheticMissingChannelFixture } from './synthetic-missing-channel.fixt
 import { syntheticMultiVersionFixture } from './synthetic-multi-version.fixture';
 import { syntheticNoImportMapsFixture } from './synthetic-no-import-maps.fixture';
 import { syntheticNotRecognizedFixture } from './synthetic-not-recognized.fixture';
+import { tornManyFixture } from './torn-many.fixture';
 
 /**
  * All checked-in fixtures. Ids equal the fixture file basenames
@@ -41,17 +54,30 @@ export const FIXTURES = {
   'frankenstein-live': frankensteinLiveFixture,
   'clean-skip': cleanSkipFixture,
   'co-declared-share': coDeclaredShareFixture,
+  'dense-both': denseBothFixture,
+  'dense-chunking-only': denseChunkingOnlyFixture,
+  'dense-externals-only': denseExternalsOnlyFixture,
   'dynamic-init-native': dynamicInitNativeFixture,
   'dynamic-init-shim': dynamicInitShimFixture,
   'dynamic-override': dynamicOverrideFixture,
   'exported-playground-checkout': exportedPlaygroundCheckoutFixture,
+  'merged-entrypoints': mergedEntrypointsFixture,
+  'multi-scope': multiScopeFixture,
   'non-dense': nonDenseFixture,
+  'out-of-range-nonstrict': outOfRangeNonstrictFixture,
   'pooling-anchor': poolingAnchorFixture,
+  'pool-portfolio': poolPortfolioFixture,
+  'pool-showcase': poolShowcaseFixture,
+  'pool-tag-anchored': poolTagAnchoredFixture,
+  'pool-tag-coherent': poolTagCoherentFixture,
+  'pool-tag-islanded': poolTagIslandedFixture,
+  'pool-tag-orphan': poolTagOrphanFixture,
   'scope-isolation': scopeIsolationFixture,
   scoped: scopedFixture,
   'self-fill': selfFillFixture,
   'strict-scope': strictScopeFixture,
   'strict-split': strictSplitFixture,
+  'torn-many': tornManyFixture,
   'synthetic-collision': syntheticCollisionFixture,
   'synthetic-dense-entries': syntheticDenseEntriesFixture,
   'synthetic-hostile': syntheticHostileFixture,

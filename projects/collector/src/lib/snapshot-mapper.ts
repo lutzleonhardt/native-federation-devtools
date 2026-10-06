@@ -207,7 +207,11 @@ type WebStorage = 'localStorage' | 'sessionStorage';
 
 const WEB_STORAGES: readonly WebStorage[] = ['localStorage', 'sessionStorage'];
 
-function readDescriptorEntries(orchestrator: unknown): DescriptorEntry[] {
+function readDescriptorEntries(
+  orchestrator: unknown,
+  errors: CollectionError[],
+  limits: CollectorLimits,
+): DescriptorEntry[] {
   const entries = dataValue(orchestrator, 'entries');
   if (!Array.isArray(entries)) {
     return [];
@@ -215,16 +219,29 @@ function readDescriptorEntries(orchestrator: unknown): DescriptorEntry[] {
   const output: DescriptorEntry[] = [];
   for (const entry of entries) {
     const namespace = dataValue(entry, 'namespace');
-    const version = dataValue(entry, 'version');
     if (typeof namespace === 'string') {
       output.push({
         namespace,
         type: dataValue(entry, 'type'),
-        version: typeof version === 'string' ? version : null,
+        version: versionToken(dataValue(entry, 'version'), errors, limits),
       });
     }
   }
   return output;
+}
+
+// A version token or nothing: anything else a page put there is dropped, never carried as text.
+const VERSION_TOKEN = /^[0-9A-Za-z.+-]{1,64}$/;
+
+function versionToken(
+  version: unknown,
+  errors: CollectionError[],
+  limits: CollectorLimits,
+): string | null {
+  if (version === undefined || version === null) return null;
+  if (typeof version === 'string' && VERSION_TOKEN.test(version)) return version;
+  appendError(errors, limits, 'mapper', 'orchestrator-version-invalid');
+  return null;
 }
 
 /**
@@ -266,7 +283,7 @@ function mapRuntime(
 ): RuntimeResult {
   const summary = dataValue(globals, 'nativeFederation');
   const source = readProbeSource(summary);
-  const entries = readDescriptorEntries(dataValue(globals, 'orchestrator'));
+  const entries = readDescriptorEntries(dataValue(globals, 'orchestrator'), errors, limits);
   const describe = (storage: RuntimeStorageV1): RuntimeSourceV1 => ({
     storage,
     namespace: source.namespace,
@@ -604,8 +621,10 @@ function toExternalScopes(
       if (!isObjectLike(externalRaw)) {
         continue;
       }
+      const poolName = dataValue(externalRaw, 'poolName');
       scopeOutput[pkg] = {
         dirty: dataValue(externalRaw, 'dirty') === true,
+        ...(typeof poolName === 'string' ? { poolName } : {}),
         versions: toExternalVersions(dataValue(externalRaw, 'versions'), errors, limits, `shared-externals.${pkg}`),
       };
     }
@@ -718,6 +737,7 @@ function toExternalRemotes(
     const bundle = dataValue(remoteRaw, 'bundle');
     const pool = dataValue(remoteRaw, 'pool');
     const servedBy = dataValue(remoteRaw, 'servedBy');
+    const poolCause = dataValue(remoteRaw, 'poolCause');
     remotes.push({
       name,
       requiredVersion,
@@ -728,6 +748,7 @@ function toExternalRemotes(
       bundle: typeof bundle === 'string' ? bundle : null,
       ...(typeof pool === 'string' ? { pool } : {}),
       ...(typeof servedBy === 'string' ? { servedBy } : {}),
+      ...(typeof poolCause === 'string' ? { poolCause } : {}),
       servedFiles:
         entries !== null
           ? Object.entries(entries).map(([entry, entryFile]) => ({ entry, file: entryFile }))

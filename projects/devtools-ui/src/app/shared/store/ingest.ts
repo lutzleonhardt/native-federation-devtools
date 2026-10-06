@@ -45,7 +45,11 @@ import {
   buildCanonicalProjection,
   deriveBundleClaims,
   deriveChunkGroups,
+  deriveCopyGroupingFacets,
+  derivePackageVerdicts,
+  derivePoolFamilies,
   deriveResolutionClaims,
+  deriveTagPools,
   materializeResolvedCopies,
   normalizeRegistryEvidence,
   projectSharedRows,
@@ -63,7 +67,11 @@ export function ingestSnapshot(snapshot: SnapshotV1): FederationModel {
   // against the parse-time document base, not the capture URL — on an SPA
   // page `pushState` has moved `pageUrl` away from the base the loader and
   // the NF runtime already resolved against.
-  const resolutionBase = deriveResolutionBase(tags, snapshot.importMaps?.effective ?? null, pageUrl);
+  const resolutionBase = deriveResolutionBase(
+    tags,
+    snapshot.importMaps?.effective ?? null,
+    pageUrl,
+  );
   const baseUrl = resolutionBase.url;
   const effectiveMap = mergeDocumentMaps(tags, baseUrl);
   const mapTargets = collectTargets(effectiveMap);
@@ -122,13 +130,15 @@ export function ingestSnapshot(snapshot: SnapshotV1): FederationModel {
     canonicalChunkGroups,
   );
   const resolvedCopies = attachBundleClaimIds(materializedCopies, bundleClaims);
+  const tagPools = deriveTagPools(registryEvidence);
+  const projectedRemotes = remotes.map(({ name, isHost, scopeUrl, resolvedScopeUrl }) => ({
+    name,
+    isHost,
+    scopeUrl,
+    resolvedScopeUrl,
+  }));
   const resolutionProjection = buildCanonicalProjection({
-    remotes: remotes.map(({ name, isHost, scopeUrl, resolvedScopeUrl }) => ({
-      name,
-      isHost,
-      scopeUrl,
-      resolvedScopeUrl,
-    })),
+    remotes: projectedRemotes,
     resolutions: effectiveConsumerResolutions,
     claims: { ...resolutionClaims, declarationResolutionClaims },
     copies: resolvedCopies,
@@ -139,6 +149,22 @@ export function ingestSnapshot(snapshot: SnapshotV1): FederationModel {
       declarationResolutionClaims,
       resolvedCopies,
     ),
+    tagPools,
+    copyGroupingFacets: deriveCopyGroupingFacets(
+      registryEvidence,
+      resolvedCopies,
+      bundleClaims,
+      tagPools.tagPools,
+    ),
+    poolFamilies: derivePoolFamilies(registryEvidence, tagPools.tagPools, NF_HOST),
+    packageScopeVerdicts: derivePackageVerdicts(registryEvidence, {
+      claims: declarationResolutionClaims,
+      copies: resolvedCopies,
+      resolutions: effectiveConsumerResolutions,
+      bundleClaims,
+      chunkGroups: canonicalChunkGroups,
+      remotes: projectedRemotes,
+    }),
   });
 
   const scopedPackages: ScopedPackageRow[] = [];

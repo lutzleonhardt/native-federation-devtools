@@ -13,6 +13,9 @@ import { mergeDocumentMaps, resolveUrl } from '../merge-document-maps';
 import { buildCanonicalProjection } from './build-canonical-projection';
 import { attachBundleClaimIds, deriveBundleClaims } from './derive-bundle-claims';
 import { deriveChunkGroups } from './derive-chunk-groups';
+import { deriveCopyGroupingFacets, deriveTagPools } from './derive-grouping-facets';
+import { derivePackageVerdicts } from './derive-package-verdicts';
+import { derivePoolFamilies } from './derive-pool-families';
 import { deriveResolutionClaims } from './derive-declaration-claims';
 import * as resolutionBarrel from './index';
 import { attachCopyIds, materializeResolvedCopies } from './materialize-resolved-copies';
@@ -152,13 +155,17 @@ function project(snapshot: SnapshotV1): CanonicalResolutionProjection {
   const chunkGroups = deriveChunkGroups(evidence, snapshot.runtime?.sharedChunks ?? {});
   const bundleClaims = deriveBundleClaims(evidence, claims, copies, chunkGroups);
   const attachedCopies = attachBundleClaimIds(copies, bundleClaims);
-  return buildCanonicalProjection({
-    remotes: Object.entries(snapshot.runtime?.remotes ?? {}).map(([name, remote]) => ({
+  const tagPools = deriveTagPools(evidence);
+  const projectedRemotes = Object.entries(snapshot.runtime?.remotes ?? {}).map(
+    ([name, remote]) => ({
       name,
       isHost: name === NF_HOST,
       scopeUrl: remote.scopeUrl,
       resolvedScopeUrl: resolveUrl(remote.scopeUrl, pageUrl),
-    })),
+    }),
+  );
+  return buildCanonicalProjection({
+    remotes: projectedRemotes,
     resolutions,
     claims: { ...claims, declarationResolutionClaims },
     copies: attachedCopies,
@@ -169,6 +176,22 @@ function project(snapshot: SnapshotV1): CanonicalResolutionProjection {
       declarationResolutionClaims,
       attachedCopies,
     ),
+    tagPools,
+    copyGroupingFacets: deriveCopyGroupingFacets(
+      evidence,
+      attachedCopies,
+      bundleClaims,
+      tagPools.tagPools,
+    ),
+    poolFamilies: derivePoolFamilies(evidence, tagPools.tagPools, NF_HOST),
+    packageScopeVerdicts: derivePackageVerdicts(evidence, {
+      claims: declarationResolutionClaims,
+      copies: attachedCopies,
+      resolutions,
+      bundleClaims,
+      chunkGroups,
+      remotes: projectedRemotes,
+    }),
   });
 }
 
@@ -182,12 +205,17 @@ describe('buildCanonicalProjection — raw-free surface (T6-AC-04)', () => {
       'completeness',
       'consumerRelations',
       'copies',
+      'copyGroupingFacets',
       'declarationResolutionClaims',
       'observedTargetProviders',
+      'orphanPoolTags',
       'packageMeasures',
+      'packageScopeVerdicts',
+      'poolFamilies',
       'registryServingSlotClaims',
       'remotes',
       'sourceComparisons',
+      'tagPools',
     ]);
     expect(Object.keys(projection.completeness).sort()).toEqual([
       'byConsumer',
@@ -495,7 +523,11 @@ describe('resolution layer surface (T6-AC-06)', () => {
       'buildCanonicalProjection',
       'deriveBundleClaims',
       'deriveChunkGroups',
+      'deriveCopyGroupingFacets',
+      'derivePackageVerdicts',
+      'derivePoolFamilies',
       'deriveResolutionClaims',
+      'deriveTagPools',
       'materializeResolvedCopies',
       'normalizeRegistryEvidence',
       'projectSharedRows',

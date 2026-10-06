@@ -1,6 +1,9 @@
 import type { BundleClaim, ChunkGroupProjection } from './bundle-claims-model';
 import type { DeclarationResolutionClaim, ResolutionClaimsDerivation } from './claims-model';
 import type { PackageResolutionMeasures, ResolvedDependencyCopy } from './copies-model';
+import type { CopyGroupingFacets, TagPoolDerivation } from './grouping-model';
+import type { PoolFamily } from './pool-family-model';
+import type { PackageScopeVerdicts } from './verdict-model';
 import { registryEvidenceId } from './ids';
 import type { EffectiveConsumerResolution } from './model';
 import type {
@@ -23,6 +26,10 @@ export interface CanonicalProjectionInputs {
   chunkGroups: readonly ChunkGroupProjection[];
   bundleClaims: readonly BundleClaim[];
   packageMeasures: readonly PackageResolutionMeasures[];
+  tagPools: TagPoolDerivation;
+  copyGroupingFacets: readonly CopyGroupingFacets[];
+  poolFamilies: readonly PoolFamily[];
+  packageScopeVerdicts: readonly PackageScopeVerdicts[];
 }
 
 /**
@@ -47,6 +54,11 @@ export function buildCanonicalProjection(
     observedTargetProviders: [...inputs.claims.observedTargetProviders],
     sourceComparisons: [...inputs.claims.sourceComparisons],
     packageMeasures: [...inputs.packageMeasures],
+    tagPools: [...inputs.tagPools.tagPools],
+    orphanPoolTags: [...inputs.tagPools.orphanPoolTags],
+    poolFamilies: [...inputs.poolFamilies],
+    copyGroupingFacets: [...inputs.copyGroupingFacets],
+    packageScopeVerdicts: [...inputs.packageScopeVerdicts],
     completeness: deriveCompleteness(inputs),
   };
 }
