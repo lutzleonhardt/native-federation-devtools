@@ -16,7 +16,10 @@ import { buildPoolsVm, hasPoolTags, type PoolCardVm } from './pools-view-model';
 // Each fixture carries the version its page exposed: 4.7.0 for the nf-lab corpus, none for v2.
 const vmOfSnapshot = (snapshot: SnapshotV1) => {
   const model = ingestSnapshot(snapshot);
-  return buildPoolsVm(model.resolutionProjection, model.provenance.orchestratorVersion);
+  return buildPoolsVm(
+    model.resolutionProjection,
+    model.provenance.runtimeSource?.orchestratorVersion ?? null,
+  );
 };
 const vmOf = (id: FixtureId) => vmOfSnapshot(FIXTURES[id]);
 const projectionOf = (id: FixtureId) => ingestSnapshot(FIXTURES[id]).resolutionProjection;

@@ -97,7 +97,7 @@ function makeRawAnchorProbe(
   });
 
   return {
-    schemaVersion: 'passive-probe/3',
+    schemaVersion: 'passive-probe/4',
     page: { origin: 'https://edge.example', path: '/', readyState: 'complete' },
     globals: {
       nativeFederation: {
@@ -265,25 +265,25 @@ describe('orchestrator version from __NF_ORCHESTRATOR__', () => {
 
   it('carries the published version without calling get', () => {
     const { snapshot, counters } = orchestratorPage({ version: '4.7.0' });
-    expect(snapshot.runtime!.orchestratorVersion).toBe('4.7.0');
+    expect(snapshot.runtimeSource!.orchestratorVersion).toBe('4.7.0');
     expect(counters.getCalls).toBe(0);
     expect(snapshot.errors).toEqual([]);
   });
 
-  it('omits the version when the page publishes no descriptor (before v4.7)', () => {
+  it('reports no version when the page publishes no descriptor (before v4.7)', () => {
     const snapshot = captureInlineAnchor(makeAnchorParticipant());
-    expect(hasOwn(snapshot.runtime!, 'orchestratorVersion')).toBe(false);
+    expect(snapshot.runtimeSource!.orchestratorVersion).toBeNull();
   });
 
   it('drops a version that is not a version token', () => {
     const { snapshot } = orchestratorPage({ version: '4.7.0 <script>' });
-    expect(hasOwn(snapshot.runtime!, 'orchestratorVersion')).toBe(false);
+    expect(snapshot.runtimeSource!.orchestratorVersion).toBeNull();
     expect(snapshot.errors.map((error) => error.code)).toContain('orchestrator-version-invalid');
   });
 
   it('skips an accessor-backed version without invoking it', () => {
     let getterCalls = 0;
-    const entry = {};
+    const entry = { type: 'globalThis' };
     Object.defineProperty(entry, 'version', {
       enumerable: true,
       get() {
@@ -299,7 +299,7 @@ describe('orchestrator version from __NF_ORCHESTRATOR__', () => {
       capturedAt: CAPTURED_AT,
     });
     expect(getterCalls).toBe(0);
-    expect(hasOwn(snapshot.runtime!, 'orchestratorVersion')).toBe(false);
+    expect(snapshot.runtimeSource!.orchestratorVersion).toBeNull();
     expect(snapshot.errors.map((error) => error.code)).toContain('accessor-skipped');
   });
 });
